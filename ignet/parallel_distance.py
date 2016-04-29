@@ -7,7 +7,7 @@ import multiprocessing as mp
 
 from .utils.utils import _terminate, progressbar
 
-def _dist2nearest_dual(lock, list1, list2, global_idx, shared_arr, dist_function, **kwargs):
+def _dist2nearest_dual(lock, list1, list2, global_idx, shared_arr, dist_function):
     """Parallelize a general computation of a distance matrix.
 
     Parameters
@@ -36,14 +36,14 @@ def _dist2nearest_dual(lock, list1, list2, global_idx, shared_arr, dist_function
             if idx % 100 == 0: progressbar(idx, list_len)
         elem_1 = list1[idx]
         for idx_j in range(len(list2)):
-            _aux = dist_function(elem_1, list2[idx_j], **kwargs)
+            _aux = dist_function(elem_1, list2[idx_j])
             if _aux != 0:
                 _prev = shared_arr[idx]
                 if _prev == 0 or _prev > _aux:
                     shared_arr[idx] = _aux
 
 
-def dist2nearest_dual(list1, list2, dist_function, **kwargs):
+def dist2nearest_dual(list1, list2, dist_function):
     """Compute in a parallel way a dist2nearest (without 0 vals) for two 1-d arrays
 
     Parameters
@@ -67,7 +67,7 @@ def dist2nearest_dual(list1, list2, dist_function, **kwargs):
     try:
         for _ in range(n_proc):
             p = mp.Process(target=_dist2nearest_dual,
-                        args=(lock, list1, list2, index, shared_array, dist_function, **kwargs))
+                        args=(lock, list1, list2, index, shared_array, dist_function))
             p.start()
             ps.append(p)
 
@@ -80,7 +80,7 @@ def dist2nearest_dual(list1, list2, dist_function, **kwargs):
     progressbar(n,n)
     return shared_array
 
-def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_function, **kwargs):
+def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_function):
     """Parallelize a general computation of a distance matrix.
 
     Parameters
@@ -109,10 +109,10 @@ def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_functi
             if idx % 100 == 0: progressbar(idx, list_len)
         elem_1 = list1[idx]
         for idx_j in range(len(list2)):
-            shared_arr[idx, idx_j] = dist_function(elem_1, list2[idx_j], **kwargs)
+            shared_arr[idx, idx_j] = dist_function(elem_1, list2[idx_j])
 
 
-def dense_dm_dual(list1, list2, dist_function, condensed=False, **kwargs):
+def dense_dm_dual(list1, list2, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d array.
 
     Parameters
@@ -136,7 +136,7 @@ def dense_dm_dual(list1, list2, dist_function, condensed=False, **kwargs):
     try:
         for _ in range(n_proc):
             p = mp.Process(target=_dense_distance_dual,
-                        args=(lock, list1, list2, index, shared_array, dist_function, **kwargs))
+                        args=(lock, list1, list2, index, shared_array, dist_function))
             p.start()
             ps.append(p)
 
@@ -151,7 +151,7 @@ def dense_dm_dual(list1, list2, dist_function, condensed=False, **kwargs):
     return dist_matrix
 
 
-def _dense_distance(lock, input_list, global_idx, shared_arr, dist_function, **kwargs):
+def _dense_distance(lock, input_list, global_idx, shared_arr, dist_function):
     """Parallelize a general computation of a distance matrix.
 
     Parameters
@@ -181,10 +181,10 @@ def _dense_distance(lock, input_list, global_idx, shared_arr, dist_function, **k
 
         elem_1 = input_list[idx]
         for idx_j in range(idx+1, list_len):
-            shared_arr[idx, idx_j] = dist_function(elem_1, input_list[idx_j], **kwargs)
+            shared_arr[idx, idx_j] = dist_function(elem_1, input_list[idx_j])
 
 
-def dense_dm(input_array, dist_function, condensed=False, **kwargs):
+def dense_dm(input_array, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d array.
 
     Parameters
@@ -209,7 +209,7 @@ def dense_dm(input_array, dist_function, condensed=False, **kwargs):
     try:
         for _ in range(n_proc):
             p = mp.Process(target=_dense_distance,
-                        args=(lock, input_array, index, shared_array, dist_function, **kwargs))
+                        args=(lock, input_array, index, shared_array, dist_function))
             p.start()
             ps.append(p)
 
@@ -225,7 +225,7 @@ def dense_dm(input_array, dist_function, condensed=False, **kwargs):
     return dist_matrix
 
 
-def _sparse_distance(lock, input_list, global_idx, rows, cols, data, dist_function, **kwargs):
+def _sparse_distance(lock, input_list, global_idx, rows, cols, data, dist_function):
     """Parallelize a general computation of a sparse distance matrix.
 
     Parameters
@@ -255,7 +255,7 @@ def _sparse_distance(lock, input_list, global_idx, rows, cols, data, dist_functi
 
         elem_1 = input_list[idx]
         for idx_j in range(idx+1, list_len):
-             _res = dist_function(elem_1, input_list[idx_j], **kwargs)
+             _res = dist_function(elem_1, input_list[idx_j])
              if _res > 0:
                  i, j, d = idx, idx_j, list_len
                  c_idx = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
@@ -265,7 +265,7 @@ def _sparse_distance(lock, input_list, global_idx, rows, cols, data, dist_functi
 
 
 
-def sparse_dm(input_array, dist_function, condensed=False, **kwargs):
+def sparse_dm(input_array, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d input array.
 
     Parameters
@@ -293,7 +293,7 @@ def sparse_dm(input_array, dist_function, condensed=False, **kwargs):
         for _ in range(nproc):
             p = mp.Process(target=_sparse_distance,
                         args=(lock, input_array, idx, rows, cols, data,
-                              dist_function, **kwargs))
+                              dist_function))
             p.start()
             ps.append(p)
         for p in ps:
@@ -315,6 +315,6 @@ def sparse_dm(input_array, dist_function, condensed=False, **kwargs):
     return dist_matrix
 
 
-def distance_matrix_parallel(input_array, dist_function, condensed=False, sparse_mode=False, **kwargs):
+def distance_matrix_parallel(input_array, dist_function, condensed=False, sparse_mode=False):
     _ = sparse_dm if sparse_mode else dense_dm
-    return _(input_array, dist_function, condensed=condensed, **kwargs)
+    return _(input_array, dist_function, condensed=condensed)

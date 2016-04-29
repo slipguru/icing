@@ -155,10 +155,9 @@ def distance_matrix(config_file, sparse_mode=True):
     # n = max(max(rows), max(cols))+1
 
     # sim = 1 - np.array(data)
-    D = scipy.sparse.csr_matrix((data,(rows,cols)), shape=(ndim, ndim))
-    dist_matrix = D + D.T
-    return dist_matrix
-
+    S_ = scipy.sparse.csr_matrix((data,(rows,cols)), shape=(ndim, ndim))
+    similarity_matrix = S_ + S_.T + scipy.eye(S_.shape[0])
+    return similarity_matrix
 
 
 if __name__ == '__main__':
