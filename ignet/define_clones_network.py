@@ -163,11 +163,30 @@ def distance_matrix(config_file, sparse_mode=True):
     similarity_matrix = S_ + S_.T + scipy.eye(S_.shape[0])
     return similarity_matrix
 
+def define_clusts(similarity_matrix):
+    from sklearn.utils.sparsetools import connected_components
+    n, labels = connected_components(similarity_matrix)
+    prev_max_clust = 0
+    clusters = []
+    for i in range(n):
+        idxs = np.where(labels == i)
+        if idxs[0].shape[0] > 1:
+            D_ = 1. - similarity_matrix[idxs[0]][:,idxs[0]].toarray()
+            links = linkage(squareform(D_), 'ward')
+            clusters_ = fcluster(links, 0.053447011367803443,
+                                criterion='distance') + prev_max_clust
+            clusters.append(clusters_)
+            prev_max_clust = max(clusters_)
+        else: # connected component contains just 1 element
+            prev_max_clust += 1
+            clusters.append(prev_max_clust)
+    return clusters
 
-def sil_score(similarity_matrix):
-    links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
-    clusters = fcluster(links, 0.053447011367803443, criterion='distance')
-    DbCore.compute_silhouette_score(squareform(dists), clusters, len(clusters))
+
+def sil_score(similarity_matrix, clusters):
+    # links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
+    # clusters = fcluster(links, 0.053447011367803443, criterion='distance')
+    DbCore.compute_silhouette_score(squareform(1. - similarity_matrix.toarray()), clusters, len(clusters))
 
 
 if __name__ == '__main__':
@@ -176,4 +195,5 @@ if __name__ == '__main__':
         sys.exit(-1)
 
     similarity_matrix = distance_matrix(sys.argv[1])
-    sil_score(similarity_matrix)
+    clusters = define_clusts(similarity_matrix)
+    sil_score(similarity_matrix, clusters)

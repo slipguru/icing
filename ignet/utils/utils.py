@@ -10,7 +10,7 @@ def junction_re(x, n='N'):
     return re.sub('[\.-]', n, str(x))
 
 def flatten(x):
-    return [y for l in x for y in flatten(l)] if type(x) is list else [x]
+    return [y for l in x for y in flatten(l)] if type(x) is list or type(x) == np.ndarray else [x]
 
 def _terminate(ps, e=''):
     '''Terminate processes in ps and exit the program. '''
