@@ -10,7 +10,11 @@ import numpy as np
 import scipy
 import joblib as jl
 
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
+
 import changeo
+from changeo import DbCore
 
 from . import parallel_distance
 from .distances import junction_distance, string_distance
@@ -160,9 +164,16 @@ def distance_matrix(config_file, sparse_mode=True):
     return similarity_matrix
 
 
+def sil_score(similarity_matrix):
+    links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
+    clusters = fcluster(links, 0.053447011367803443, criterion='distance')
+    DbCore.compute_silhouette_score(squareform(dists), clusters, len(clusters))
+
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print("USAGE: define_clones_network.py <CONFIG_FILE>")
         sys.exit(-1)
-    else:
-        dist_matrix = distance_matrix(sys.argv[1])
+
+    similarity_matrix = distance_matrix(sys.argv[1])
+    sil_score(similarity_matrix)
