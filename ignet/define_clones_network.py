@@ -46,8 +46,6 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
     J_genes_ig1 = ig1.getJGene('set')
     J_genes_ig2 = ig2.getJGene('set')
 
-    # TODO fare prima controllo di lunghezza di junction
-
     ss = mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method)
     if ss > 0.:
         # print V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2
@@ -57,10 +55,9 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
         if model == 'hs1f': norm_by *= 2.08
         dist = string_distance(junc1, junc2, dist_mat, norm_by)
         ss *= (1 - dist)
-    d = 1 - ss
-    if d < 1:
-        d *= alpha_mut(ig1, ig2)
-    return 1 - d
+    if ss > 0:
+        ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
+    return ss
 # d_func = lambda x, y: dist_function(x, y, 'jaccard', 'ham')
 # d_wrapper = lambda x, y: (d_func(x[1], y[1]), (x[0], y[0]))
 
@@ -76,7 +73,6 @@ def d_wrapper(x,y):
 #         yield l[i:i+n]
 
 def split_list(l, n):
-    s = int(len(l) / n)
     for i in xrange(n):
         yield l[i*n:(i+1)*n]
 
@@ -180,7 +176,7 @@ def define_clusts(similarity_matrix):
         else: # connected component contains just 1 element
             prev_max_clust += 1
             clusters.append(prev_max_clust)
-    return clusters
+    return utils.flatten(clusters)
 
 
 def sil_score(similarity_matrix, clusters):
