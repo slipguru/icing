@@ -23,8 +23,8 @@ def read_db(db_file, filt=None, ig=True):
         db_iter = itertools.ifilter(filt, (IgRecord(r) for r in db_reader)) if ig else db_reader
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % db_file)
-    except:
-        sys.exit('ERROR:  File %s is invalid' % db_file)
+    except Exception as e:
+        sys.exit('ERROR: {}'.format(e))
     return db_iter
 
 def get_max_mut(db_file):
