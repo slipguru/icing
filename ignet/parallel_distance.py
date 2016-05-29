@@ -1,6 +1,7 @@
 import os
 import numpy as np
 import scipy
+import scipy.spatial
 import time, re, sys
 import multiprocessing as mp
 # import ctypes as c
@@ -106,7 +107,7 @@ def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_functi
             if not global_idx.value < list_len: return
             idx = global_idx.value
             global_idx.value += 1
-            if idx % 100 == 0: progressbar(idx, list_len)
+            #if idx % 100 == 0: progressbar(idx, list_len)
         elem_1 = list1[idx]
         for idx_j in range(len(list2)):
             shared_arr[idx, idx_j] = dist_function(elem_1, list2[idx_j])
@@ -147,7 +148,7 @@ def dense_dm_dual(list1, list2, dist_function, condensed=False):
     except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
 
     dist_matrix = shared_array.flatten() if condensed else shared_array
-    progressbar(n,n)
+    #progressbar(n,n)
     return dist_matrix
 
 
