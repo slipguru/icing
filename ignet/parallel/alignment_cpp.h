@@ -3,6 +3,7 @@
 #include <string>
 #include <iostream>
 #include <climits>
+using namespace std;
 
 #define TRUE 1
 #define FALSE 0

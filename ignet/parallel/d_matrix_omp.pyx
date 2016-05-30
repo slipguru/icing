@@ -37,11 +37,11 @@ ctypedef double (*f_type_dist)(char*, char*) ## to mod
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcmp
 from cpython.string cimport PyString_AsString
-cdef char ** to_cstring_array(list_str):
-    cdef char **ret = <char **>malloc(len(list_str) * sizeof(char *))
-    for i in xrange(len(list_str)):
-        ret[i] = PyString_AsString(list_str[i])
-    return ret
+# cdef char ** to_cstring_array(list_str):
+#     cdef char **ret = <char **>malloc(len(list_str) * sizeof(char *))
+#     for i in xrange(len(list_str)):
+#         ret[i] = PyString_AsString(list_str[i])
+#     return ret
 
 from libcpp.string cimport string
 from libcpp.vector cimport vector
@@ -63,7 +63,7 @@ cdef extern from "alignment_cpp.h":
     int local_alignment(string, string, string &, string &) nogil;
     int global_alignment(string, string, string &, string &) nogil;
 
-from libc.stdio cimport printf
+#from libc.stdio cimport printf
 # from libc.string cimport *
 # cdef double cdist_function(const char * a, const char * b) nogil:
 #     cdef:

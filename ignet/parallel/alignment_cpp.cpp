@@ -66,7 +66,7 @@ int local_alignment(string a, string b, string &a_n, string &b_n) {
 		}
 	}
 
-	print_alignment_matrix(matrix, n, m, a, b);
+	//print_alignment_matrix(matrix, n, m, a, b);
 	/*MAKE ALIGNMENT*/
     int max_score = INT_MIN;
     int imax = 0, jmax = 0;
@@ -170,7 +170,7 @@ int global_alignment(string a, string b, string &a_n, string &b_n) {
 			matrix[i*m + j] = compval;	//set current cell to highest possible score
 		}
 	}
-	print_alignment_matrix(matrix, n, m, a, b);
+	//print_alignment_matrix(matrix, n, m, a, b);
     int imax = len_a, jmax = len_b;
 
     a_n = b_n = "";
@@ -213,17 +213,16 @@ int global_alignment(string a, string b, string &a_n, string &b_n) {
     	}
         imax = relmaxpos[0];
         jmax = relmaxpos[1];
-        cout << a_n << "\n" << b_n << endl;
     }
     free(matrix);
 	return 0;
 }
 
-int main() {
-    string a = "AAATGCGGA";
-    string b = "ATGCAAA";
-    string c, d;
-    // local_alignment(a, b, c, d);
-    global_alignment(a, b, c, d);
-	cout << c << '\n' << d << endl;
-}
+// int main() {
+//     string a = "AAATGCGGA";
+//     string b = "ATGCAAA";
+//     string c, d;
+//     // local_alignment(a, b, c, d);
+//     global_alignment(a, b, c, d);
+// 	cout << c << '\n' << d << endl;
+// }
