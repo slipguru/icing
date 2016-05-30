@@ -5,7 +5,7 @@ import numpy
 
 ext_module = Extension(
     "d_matrix_omp",
-    ["d_matrix_omp.pyx"],
+    sources=["d_matrix_omp.pyx", "alignment_cpp.cpp"],
     extra_compile_args=['-fopenmp'],
     extra_link_args=['-fopenmp'],
     include_dirs=[numpy.get_include()],

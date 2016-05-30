@@ -59,11 +59,30 @@ from cpython cimport array
 
 #np.ndarray[bytes, ndim=1] list1,
 
-cdef void global_alignment(string a, string b, string &a_n, string &b_n) nogil:
-    pass
+cdef extern from "alignment_cpp.h":
+    int local_alignment(string, string, string &, string &) nogil;
+    int global_alignment(string, string, string &, string &) nogil;
 
+from libc.stdio cimport printf
+# from libc.string cimport *
+# cdef double cdist_function(const char * a, const char * b) nogil:
+#     cdef:
+#         size_t len_a = strlen(a), len_b = strlen(b);
+#         char * c = <char *>malloc(sizeof(char)*(len_a+len_b+1));
+#         char * d = <char *>malloc(sizeof(char)*(len_a+len_b+1));
+#     if(c == NULL or d == NULL):
+#         printf("Error, malloc failed");
+#     global_alignment(a, b, c, d)
+#     printf("%s\n%s", c, d)
+#     return <double>(max(strlen(a), strlen(b)))
 cdef double cdist_function(string a, string b) nogil:
-    return <double>(max(a.size(), b.size()))
+    cdef:
+        size_t len_a = a.size(), len_b = b.size();
+        string c, d;
+
+    global_alignment(a, b, c, d)
+    # printf("%s\n%s", <const char *>c, <const char*>d)
+    return <double>(max((a).size(), b.size()))
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -76,11 +95,10 @@ cdef double* dist_matrix(list3, list4):
     cdef vector[string] list2 = to_string_vector(list4)
     cdef Py_ssize_t i, j
     cdef double* M = <double *> malloc(sizeof(double) * n * m);
-    for i in xrange(n*m):
-        M[i] = 0.0
     if not M:
         raise MemoryError()
-
+    for i in xrange(n*m):
+        M[i] = 0.0
 
     cdef int num_threads
     cdef string elem_1
@@ -93,6 +111,7 @@ cdef double* dist_matrix(list3, list4):
         #with gil:
         #    M[i*m:(i+1)*m] = array.array('d', d_f(elem_1, list4, dist_function)).data.as_doubles
         for j in range(m):
+            # M[i*m+j] = cdist_function(elem_1.c_str(), list2[j].c_str())
             M[i*m+j] = cdist_function(elem_1, list2[j])
 
     return M
