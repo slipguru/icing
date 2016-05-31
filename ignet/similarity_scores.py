@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import division, print_function
 import sys
 
 def jaccard_index(nodes_A, nodes_B):
@@ -72,7 +72,9 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
     if r1 < 0 or r2 < 0:
         raise ValueError("Weights cannot be negative")
     if not J_genes_A or not J_genes_B:
-        print("J genes unspecified or zero weight. Computing similarity between V genes ...")
+        # print("J genes unspecified or zero weight. Computing similarity between V genes ...")
+        sys.stderr.write("J genes unspecified or zero weight. Computing similarity between V genes ..."
+                         "J1 = {}, J2 = {}\n".format(J_genes_A, J_genes_B))
         return similarity_score_bipartite(V_genes_A, V_genes_B, method)
     V_genes_A, V_genes_B, J_genes_A, J_genes_B = map(set,(V_genes_A, V_genes_B, J_genes_A, J_genes_B))
     w1, w2 = 1., 1.
