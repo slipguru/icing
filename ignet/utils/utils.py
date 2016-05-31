@@ -6,8 +6,8 @@ import termios
 import struct
 import re, os
 
-def junction_re(x, n='N'):
-    return re.sub('[\.-]', n, str(x))
+def junction_re(x, n='N', filt='[\.-/]'):
+    return re.sub(filt, n, str(x))
 
 def flatten(x):
     return [y for l in x for y in flatten(l)] if type(x) is list or type(x) == np.ndarray else [x]
