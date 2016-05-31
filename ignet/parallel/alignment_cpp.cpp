@@ -110,10 +110,10 @@ int local_alignment(string a, string b, string &a_n, string &b_n) {
                 //maxB needs at least one '-'
                 // value on the left
                 a_n = a[imax-1] + a_n;
-                b_n = '-' + b_n;
+                b_n = GAP + b_n;
             } else if((relmaxpos[0] == imax-1) && (relmaxpos[1] != jmax-1)) {
                 //MaxA needs at least one '-'
-                a_n = '-' + a_n;
+                a_n = GAP + a_n;
                 b_n = b[jmax-1] + b_n;
     		}
     	}
@@ -204,10 +204,10 @@ int global_alignment(string a, string b, string &a_n, string &b_n) {
                 //maxB needs at least one '-'
                 // value on the left
                 a_n = a[imax-1] + a_n;
-                b_n = '-' + b_n;
+                b_n = GAP + b_n;
             } else if((relmaxpos[0] == imax-1) && (relmaxpos[1] != jmax-1)) {
                 //MaxA needs at least one '-'
-                a_n = '-' + a_n;
+                a_n = GAP + a_n;
                 b_n = b[jmax-1] + b_n;
     		}
     	}

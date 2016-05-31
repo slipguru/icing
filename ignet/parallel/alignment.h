@@ -9,8 +9,7 @@
 #define MissMatch -4
 #define GapPenalty 10
 #define GapExt 8
-
-char dash = '-';
+#define GAP (char)'-'
 
 void print_alignment_matrix(int * M, int n, int m, const char * a, const char * b);
 int local_alignment(const char * a, const char * b, char * a_n, char * b_n);
