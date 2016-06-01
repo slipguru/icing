@@ -67,7 +67,7 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
         The computed similarity score between A and B. Values are in range [0,1].
     """
     if not V_genes_A or not V_genes_B:
-        # print("V genes unspecified or empty.")
+        sys.stderr.write("V genes unspecified or empty.")
         return 0.
     if r1 < 0 or r2 < 0:
         raise ValueError("Weights cannot be negative")
