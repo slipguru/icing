@@ -291,7 +291,7 @@ double cdist_function(const char * a, const char * b) {
 int main(int argc, char *argv[]) {
     const char * a = "aabbccddZZ-";
     const char * b = "bbFF-";
-    if(argc > 1) {
+    if(argc > 2) {
         a = argv[1];
         b = argv[2];
     }
