@@ -1,26 +1,39 @@
 #import numpy as np
 cimport numpy as np
-from numpy cimport ndarray
-from cython.parallel cimport parallel, prange, threadid
 cimport openmp
 cimport cython
+
+from numpy cimport ndarray
+from cython.parallel cimport parallel, prange, threadid
 from ctypes import c_double as double
+from cpython cimport array
+from cpython.string cimport PyString_AsString
+
+from libc.stdlib cimport malloc, free
+from libc.string cimport strcmp
+# from libcpp.string cimport string
+# from libcpp.vector cimport vector
 
 np.import_array()
 cdef inline int d_min(int a, int b): return a if a <= b else b
 ctypedef double (*f_type_dist)(char*, char*) ## to mod
 
+#np.ndarray[bytes, ndim=1] list1,
+# cdef extern from "alignment_cpp.h":
+#     int local_alignment(string, string, string &, string &) nogil;
+#     int global_alignment(string, string, string &, string &) nogil;
 
-# from libc.stdlib cimport malloc, free
-# from libc.string cimport strcmp
-# from cpython.string cimport PyString_AsString
-#
+cdef extern from "alignment.h":
+    int local_alignment(const char * a, const char * b, char * a_n, char * b_n) nogil;
+    int global_alignment(const char * a, const char * b, char * a_n, char * b_n) nogil;
+    double cdist_function(const char * a, const char * b) nogil;
+
 # cdef char ** to_cstring_array(list_str):
 #     cdef char **ret = <char **>malloc(len(list_str) * sizeof(char *))
 #     for i in xrange(len(list_str)):
 #         ret[i] = PyString_AsString(list_str[i])
 #     return ret
-#
+
 # def foo(list_str1, list_str2):
 #     cdef unsigned int i, j
 #     cdef char **c_arr1 = to_cstring_array(list_str1)
@@ -34,36 +47,18 @@ ctypedef double (*f_type_dist)(char*, char*) ## to mod
 #     free(c_arr2)
 #
 # foo(['hello', 'python', 'world'], ['python', 'rules'])
-from libc.stdlib cimport malloc, free
-from libc.string cimport strcmp
-from cpython.string cimport PyString_AsString
-# cdef char ** to_cstring_array(list_str):
-#     cdef char **ret = <char **>malloc(len(list_str) * sizeof(char *))
+# cdef string* to_string_array(list_str):
+#     cdef string *ret = <string *>malloc(len(list_str) * sizeof(string))
 #     for i in xrange(len(list_str)):
-#         ret[i] = PyString_AsString(list_str[i])
+#         ret[i] = <string>(list_str[i])
 #     return ret
 
-from libcpp.string cimport string
-from libcpp.vector cimport vector
-cdef string* to_string_array(list_str):
-    cdef string *ret = <string *>malloc(len(list_str) * sizeof(string))
-    for i in xrange(len(list_str)):
-        ret[i] = <string>(list_str[i])
-    return ret
+# cdef vector[string] to_string_vector(list_str):
+#     cdef vector[string] ret = list_str
+#     return ret
 
-cdef vector[string] to_string_vector(list_str):
-    cdef vector[string] ret = list_str
-    return ret
 
-from cpython cimport array
-
-#np.ndarray[bytes, ndim=1] list1,
-
-cdef extern from "alignment_cpp.h":
-    int local_alignment(string, string, string &, string &) nogil;
-    int global_alignment(string, string, string &, string &) nogil;
-
-#from libc.stdio cimport printf
+# from libc.stdio cimport printf
 # from libc.string cimport *
 # cdef double cdist_function(const char * a, const char * b) nogil:
 #     cdef:
@@ -73,16 +68,18 @@ cdef extern from "alignment_cpp.h":
 #     if(c == NULL or d == NULL):
 #         printf("Error, malloc failed");
 #     global_alignment(a, b, c, d)
-#     printf("%s\n%s", c, d)
+#     printf("EHI! %s and %s\n", c, d)
+#     free(c)
+#     free(d)
 #     return <double>(max(strlen(a), strlen(b)))
-cdef double cdist_function(string a, string b) nogil:
-    cdef:
-        size_t len_a = a.size(), len_b = b.size();
-        string c, d;
-
-    global_alignment(a, b, c, d)
-    # printf("%s\n%s", <const char *>c, <const char*>d)
-    return <double>(max((a).size(), b.size()))
+# cdef double cdist_function(string a, string b) nogil:
+#     cdef:
+#         size_t len_a = a.size(), len_b = b.size();
+#         string c, d;
+#
+#     global_alignment(a, b, c, d)
+#     # printf("%s\n%s", <const char *>c, <const char*>d)
+#     return <double>(max((a).size(), b.size()))
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -90,18 +87,31 @@ cdef double* dist_matrix(list3, list4):
 # def dist_matrix(char** list1, Py_ssize_t n,
 #                 char** list2, Py_ssize_t m,
 #                 dist_function):
-    cdef Py_ssize_t n = list3.shape[0], m = list4.shape[0]
-    cdef vector[string] list1 = to_string_vector(list3)
-    cdef vector[string] list2 = to_string_vector(list4)
-    cdef Py_ssize_t i, j
-    cdef double* M = <double *> malloc(sizeof(double) * n * m);
+
+    cdef:
+        Py_ssize_t n = list3.shape[0], m = list4.shape[0]
+        Py_ssize_t i, j
+        double * M = <double *> malloc(sizeof(double) * n * m);
     if not M:
         raise MemoryError()
+
+    cdef char ** list1 = <char**> malloc(n * sizeof(char*));
+    for i in xrange(n):
+        list1[i] = PyString_AsString(list3[i])
+    cdef char ** list2 = <char**> malloc((len(list4)) * sizeof(char*));
+    for i in xrange(len(list4)):
+        list2[i] = PyString_AsString(list4[i])
+
+    # cdef vector[string] list1 = list3
+    # cdef vector[string] list2 = list4
+    # cdef string * list1 = to_string_array(list3)
+    # cdef string * list2 = to_string_array(list4)
+
     for i in xrange(n*m):
         M[i] = 0.0
 
     cdef int num_threads
-    cdef string elem_1
+    cdef char * elem_1
 
     #openmp.omp_set_dynamic(1)
     for i in prange(n, nogil=True):
@@ -111,9 +121,18 @@ cdef double* dist_matrix(list3, list4):
         #with gil:
         #    M[i*m:(i+1)*m] = array.array('d', d_f(elem_1, list4, dist_function)).data.as_doubles
         for j in range(m):
+            #pass
             # M[i*m+j] = cdist_function(elem_1.c_str(), list2[j].c_str())
             M[i*m+j] = cdist_function(elem_1, list2[j])
 
+
+    #for i in xrange(len(list3)):
+    #    free(list1[i])
+
+    #for i in xrange(len(list4)):
+    #    free(list2[i])
+    free(list1)
+    free(list2)
     return M
 
 cdef data_to_numpy_array_with_spec(void * ptr, np.npy_intp N, int t):

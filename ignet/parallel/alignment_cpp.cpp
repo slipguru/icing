@@ -218,11 +218,11 @@ int global_alignment(string a, string b, string &a_n, string &b_n) {
 	return 0;
 }
 
-// int main() {
-//     string a = "AAATGCGGA";
-//     string b = "ATGCAAA";
-//     string c, d;
-//     // local_alignment(a, b, c, d);
-//     global_alignment(a, b, c, d);
-// 	cout << c << '\n' << d << endl;
-// }
+int main() {
+    string a = "AAATGCGGAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    string b = "ATGCAAA";
+    string c, d;
+    // local_alignment(a, b, c, d);
+    global_alignment(a, b, c, d);
+	cout << c << '\n' << d << endl;
+}

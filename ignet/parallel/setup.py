@@ -5,11 +5,11 @@ import numpy
 
 ext_module = Extension(
     "d_matrix_omp",
-    sources=["d_matrix_omp.pyx", "alignment_cpp.cpp"],
+    sources=["d_matrix_omp.pyx", "alignment.c"],
     extra_compile_args=['-fopenmp'],
     extra_link_args=['-fopenmp'],
     include_dirs=[numpy.get_include()],
-    language='c++'
+    # language='c++'
 )
 
 setup(

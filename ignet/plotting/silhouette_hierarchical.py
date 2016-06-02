@@ -50,18 +50,22 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n=None, mode='clusters')
 
         for p in proc_list:
             p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(process_list,'Exit signal received\n')
-    except Exception as e: _terminate(process_list,'ERROR: %s\n' % e)
-    except: _terminate(process_list,'ERROR: Exiting with unknown exception\n')
+    except (KeyboardInterrupt, SystemExit): _terminate(proc_list,'Exit signal received\n')
+    except Exception as e: _terminate(proc_list,'ERROR: %s\n' % e)
+    except: _terminate(proc_list,'ERROR: Exiting with unknown exception\n')
     return queue_x, queue_y
 
 
-def plot_avg_silhouette(X=None, config_file='config.py', method_list=None, mode='clusters', n=20, verbose=True, interactive_mode=False):
+def plot_avg_silhouette(X=None, config_file='config.py', method_list=None,
+                        mode='clusters', n=20, verbose=True,
+                        interactive_mode=False):
     """Plot average silhouette for each tree cutting using a linkage matrix
     created according to each method in method_list.
 
     Parameters
     ----------
+    X : array-like, dimensions = 2
+        Distance matrix.
     ...
     mode : str, optional, values in ['clusters', 'threshold']
         Choose what to visualise on x-axis.
@@ -80,7 +84,7 @@ def plot_avg_silhouette(X=None, config_file='config.py', method_list=None, mode=
     threshold_arr = np.linspace(0.02, 0.8, n)
 
     plt.close()
-    fig, ax = (plt.gcf(), plt.gca())# if plt.get_fignums() else plt.subplots()
+    fig, ax = (plt.gcf(), plt.gca())  # if plt.get_fignums() else plt.subplots()
     fig.suptitle("Average silhouette for each tree cutting")
     # print_utils.ax_set_defaults(ax)
 
@@ -93,7 +97,7 @@ def plot_avg_silhouette(X=None, config_file='config.py', method_list=None, mode=
         plt.savefig('ciao')
         plt.close()
         if verbose: print("Start cutting ...")
-        max_i = max(Z[:,2])
+        max_i = max(Z[:, 2])
         x, y = multi_cut_dendrogram(X, Z, threshold_arr*max_i, n, mode)
         ax.plot(x, y, Tango.nextDark(), marker='o', linestyle='-', label=method)
 
@@ -106,7 +110,7 @@ def plot_avg_silhouette(X=None, config_file='config.py', method_list=None, mode=
         plt.show()
     path = "results"
     utils.mkpath(path)
-    fn = "{}/res_silh_HC_{}.png".format(path,utils.get_time())
+    fn = "{}/res_silh_HC_{}.png".format(path, utils.get_time())
     plt.savefig(fn)
     return fn
 
@@ -150,7 +154,9 @@ def plot_avg_silhouette_joblib(X=None, config_file='config.py', method_list=None
 
         if verbose: print("Start cutting ...")
         max_i = max(Z[:,2])
-        x, y = zip(*jl.Parallel(n_jobs=mp.cpu_count())(jl.delayed(compute_x_y)(X, Z, i, mode) for i in threshold_arr*max_i))
+        x, y = zip(*jl.Parallel(n_jobs=mp.cpu_count())
+                   (jl.delayed(compute_x_y)(X, Z, i, mode)
+                   for i in threshold_arr*max_i))
         ax.plot(x, y, Tango.next(), marker='o', linestyle='-', label=method)
 
     leg = ax.legend(loc='lower right')
