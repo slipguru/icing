@@ -13,7 +13,7 @@ ext_module = Extension(
 )
 
 setup(
-    name = 'd_matrix_omp',
-    cmdclass = {'build_ext': build_ext},
-    ext_modules = [ext_module],
+    name='d_matrix_omp',
+    cmdclass={'build_ext': build_ext},
+    ext_modules=[ext_module],
 )

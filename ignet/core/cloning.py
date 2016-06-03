@@ -22,6 +22,7 @@ from .. import parallel_distance
 from ..utils import io
 from ..utils import utils
 
+
 def neg_exp(x, a, c, d):
     return a * np.exp(-c * x) + d
 
@@ -64,7 +65,7 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
 def d_func(x,y):
     return dist_function(x, y, 'jaccard', 'ham')
 
-def d_wrapper(x,y):
+def d_wrapper(x, y):
     return (d_func(x[1], y[1]), (x[0], y[0]))
 
 # def chunks(l, n):
@@ -80,7 +81,7 @@ def getVJ(d, i_igs):
     for i, ig in i_igs:
         for v in ig.getVGene('set'):
             # d.setdefault(v,[]).append((i,ig))
-            d[v] = d.get(v, []) + [(i,ig)]
+            d[v] = d.get(v, []) + [(i, ig)]
         for j in ig.getJGene('set'):
             # d.setdefault(j,[]).append((i,ig))
             d[j] = d.get(j, []) + [(i,ig)]
@@ -129,7 +130,7 @@ def distance_matrix(config_file, sparse_mode=True):
         if length > 1:
             for i in range(length):
                 for j in range(i+1, length):
-                    indicator_matrix[v[i][0],v[j][0]] = True
+                    indicator_matrix[v[i][0], v[j][0]] = True
     rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
     data = jl.Parallel(n_jobs=-1)\
         (jl.delayed(d_func)(igs[i], igs[j]) for i, j in zip(rows, cols))
@@ -155,7 +156,7 @@ def distance_matrix(config_file, sparse_mode=True):
     # n = max(max(rows), max(cols))+1
 
     # sim = 1 - np.array(data)
-    S_ = scipy.sparse.csr_matrix((data,(rows,cols)), shape=(ndim, ndim))
+    S_ = scipy.sparse.csr_matrix((data, (rows, cols)), shape=(ndim, ndim))
     similarity_matrix = S_ + S_.T + scipy.eye(S_.shape[0])
     return similarity_matrix
 
@@ -167,10 +168,10 @@ def define_clusts(similarity_matrix):
     for i in range(n):
         idxs = np.where(labels == i)
         if idxs[0].shape[0] > 1:
-            D_ = 1. - similarity_matrix[idxs[0]][:,idxs[0]].toarray()
+            D_ = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
             links = linkage(squareform(D_), 'ward')
             clusters_ = fcluster(links, 0.053447011367803443,
-                                criterion='distance') + prev_max_clust
+                                 criterion='distance') + prev_max_clust
             clusters.append(clusters_)
             prev_max_clust = max(clusters_)
         else: # connected component contains just 1 element
