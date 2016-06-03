@@ -93,25 +93,36 @@ cdef double* dist_matrix(list3, list4):
     cdef double * M = <double *> malloc(sizeof(double) * n * m);
     if not M:
         raise MemoryError()
-    for i in xrange(n*m):
-        M[i] = 0.0
-
-    cdef char ** list1 = <char**> malloc(n * sizeof(char*));
-    for i in xrange(n):
-        list1[i] = PyString_AS_STRING(list3[i])
-    cdef char ** list2 = <char**> malloc((len(list4)) * sizeof(char*));
-    for i in xrange(len(list4)):
-        list2[i] = PyString_AS_STRING(list4[i])
-
     cdef char * elem_1
+    cdef char ** list1 = <char**> malloc(n * sizeof(char*));
+    if not list1:
+        raise MemoryError()
+    for i in range(n):
+        list1[i] = PyString_AsString(list3[i])
+        fprintf(stderr, "list1 %s\n", list1[i])
+
+    cdef char ** list2 = <char**> malloc(m * sizeof(char*));
+    if not list2:
+        raise MemoryError()
+    for i in range(m):
+        list2[i] = PyString_AsString(list4[i])
+        fprintf(stderr, "list2 %s\n", list2[i])
+
+    # for i in range(n*m):
+        # M[i] = 0.0
+
+    # cdef int num_threads
+    # openmp.private(elem_1)
     # openmp.omp_set_dynamic(1)
-    # openmp.threadprivate(elem_1)
     for i in prange(n, nogil=True):
         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
+        fprintf(stderr, "list1[%d] = %s\n", i, list1[i])
         elem_1 = list1[i]
+        fprintf(stderr, "elem     = %s\n", elem_1)
         for j in range(m):
-            # printf("Analising %s and %s\n", elem_1, list2[j])
+            fprintf(stderr, "Analising %s and %s\n", elem_1, list2[j])
             M[i*m+j] = cdist_function(elem_1, list2[j])
+
 
     free(list1)
     free(list2)
