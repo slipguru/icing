@@ -94,23 +94,26 @@ cdef double* dist_matrix(list3, list4):
     if not M:
         raise MemoryError()
     cdef char * elem_1
-    cdef char ** list1 = <char**> malloc(n * sizeof(char*));
+    cdef const char ** list1 = <char**> malloc(n * sizeof(char*));
     if not list1:
         raise MemoryError()
     for i in range(n):
-        list1[i] = PyString_AsString(list3[i])
+        list1[i] = <const char *>PyString_AsString(list3[i])
         fprintf(stderr, "list1 %s\n", list1[i])
 
-    cdef char ** list2 = <char**> malloc(m * sizeof(char*));
+    cdef const char ** list2 = <char**> malloc(m * sizeof(char*));
     if not list2:
         raise MemoryError()
     for i in range(m):
-        list2[i] = PyString_AsString(list4[i])
+        list2[i] = <const char *>PyString_AsString(list4[i])
         fprintf(stderr, "list2 %s\n", list2[i])
 
     # for i in range(n*m):
         # M[i] = 0.0
-
+    for i in range(n):
+        fprintf(stderr, "list1 %s\n", list1[i])
+    for i in range(m):
+        fprintf(stderr, "list2 %s\n", list2[i])
     # cdef int num_threads
     # openmp.private(elem_1)
     # openmp.omp_set_dynamic(1)
