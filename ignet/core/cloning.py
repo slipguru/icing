@@ -4,7 +4,7 @@ Assign Ig sequences into clones
 """
 #
 # # Imports
-import os, signal, sys, textwrap, re, imp
+import os, sys, imp
 import multiprocessing as mp
 import numpy as np
 import scipy
@@ -16,16 +16,16 @@ from scipy.spatial.distance import squareform
 import changeo
 from changeo import DbCore
 
-from . import parallel_distance
 from .distances import junction_distance, string_distance
 from .similarity_scores import similarity_score_tripartite as mwi
-from .utils import io
-from .utils import utils
+from .. import parallel_distance
+from ..utils import io
+from ..utils import utils
 
 def neg_exp(x, a, c, d):
     return a * np.exp(-c * x) + d
 
-def alpha_mut(ig1, ig2, fn='negexp_pars.npy'):
+def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):
     '''Coefficient to balance distance according to mutation levels'''
     try:
         popt = np.load(fn)
@@ -131,8 +131,8 @@ def distance_matrix(config_file, sparse_mode=True):
                 for j in range(i+1, length):
                     indicator_matrix[v[i][0],v[j][0]] = True
     rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
-    data = jl.Parallel(n_jobs=-1) \
-           (jl.delayed(d_func)(igs[i],igs[j]) for i, j in zip(rows, cols))
+    data = jl.Parallel(n_jobs=-1)\
+        (jl.delayed(d_func)(igs[i], igs[j]) for i, j in zip(rows, cols))
     data = np.array(data)
     idx = data > 0
     data = data[idx]

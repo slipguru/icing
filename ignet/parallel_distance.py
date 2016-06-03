@@ -1,8 +1,8 @@
-import os
+# import os
 import numpy as np
 import scipy
 import scipy.spatial
-import time, re, sys
+# import time, re, sys
 import multiprocessing as mp
 # import ctypes as c
 
@@ -45,7 +45,8 @@ def _dist2nearest_dual(lock, list1, list2, global_idx, shared_arr, dist_function
 
 
 def dist2nearest_dual(list1, list2, dist_function):
-    """Compute in a parallel way a dist2nearest (without 0 vals) for two 1-d arrays
+    """Compute in a parallel way a dist2nearest (without 0 vals) for two 1-d
+    arrays.
 
     Parameters
     ----------
@@ -68,7 +69,8 @@ def dist2nearest_dual(list1, list2, dist_function):
     try:
         for _ in range(n_proc):
             p = mp.Process(target=_dist2nearest_dual,
-                        args=(lock, list1, list2, index, shared_array, dist_function))
+                           args=(lock, list1, list2, index, shared_array,
+                                 dist_function))
             p.start()
             ps.append(p)
 
@@ -78,8 +80,9 @@ def dist2nearest_dual(list1, list2, dist_function):
     except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
     except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
 
-    progressbar(n,n)
+    progressbar(n, n)
     return shared_array
+
 
 def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_function):
     """Parallelize a general computation of a distance matrix.
@@ -313,6 +316,95 @@ def sparse_dm(input_array, dist_function, condensed=False):
     dist_matrix = D + D.T
     if condensed: dist_matrix = scipy.spatial.distance.squareform(dist_matrix)
     progressbar(n,n)
+    return dist_matrix
+
+
+def _sparse_distance_opt(lock, input_list, global_idx, rows, cols, data, func):
+    """Parallelize a general computation of a sparse distance matrix.
+
+    Parameters
+    ----------
+    lock : multiprocessing.synchronize.Lock
+        Value returned from multiprocessing.Lock().
+    input_list : list
+        List of values to compare to input_list[idx] (from 'idx' on).
+    shared_arr : array_like
+        Numpy array created as a shared object. Iteratively updated with the result.
+        Example:
+            shared_array = np.frombuffer(mp.Array('d', n*n).get_obj()).reshape((n,n))
+
+    Returns
+    -------
+
+    """
+    list_len = input_list.shape[0]
+    # PID = os.getpid()
+    # print("PID {} takes index {}".format(PID, index_i))
+    while global_idx.value < list_len:
+        with lock:
+            if not global_idx.value < list_len: return
+            idx = global_idx.value
+            global_idx.value += 1
+            if (idx) % 100 == 0: progressbar(idx, list_len)
+
+        for i in range(idx, list_len-1):
+             _res = func(input_list[i], input_list[i + 1])
+             if _res > 0:
+                 j, d = i+1, list_len
+                 c_idx = d*(d-1)/2 - (d-i)*(d-i-1)/2 + j - i - 1
+                 data[c_idx] = _res
+                 rows[c_idx] = i
+                 cols[c_idx] = j
+
+
+
+def sparse_dm_opt(input_array, dist_function, condensed=False):
+    """Compute in a parallel way a distance matrix for a 1-d input array.
+
+    Parameters
+    ----------
+    input_array : array_like
+        1-dimensional array for which to compute the distance matrix.
+    dist_function : function
+        Function to use for the distance computation.
+
+    Returns
+    -------
+    dist_matrix : array_like
+        Sparse symmetric NxN distance matrix for each input_array element.
+    """
+    n = input_array.shape[0]
+    nproc = min(mp.cpu_count(), n)
+    idx = mp.Value('i', 0)
+    c_length = int(n*(n-1)/2)
+    data = mp.Array('d', [0.]*c_length)
+    rows = mp.Array('d', [0.]*c_length)
+    cols = mp.Array('d', [0.]*c_length)
+    ps = []
+    lock = mp.Lock()
+    try:
+        for _ in range(nproc):
+            p = mp.Process(target=_sparse_distance_opt,
+                           args=(lock, input_array, idx, rows, cols, data,
+                                 dist_function))
+            p.start()
+            ps.append(p)
+        for p in ps:
+            p.join()
+    except (KeyboardInterrupt, SystemExit): _terminate(ps, 'Exit signal received\n')
+    except Exception as e: _terminate(ps, 'ERROR: %s\n' % e)
+    except: _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+
+    data = np.array(data)
+    idx = data > 0
+    data = data[idx]
+    rows = np.array(rows)[idx]
+    cols = np.array(cols)[idx]
+    # print (data)
+    D = scipy.sparse.csr_matrix((data, (rows, cols)), shape=(n, n))
+    dist_matrix = D + D.T
+    if condensed: dist_matrix = scipy.spatial.distance.squareform(dist_matrix)
+    progressbar(n, n)
     return dist_matrix
 
 

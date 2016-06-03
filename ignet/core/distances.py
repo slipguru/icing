@@ -1,27 +1,28 @@
-# Imports
 from __future__ import division
 
-import csv, os, re, sys
+# import csv, os, re, sys
 import numpy as np
-import pandas as pd
-from itertools import combinations, izip, product
-from collections import OrderedDict
-from scipy.cluster.hierarchy import fcluster, linkage
-from scipy.spatial.distance import squareform
-from time import time
-from Bio.Seq import Seq
-from Bio.Alphabet import IUPAC
+# import pandas as pd
+from itertools import izip  # combinations, izip, product
+# from collections import OrderedDict
+# from scipy.cluster.hierarchy import fcluster, linkage
+# from scipy.spatial.distance import squareform
+# from time import time
+# from Bio.Seq import Seq
+# from Bio.Alphabet import IUPAC
 from Bio.pairwise2 import align
 
 # IgCore imports
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from changeo.IgCore import scoreDNA, scoreAA, getOutputHandle, getFileType, printLog, printProgress
+# sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+# from changeo.IgCore import scoreDNA, scoreAA, getOutputHandle, getFileType,
+# printLog, printProgress
 
-from .utils import utils
+from ..utils import utils
+
 
 def get_nmers(sequences, n):
     """
-    Breaks input sequences down into n-mers
+    Break input sequences down into n-mers.
 
     :param sequences: list of sequences to be broken into n-mers
     :param n: length of n-mers to return
@@ -29,12 +30,13 @@ def get_nmers(sequences, n):
     """
     sequences_n = ['N' * ((n-1)/2) + seq + 'N' * ((n-1)/2) for seq in sequences]
     nmers = {}
-    for seq,seqn in izip(sequences,sequences_n):
+    for seq, seqn in izip(sequences, sequences_n):
         nmers[seq] = [seqn[i:i+n] for i in range(len(seqn)-n+1)]
-    # nmers = {(seq, [seqn[i:i+n] for i in range(len(seqn)-n+1)]) for seq,seqn in izip(sequences,sequences_n)}
     return nmers
 
-def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3, c=35., length_constraint=True):
+
+def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3,
+                      c=35., length_constraint=True):
     """
     Calculate a distance between two input sequences
 
@@ -51,7 +53,7 @@ def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3,
         seq1, seq2 = map(utils.junction_re, align.globalxx(seq1, seq2)[0][:2])
 
     nmers = get_nmers([seq1, seq2], n)
-    mutated = np.array([i for i,(c1,c2) in enumerate(izip(seq1,seq2)) if c1 != c2])
+    mutated = np.array([i for i, (c1, c2) in enumerate(izip(seq1, seq2)) if c1 != c2])
     mut_len = mutated.shape[0]
     seqq1 = np.empty(mut_len, dtype=object)
     seqq2 = np.empty(mut_len, dtype=object)
