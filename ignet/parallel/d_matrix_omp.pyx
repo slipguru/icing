@@ -7,7 +7,7 @@ from numpy cimport ndarray
 from cython.parallel cimport parallel, prange, threadid
 from ctypes import c_double as double
 from cpython cimport array
-from cpython.string cimport PyString_AsString
+from cpython.string cimport PyString_AsString, PyString_AS_STRING
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcmp
@@ -25,7 +25,7 @@ ctypedef double (*f_type_dist)(char*, char*) ## to mod
 
 cdef extern from "alignment.h":
     int local_alignment(const char * a, const char * b, char * a_n, char * b_n) nogil;
-    int global_alignment(const char * a, const char * b, char * a_n, char * b_n) nogil;
+    int globalxx(const char * a, const char * b, char * a_n, char * b_n) nogil;
     double cdist_function(const char * a, const char * b) nogil;
 
 # cdef char ** to_cstring_array(list_str):
@@ -58,7 +58,7 @@ cdef extern from "alignment.h":
 #     return ret
 
 
-# from libc.stdio cimport printf
+from libc.stdio cimport printf, fprintf, stderr
 # from libc.string cimport *
 # cdef double cdist_function(const char * a, const char * b) nogil:
 #     cdef:
@@ -88,24 +88,18 @@ cdef double* dist_matrix(list3, list4):
 #                 char** list2, Py_ssize_t m,
 #                 dist_function):
 
-    cdef:
-        Py_ssize_t n = list3.shape[0], m = list4.shape[0]
-        Py_ssize_t i, j
-        double * M = <double *> malloc(sizeof(double) * n * m);
+    cdef Py_ssize_t n = list3.shape[0], m = list4.shape[0]
+    cdef Py_ssize_t i, j
+    cdef double * M = <double *> malloc(sizeof(double) * n * m);
     if not M:
         raise MemoryError()
 
     cdef char ** list1 = <char**> malloc(n * sizeof(char*));
     for i in xrange(n):
-        list1[i] = PyString_AsString(list3[i])
+        list1[i] = PyString_AS_STRING(list3[i])
     cdef char ** list2 = <char**> malloc((len(list4)) * sizeof(char*));
     for i in xrange(len(list4)):
-        list2[i] = PyString_AsString(list4[i])
-
-    # cdef vector[string] list1 = list3
-    # cdef vector[string] list2 = list4
-    # cdef string * list1 = to_string_array(list3)
-    # cdef string * list2 = to_string_array(list4)
+        list2[i] = PyString_AS_STRING(list4[i])
 
     for i in xrange(n*m):
         M[i] = 0.0
@@ -118,19 +112,11 @@ cdef double* dist_matrix(list3, list4):
         elem_1 = list1[i]
         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
 
-        #with gil:
-        #    M[i*m:(i+1)*m] = array.array('d', d_f(elem_1, list4, dist_function)).data.as_doubles
         for j in range(m):
-            #pass
-            # M[i*m+j] = cdist_function(elem_1.c_str(), list2[j].c_str())
+            # printf("Analising %s and %s\n", elem_1, list2[j])
             M[i*m+j] = cdist_function(elem_1, list2[j])
 
 
-    #for i in xrange(len(list3)):
-    #    free(list1[i])
-
-    #for i in xrange(len(list4)):
-    #    free(list2[i])
     free(list1)
     free(list2)
     return M

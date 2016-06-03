@@ -20,7 +20,7 @@ def read_db(db_file, filt=None, ig=True):
         f = open(db_file, 'rb')
         db_reader = csv.DictReader(f, dialect='excel-tab')
         db_reader.fieldnames = [n.strip().upper() for n in db_reader.fieldnames]
-        db_iter = itertools.ifilter(filt, (IgRecord(r) for r in db_reader)) if ig else db_reader
+        db_iter = itertools.ifilter(filt, (IgRecord({k.upper(): v.upper() for k, v in r.iteritems()}) for r in db_reader)) if ig else db_reader
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % db_file)
     except Exception as e:

@@ -60,9 +60,10 @@ target/
 
 #Ipython Notebook
 .ipynb_checkpoints
-    
+
 # -------------------------- results -------------------------- #
 **/results/**/*
 
 # Temp
 *~
+**/a.out
