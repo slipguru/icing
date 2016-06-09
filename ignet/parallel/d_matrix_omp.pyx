@@ -110,9 +110,9 @@ cdef double* dist_matrix(list3, list4):
 
     # for i in range(n*m):
         # M[i] = 0.0
-    for i in range(n):
+    for i in xrange(n): ## check if the lists have not been modified
         fprintf(stderr, "list1 %s\n", list1[i])
-    for i in range(m):
+    for i in xrange(m):
         fprintf(stderr, "list2 %s\n", list2[i])
     # cdef int num_threads
     # openmp.private(elem_1)
