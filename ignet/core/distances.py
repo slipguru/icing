@@ -20,6 +20,14 @@ from Bio.pairwise2 import align
 from ..utils import utils
 
 
+def hamming(str1, str2):
+    """
+    Compute the hamming distances between two strings of equal length.
+    """
+    #return (np.array(list(str1)) != np.array(list(str2))).mean()
+    return (np.fromstring(str1, np.int8) != np.fromstring(str2, np.int8)).mean()
+
+
 def get_nmers(sequences, n):
     """
     Break input sequences down into n-mers.
