@@ -6,6 +6,21 @@ import termios
 import struct
 import re, os
 
+class Counter(object):
+    """Counter which contains the lock. Atomic update"""
+    
+    def __init__(self, initval=0):
+        self.val = mp.RawValue('i', initval)
+        self.lock = mp.Lock()
+
+    def increment(self, n=1):
+        with self.lock:
+            self.val.value += n
+
+    def value(self):
+        with self.lock:
+            return self.val.value
+
 def junction_re(x, n='N', filt='[\.-/]'):
     return re.sub(filt, n, str(x))
 
