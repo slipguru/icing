@@ -31,7 +31,7 @@ def dist2nearest_dual_padding(l1, l2, dist_function):
         for i in range(idx, n, nprocs):
             if i % 100 == 0: 
                 progressbar(i, n)
-            shared_arr[i] = min((dist_function(l1[i], l2[j]) for j in range(m)))
+            shared_arr[i] = min((dist_function(l1[i], el2) for el2 in l2))
     
     n, m = len(l1), len(l2)
     nprocs = min(mp.cpu_count(), n)
@@ -53,7 +53,8 @@ def dist2nearest_dual_padding(l1, l2, dist_function):
 
     progressbar(n, n)
     return shared_array
-    
+
+
 def dist2nearest_intra_padding(l1, dist_function):
     """Compute in a parallel way a dist2nearest for a 1-d arrays.
     
@@ -87,82 +88,6 @@ def dist2nearest_intra_padding(l1, dist_function):
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, n, idx, shared_array, dist_function))
-            p.start()
-            ps.append(p)
-
-        for p in ps:
-            p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
-
-    progressbar(n, n)
-    return shared_array
-
-
-def _dist2nearest_dual(lock, list1, list2, global_idx, shared_arr, dist_function):
-    """Parallelize a general computation of a distance matrix.
-
-    Parameters
-    ----------
-    lock : multiprocessing.synchronize.Lock
-        Value returned from multiprocessing.Lock().
-    input_list : list
-        List of values to compare to input_list[idx] (from 'idx' on).
-    shared_arr : array_like
-        Numpy array created as a shared object. Iteratively updated with the result.
-        Example:
-            shared_array = np.frombuffer(mp.Array('d', n*n).get_obj()).reshape((n,n))
-
-    Returns
-    -------
-
-    """
-    list_len = len(list1)
-    # PID = os.getpid()
-    # print("PID {} takes index {}".format(PID, index_i))
-    while global_idx.value < list_len:
-        with lock:
-            if not global_idx.value < list_len: return
-            idx = global_idx.value
-            global_idx.value += 1
-            if idx % 100 == 0: progressbar(idx, list_len)
-        elem_1 = list1[idx]
-        for idx_j in range(len(list2)):
-            _aux = dist_function(elem_1, list2[idx_j])
-            if _aux != 0:
-                _prev = shared_arr[idx]
-                if _prev == 0 or _prev > _aux:
-                    shared_arr[idx] = _aux
-
-
-def dist2nearest_dual(list1, list2, dist_function):
-    """Compute in a parallel way a dist2nearest (without 0 vals) for two 1-d
-    arrays.
-
-    Parameters
-    ----------
-    input_array : array_like
-        1-dimensional array for which to compute the distance matrix.
-    dist_function : function
-        Function to use for the distance computation.
-
-    Returns
-    -------
-    dist2nearest : array_like
-        1-D array
-    """
-    n = len(list1)
-    n_proc = min(mp.cpu_count(), n)
-    index = mp.Value('i', 0)
-    shared_array = mp.Array('d', [0.]*n)
-    ps = []
-    lock = mp.Lock()
-    try:
-        for _ in range(n_proc):
-            p = mp.Process(target=_dist2nearest_dual,
-                           args=(lock, list1, list2, index, shared_array,
-                                 dist_function))
             p.start()
             ps.append(p)
 
