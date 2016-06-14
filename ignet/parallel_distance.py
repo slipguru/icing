@@ -21,6 +21,96 @@ class Counter(object):
         with self.lock:
             return self.val.value
 
+def dist2nearest_dual_padding(l1, l2, dist_function):
+    """Compute in a parallel way a dist2nearest for two 1-d arrays.
+    
+    Use this function with different arrays; if l1 == l2, then the
+    results is a 0-array.
+
+    Parameters
+    ----------
+    l1, l2 : array_like
+        1-dimensional arrays. Compute the nearest element of l2 to l1.
+    dist_function : function
+        Function to use for the distance computation.
+
+    Returns
+    -------
+    dist2nearest : array_like
+        1-D array
+    """
+    def _internal(l1, l2, n, m, idx, nprocs, shared_arr, dist_function):
+        for i in range(idx, n, nprocs):
+            if i % 100 == 0: 
+                progressbar(i, n)
+            shared_arr[i] = min((dist_function(l1[i], l2[j]) for j in range(m)))
+    
+    n, m = len(l1), len(l2)
+    nprocs = min(mp.cpu_count(), n)
+    shared_array = mp.Array('d', [0.]*n)
+    ps = []
+    try:
+        for idx in range(nprocs):
+            p = mp.Process(target=_internal,
+                           args=(l1, l2, n, m, idx, shared_array,
+                                 dist_function))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
+    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
+    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+
+    progressbar(n, n)
+    return shared_array
+    
+def dist2nearest_intra_padding(l1, dist_function):
+    """Compute in a parallel way a dist2nearest for a 1-d arrays.
+    
+    For each element in l1, find its closest (without considering itself).
+
+    Parameters
+    ----------
+    l1 : array_like
+        1-dimensional array.
+    dist_function : function
+        Function to use for the distance computation.
+
+    Returns
+    -------
+    dist2nearest : array_like
+        1-D array
+    """
+    def _internal(l1, n, idx, nprocs, shared_arr, dist_function):
+        for i in range(idx, n, nprocs):
+            if i % 100 == 0: 
+                progressbar(i, n)
+            _min1 = min((dist_function(l1[i], l1[j]) for j in range(0, idx))
+            _min2 = min((dist_function(l1[i], l1[j]) for j in range(idx+1, m))
+            shared_arr[i] = min(_min1, _min2)
+    
+    n = len(l1)
+    nprocs = min(mp.cpu_count(), n)
+    shared_array = mp.Array('d', [0.]*n)
+    ps = []
+    try:
+        for idx in range(nprocs):
+            p = mp.Process(target=_internal,
+                           args=(l1, n, idx, shared_array, dist_function))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
+    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
+    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+
+    progressbar(n, n)
+    return shared_array
+
 
 def _dist2nearest_dual(lock, list1, list2, global_idx, shared_arr, dist_function):
     """Parallelize a general computation of a distance matrix.
