@@ -6,9 +6,10 @@ import scipy.spatial
 import multiprocessing as mp
 # import ctypes as c
 
-from .utils.utils import _terminate, progressbar
+from .utils.utils import handleExcept, progressbar
 
 
+@handleExcept
 def dist2nearest_dual_padding(l1, l2, dist_function):
     """Compute in a parallel way a dist2nearest for two 1-d arrays.
     
@@ -37,24 +38,20 @@ def dist2nearest_dual_padding(l1, l2, dist_function):
     nprocs = min(mp.cpu_count(), n)
     shared_array = mp.Array('d', [0.]*n)
     ps = []
-    try:
-        for idx in range(nprocs):
-            p = mp.Process(target=_internal,
-                           args=(l1, l2, n, m, idx, shared_array,
-                                 dist_function))
-            p.start()
-            ps.append(p)
+    for idx in range(nprocs):
+        p = mp.Process(target=_internal,
+                       args=(l1, l2, n, m, idx, shared_array,
+                             dist_function))
+        p.start()
+        ps.append(p)
 
-        for p in ps:
-            p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+    for p in ps:
+        p.join()
 
     progressbar(n, n)
     return shared_array
 
-
+@handleExcept
 def dist2nearest_intra_padding(l1, dist_function):
     """Compute in a parallel way a dist2nearest for a 1-d arrays.
     
@@ -84,18 +81,14 @@ def dist2nearest_intra_padding(l1, dist_function):
     nprocs = min(mp.cpu_count(), n)
     shared_array = mp.Array('d', [0.]*n)
     ps = []
-    try:
-        for idx in range(nprocs):
-            p = mp.Process(target=_internal,
-                           args=(l1, n, idx, shared_array, dist_function))
-            p.start()
-            ps.append(p)
+    for idx in range(nprocs):
+        p = mp.Process(target=_internal,
+                       args=(l1, n, idx, shared_array, dist_function))
+        p.start()
+        ps.append(p)
 
-        for p in ps:
-            p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+    for p in ps:
+        p.join()
 
     progressbar(n, n)
     return shared_array
@@ -133,6 +126,7 @@ def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_functi
             shared_arr[idx, idx_j] = dist_function(elem_1, list2[idx_j])
 
 
+@handleExcept
 def dense_dm_dual(list1, list2, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d array.
 
@@ -154,18 +148,14 @@ def dense_dm_dual(list1, list2, dist_function, condensed=False):
     shared_array = np.frombuffer(mp.Array('d', n*m).get_obj()).reshape((n,m))
     ps = []
     lock = mp.Lock()
-    try:
-        for _ in range(n_proc):
-            p = mp.Process(target=_dense_distance_dual,
-                        args=(lock, list1, list2, index, shared_array, dist_function))
-            p.start()
-            ps.append(p)
+    for _ in range(n_proc):
+        p = mp.Process(target=_dense_distance_dual,
+                    args=(lock, list1, list2, index, shared_array, dist_function))
+        p.start()
+        ps.append(p)
 
-        for p in ps:
-            p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+    for p in ps:
+        p.join()
 
     dist_matrix = shared_array.flatten() if condensed else shared_array
     #progressbar(n,n)
@@ -204,7 +194,7 @@ def _dense_distance(lock, input_list, global_idx, shared_arr, dist_function):
         for idx_j in range(idx+1, list_len):
             shared_arr[idx, idx_j] = dist_function(elem_1, input_list[idx_j])
 
-
+@handleExcept
 def dense_dm(input_array, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d array.
 
@@ -227,18 +217,14 @@ def dense_dm(input_array, dist_function, condensed=False):
     # np.savetxt("shared_array", shared_array, fmt="%.2f", delimiter=',')
     ps = []
     lock = mp.Lock()
-    try:
-        for _ in range(n_proc):
-            p = mp.Process(target=_dense_distance,
-                        args=(lock, input_array, index, shared_array, dist_function))
-            p.start()
-            ps.append(p)
+    for _ in range(n_proc):
+        p = mp.Process(target=_dense_distance,
+                    args=(lock, input_array, index, shared_array, dist_function))
+        p.start()
+        ps.append(p)
 
-        for p in ps:
-            p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+    for p in ps:
+        p.join()
 
     dist_matrix = shared_array + shared_array.T
     if condensed: dist_matrix = scipy.spatial.distance.squareform(dist_matrix)
@@ -285,7 +271,7 @@ def _sparse_distance(lock, input_list, global_idx, rows, cols, data, dist_functi
                  cols[c_idx] = j
 
 
-
+@handleExcept
 def sparse_dm(input_array, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d input array.
 
@@ -310,18 +296,14 @@ def sparse_dm(input_array, dist_function, condensed=False):
     cols = mp.Array('d', [0.]*c_length)
     ps = []
     lock = mp.Lock()
-    try:
-        for _ in range(nproc):
-            p = mp.Process(target=_sparse_distance,
-                        args=(lock, input_array, idx, rows, cols, data,
-                              dist_function))
-            p.start()
-            ps.append(p)
-        for p in ps:
-            p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+    for _ in range(nproc):
+        p = mp.Process(target=_sparse_distance,
+                    args=(lock, input_array, idx, rows, cols, data,
+                          dist_function))
+        p.start()
+        ps.append(p)
+    for p in ps:
+        p.join()
 
     data = np.array(data)
     idx = data > 0
@@ -374,7 +356,7 @@ def _sparse_distance_opt(lock, input_list, global_idx, rows, cols, data, func):
                  cols[c_idx] = j
 
 
-
+@handleExcept
 def sparse_dm_opt(input_array, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d input array.
 
@@ -399,18 +381,14 @@ def sparse_dm_opt(input_array, dist_function, condensed=False):
     cols = mp.Array('d', [0.]*c_length)
     ps = []
     lock = mp.Lock()
-    try:
-        for _ in range(nproc):
-            p = mp.Process(target=_sparse_distance_opt,
-                           args=(lock, input_array, idx, rows, cols, data,
-                                 dist_function))
-            p.start()
-            ps.append(p)
-        for p in ps:
-            p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps, 'Exit signal received\n')
-    except Exception as e: _terminate(ps, 'ERROR: %s\n' % e)
-    except: _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+    for _ in range(nproc):
+        p = mp.Process(target=_sparse_distance_opt,
+                       args=(lock, input_array, idx, rows, cols, data,
+                             dist_function))
+        p.start()
+        ps.append(p)
+    for p in ps:
+        p.join()
 
     data = np.array(data)
     idx = data > 0
