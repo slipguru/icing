@@ -8,6 +8,20 @@ import multiprocessing as mp
 
 from .utils.utils import _terminate, progressbar
 
+class Counter(object):
+    def __init__(self, initval=0):
+        self.val = mp.RawValue('i', initval)
+        self.lock = mp.Lock()
+
+    def increment(self, n=1):
+        with self.lock:
+            self.val.value += n
+
+    def value(self):
+        with self.lock:
+            return self.val.value
+
+
 def _dist2nearest_dual(lock, list1, list2, global_idx, shared_arr, dist_function):
     """Parallelize a general computation of a distance matrix.
 
