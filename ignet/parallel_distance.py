@@ -8,18 +8,6 @@ import multiprocessing as mp
 
 from .utils.utils import _terminate, progressbar
 
-class Counter(object):
-    def __init__(self, initval=0):
-        self.val = mp.RawValue('i', initval)
-        self.lock = mp.Lock()
-
-    def increment(self, n=1):
-        with self.lock:
-            self.val.value += n
-
-    def value(self):
-        with self.lock:
-            return self.val.value
 
 def dist2nearest_dual_padding(l1, l2, dist_function):
     """Compute in a parallel way a dist2nearest for two 1-d arrays.
