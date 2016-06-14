@@ -21,18 +21,6 @@ class Counter(object):
         with self.lock:
             return self.val.value
 
-def handleExcept(function):
-    """Decorator to handle problems and exceptions for the parallel distance module"""
-    def handleProblems():
-        try:
-            function()
-        except (KeyboardInterrupt, SystemExit): 
-            _terminate(ps, 'Exit signal received\n')
-        except Exception as e:
-            _terminate(ps,'ERROR: %s\n' % e)
-        except:
-            _terminate(ps,'ERROR: Exiting with unknown exception\n')
-    return handleProblems
 
 def junction_re(x, n='N', filt='[\.-/]'):
     return re.sub(filt, n, str(x))
