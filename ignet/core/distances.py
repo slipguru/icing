@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-from __future__ import division
-
 """Utilities to compute distances between sequences."""
+from __future__ import division
 
 import numpy as np
 from itertools import izip  # combinations, izip, product
