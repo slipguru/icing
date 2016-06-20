@@ -11,7 +11,7 @@ from .utils.utils import _terminate, progressbar
 
 def dist2nearest_dual_padding(l1, l2, dist_function):
     """Compute in a parallel way a dist2nearest for two 1-d arrays.
-    
+
     Use this function with different arrays; if l1 == l2, then the
     results is a 0-array.
 
@@ -29,10 +29,10 @@ def dist2nearest_dual_padding(l1, l2, dist_function):
     """
     def _internal(l1, l2, n, m, idx, nprocs, shared_arr, dist_function):
         for i in range(idx, n, nprocs):
-            if i % 100 == 0: 
+            if i % 100 == 0:
                 progressbar(i, n)
             shared_arr[i] = min((dist_function(l1[i], el2) for el2 in l2))
-    
+
     n, m = len(l1), len(l2)
     nprocs = min(mp.cpu_count(), n)
     shared_array = mp.Array('d', [0.]*n)
@@ -47,9 +47,12 @@ def dist2nearest_dual_padding(l1, l2, dist_function):
 
         for p in ps:
             p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+    except (KeyboardInterrupt, SystemExit):
+        _terminate(ps, 'Exit signal received\n')
+    except Exception as e:
+        _terminate(ps, 'ERROR: %s\n' % e)
+    except:
+        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
 
     progressbar(n, n)
     return shared_array
@@ -57,7 +60,7 @@ def dist2nearest_dual_padding(l1, l2, dist_function):
 
 def dist2nearest_intra_padding(l1, dist_function):
     """Compute in a parallel way a dist2nearest for a 1-d arrays.
-    
+
     For each element in l1, find its closest (without considering itself).
 
     Parameters
@@ -74,12 +77,12 @@ def dist2nearest_intra_padding(l1, dist_function):
     """
     def _internal(l1, n, idx, nprocs, shared_arr, dist_function):
         for i in range(idx, n, nprocs):
-            if i % 100 == 0: 
+            if i % 100 == 0:
                 progressbar(i, n)
             _min1 = min((dist_function(l1[i], l1[j]) for j in range(0, idx)))
-            _min2 = min((dist_function(l1[i], l1[j]) for j in range(idx+1, m)))
+            _min2 = min((dist_function(l1[i], l1[j]) for j in range(idx+1, n)))
             shared_arr[i] = min(_min1, _min2)
-    
+
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
     shared_array = mp.Array('d', [0.]*n)
@@ -93,9 +96,12 @@ def dist2nearest_intra_padding(l1, dist_function):
 
         for p in ps:
             p.join()
-    except (KeyboardInterrupt, SystemExit): _terminate(ps,'Exit signal received\n')
-    except Exception as e: _terminate(ps,'ERROR: %s\n' % e)
-    except: _terminate(ps,'ERROR: Exiting with unknown exception\n')
+    except (KeyboardInterrupt, SystemExit):
+        _terminate(ps, 'Exit signal received\n')
+    except Exception as e:
+        _terminate(ps, 'ERROR: %s\n' % e)
+    except:
+        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
 
     progressbar(n, n)
     return shared_array
@@ -111,7 +117,8 @@ def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_functi
     input_list : list
         List of values to compare to input_list[idx] (from 'idx' on).
     shared_arr : array_like
-        Numpy array created as a shared object. Iteratively updated with the result.
+        Numpy array created as a shared object. Iteratively updated with the
+        result.
         Example:
             shared_array = np.frombuffer(mp.Array('d', n*n).get_obj()).reshape((n,n))
 
@@ -127,7 +134,7 @@ def _dense_distance_dual(lock, list1, list2, global_idx, shared_arr, dist_functi
             if not global_idx.value < list_len: return
             idx = global_idx.value
             global_idx.value += 1
-            #if idx % 100 == 0: progressbar(idx, list_len)
+            # if idx % 100 == 0: progressbar(idx, list_len)
         elem_1 = list1[idx]
         for idx_j in range(len(list2)):
             shared_arr[idx, idx_j] = dist_function(elem_1, list2[idx_j])

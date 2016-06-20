@@ -87,41 +87,44 @@ cdef double* dist_matrix(list3, list4):
 # def dist_matrix(char** list1, Py_ssize_t n,
 #                 char** list2, Py_ssize_t m,
 #                 dist_function):
-
-    cdef Py_ssize_t n = list3.shape[0], m = list4.shape[0]
+    cdef Py_ssize_t n = len(list3), m = len(list4)
     cdef Py_ssize_t i, j
     cdef double * M = <double *> malloc(sizeof(double) * n * m);
     if not M:
         raise MemoryError()
     cdef char * elem_1
+
     cdef char ** list1 = <char**> malloc(n * sizeof(char*));
     if not list1:
         raise MemoryError()
     for i in xrange(n):
         list1[i] = PyString_AsString(list3[i])
-        fprintf(stderr, "list1 %s\n", list1[i])
+        # fprintf(stderr, "list1 - before %s -- %x\n", list1[i], list1[i])
 
     cdef char ** list2 = <char**> malloc(m * sizeof(char*));
     if not list2:
         raise MemoryError()
     for i in xrange(m):
+        # fprintf(stderr, "list1 - meanwhile before %s -- %x\n", list1[i], list1[i])
         list2[i] = PyString_AsString(list4[i])
-        fprintf(stderr, "list2 %s\n", list2[i])
+        # fprintf(stderr, "list2 - before %s -- %x\n", list2[i], list2[i])
+        # fprintf(stderr, "list1 - meanwhile after %s -- %x\n", list1[i], list1[i])
+        # fprintf(stderr, "list1 - meanwhile after - second %s -- %x\n", list1[1], list1[1])
 
+    # for i in xrange(m):
+    #     fprintf(stderr, "list2 - after before %s\n", list2[i])
     # for i in range(n*m):
         # M[i] = 0.0
-    for i in xrange(n): ## check if the lists have not been modified
-        fprintf(stderr, "list1 %s\n", list1[i])
-    for i in xrange(m):
-        fprintf(stderr, "list2 %s\n", list2[i])
+    # for i in xrange(n): ## check if the lists have not been modified
+    #     fprintf(stderr, "list1 - after %s\n", list1[i])
+    # for i in xrange(m):
+    #     fprintf(stderr, "list2 - after %s\n", list2[i])
     # cdef int num_threads
     # openmp.private(elem_1)
     # openmp.omp_set_dynamic(1)
     for i in prange(n, nogil=True):
         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
-        fprintf(stderr, "list1[%d] = %s\n", i, list1[i])
         elem_1 = list1[i]
-        fprintf(stderr, "elem     = %s\n", elem_1)
         for j in range(m):
             fprintf(stderr, "Analising %s and %s\n", elem_1, list2[j])
             M[i*m+j] = cdist_function(elem_1, list2[j])

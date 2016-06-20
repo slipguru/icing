@@ -768,7 +768,7 @@ typedef npy_clongdouble __pyx_t_5numpy_clongdouble_t;
  */
 typedef npy_cdouble __pyx_t_5numpy_complex_t;
 
-/* "d_matrix_omp.pyx":19
+/* "d_matrix_omp.pyx":21
  * np.import_array()
  * cdef inline int d_min(int a, int b): return a if a <= b else b
  * ctypedef double (*f_type_dist)(char*, char*) ## to mod             # <<<<<<<<<<<<<<
@@ -777,7 +777,7 @@ typedef npy_cdouble __pyx_t_5numpy_complex_t;
  */
 typedef double (*__pyx_t_12d_matrix_omp_f_type_dist)(char *, char *);
 
-/* "d_matrix_omp.pyx":143
+/* "d_matrix_omp.pyx":148
  *     return arr
  * 
  * def d_f(el, list, dist_function):             # <<<<<<<<<<<<<<
@@ -1163,8 +1163,6 @@ typedef struct {
 static Py_ssize_t __Pyx_zeros[] = {0, 0, 0, 0, 0, 0, 0, 0};
 static Py_ssize_t __Pyx_minusones[] = {-1, -1, -1, -1, -1, -1, -1, -1};
 
-static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
-
 #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
     #define __Pyx_CREAL(z) ((z).real())
@@ -1268,6 +1266,8 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_int(int value);
 static CYTHON_INLINE int __Pyx_PyInt_As_int(PyObject *);
 
 static CYTHON_INLINE PyObject* __Pyx_PyInt_From_enum__NPY_TYPES(enum NPY_TYPES value);
+
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value);
 
 static CYTHON_INLINE long __Pyx_PyInt_As_long(PyObject *);
 
@@ -1403,6 +1403,7 @@ int __pyx_module_is_main_d_matrix_omp = 0;
 
 /* Implementation of 'd_matrix_omp' */
 static PyObject *__pyx_builtin_MemoryError;
+static PyObject *__pyx_builtin_xrange;
 static PyObject *__pyx_builtin_range;
 static PyObject *__pyx_builtin_map;
 static PyObject *__pyx_builtin_ValueError;
@@ -1426,6 +1427,7 @@ static char __pyx_k_Zd[] = "Zd";
 static char __pyx_k_Zf[] = "Zf";
 static char __pyx_k_Zg[] = "Zg";
 static char __pyx_k_el[] = "el";
+static char __pyx_k_gc[] = "gc";
 static char __pyx_k_arr[] = "arr";
 static char __pyx_k_d_f[] = "d_f";
 static char __pyx_k_map[] = "map";
@@ -1435,16 +1437,12 @@ static char __pyx_k_test[] = "__test__";
 static char __pyx_k_list3[] = "list3";
 static char __pyx_k_list4[] = "list4";
 static char __pyx_k_range[] = "range";
-static char __pyx_k_shape[] = "shape";
 static char __pyx_k_ctypes[] = "ctypes";
 static char __pyx_k_double[] = "double";
-static char __pyx_k_elem_s[] = "elem     = %s\n";
 static char __pyx_k_import[] = "__import__";
-static char __pyx_k_list1_s[] = "list1 %s\n";
-static char __pyx_k_list2_s[] = "list2 %s\n";
+static char __pyx_k_xrange[] = "xrange";
 static char __pyx_k_wrapper[] = "wrapper";
 static char __pyx_k_c_double[] = "c_double";
-static char __pyx_k_list1_d_s[] = "list1[%d] = %s\n";
 static char __pyx_k_ValueError[] = "ValueError";
 static char __pyx_k_MemoryError[] = "MemoryError";
 static char __pyx_k_RuntimeError[] = "RuntimeError";
@@ -1475,6 +1473,7 @@ static PyObject *__pyx_n_s_d_matrix_omp;
 static PyObject *__pyx_n_s_dist_function;
 static PyObject *__pyx_n_s_double;
 static PyObject *__pyx_n_s_el;
+static PyObject *__pyx_n_s_gc;
 static PyObject *__pyx_kp_s_home_fede_src_ignet_ignet_paral;
 static PyObject *__pyx_n_s_import;
 static PyObject *__pyx_n_s_list;
@@ -1485,10 +1484,10 @@ static PyObject *__pyx_n_s_map;
 static PyObject *__pyx_kp_u_ndarray_is_not_C_contiguous;
 static PyObject *__pyx_kp_u_ndarray_is_not_Fortran_contiguou;
 static PyObject *__pyx_n_s_range;
-static PyObject *__pyx_n_s_shape;
 static PyObject *__pyx_n_s_test;
 static PyObject *__pyx_kp_u_unknown_dtype_code_in_numpy_pxd;
 static PyObject *__pyx_n_s_wrapper;
+static PyObject *__pyx_n_s_xrange;
 static PyObject *__pyx_pf_12d_matrix_omp_wrapper(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_list3, PyObject *__pyx_v_list4); /* proto */
 static PyObject *__pyx_lambda_funcdef_lambda(PyObject *__pyx_self, PyObject *__pyx_v_x); /* proto */
 static PyObject *__pyx_pf_12d_matrix_omp_2d_f(CYTHON_UNUSED PyObject *__pyx_self, PyObject *__pyx_v_el, PyObject *__pyx_v_list, PyObject *__pyx_v_dist_function); /* proto */
@@ -1508,7 +1507,7 @@ static PyObject *__pyx_tuple__9;
 static PyObject *__pyx_codeobj__8;
 static PyObject *__pyx_codeobj__10;
 
-/* "d_matrix_omp.pyx":18
+/* "d_matrix_omp.pyx":20
  * 
  * np.import_array()
  * cdef inline int d_min(int a, int b): return a if a <= b else b             # <<<<<<<<<<<<<<
@@ -1535,7 +1534,7 @@ static CYTHON_INLINE int __pyx_f_12d_matrix_omp_d_min(int __pyx_v_a, int __pyx_v
   return __pyx_r;
 }
 
-/* "d_matrix_omp.pyx":86
+/* "d_matrix_omp.pyx":88
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef double* dist_matrix(list3, list4):             # <<<<<<<<<<<<<<
@@ -1550,50 +1549,37 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
   Py_ssize_t __pyx_v_j;
   double *__pyx_v_M;
   char *__pyx_v_elem_1;
-  char const **__pyx_v_list1;
-  char const **__pyx_v_list2;
+  char **__pyx_v_list1;
+  char **__pyx_v_list2;
   double *__pyx_r;
   __Pyx_RefNannyDeclarations
-  PyObject *__pyx_t_1 = NULL;
-  PyObject *__pyx_t_2 = NULL;
+  Py_ssize_t __pyx_t_1;
+  int __pyx_t_2;
   Py_ssize_t __pyx_t_3;
-  int __pyx_t_4;
-  Py_ssize_t __pyx_t_5;
-  char *__pyx_t_6;
+  PyObject *__pyx_t_4 = NULL;
+  char *__pyx_t_5;
+  Py_ssize_t __pyx_t_6;
   Py_ssize_t __pyx_t_7;
   Py_ssize_t __pyx_t_8;
-  Py_ssize_t __pyx_t_9;
   int __pyx_lineno = 0;
   const char *__pyx_filename = NULL;
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("dist_matrix", 0);
 
-  /* "d_matrix_omp.pyx":91
+  /* "d_matrix_omp.pyx":92
+ * #                 char** list2, Py_ssize_t m,
  * #                 dist_function):
- * 
- *     cdef Py_ssize_t n = list3.shape[0], m = list4.shape[0]             # <<<<<<<<<<<<<<
+ *     cdef Py_ssize_t n = len(list3), m = len(list4)             # <<<<<<<<<<<<<<
  *     cdef Py_ssize_t i, j
  *     cdef double * M = <double *> malloc(sizeof(double) * n * m);
  */
-  __pyx_t_1 = __Pyx_PyObject_GetAttrStr(__pyx_v_list3, __pyx_n_s_shape); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 91; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_GetItemInt(__pyx_t_1, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(__pyx_t_2 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 91; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-  __Pyx_GOTREF(__pyx_t_2);
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_3 = __Pyx_PyIndex_AsSsize_t(__pyx_t_2); if (unlikely((__pyx_t_3 == (Py_ssize_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 91; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_v_n = __pyx_t_3;
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_v_list4, __pyx_n_s_shape); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 91; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_GOTREF(__pyx_t_2);
-  __pyx_t_1 = __Pyx_GetItemInt(__pyx_t_2, 0, long, 1, __Pyx_PyInt_From_long, 0, 0, 0); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 91; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-  __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
-  __pyx_t_3 = __Pyx_PyIndex_AsSsize_t(__pyx_t_1); if (unlikely((__pyx_t_3 == (Py_ssize_t)-1) && PyErr_Occurred())) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 91; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_v_m = __pyx_t_3;
+  __pyx_t_1 = PyObject_Length(__pyx_v_list3); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 92; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_n = __pyx_t_1;
+  __pyx_t_1 = PyObject_Length(__pyx_v_list4); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 92; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_v_m = __pyx_t_1;
 
-  /* "d_matrix_omp.pyx":93
- *     cdef Py_ssize_t n = list3.shape[0], m = list4.shape[0]
+  /* "d_matrix_omp.pyx":94
+ *     cdef Py_ssize_t n = len(list3), m = len(list4)
  *     cdef Py_ssize_t i, j
  *     cdef double * M = <double *> malloc(sizeof(double) * n * m);             # <<<<<<<<<<<<<<
  *     if not M:
@@ -1601,26 +1587,26 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
  */
   __pyx_v_M = ((double *)malloc((((sizeof(double)) * __pyx_v_n) * __pyx_v_m)));
 
-  /* "d_matrix_omp.pyx":94
+  /* "d_matrix_omp.pyx":95
  *     cdef Py_ssize_t i, j
  *     cdef double * M = <double *> malloc(sizeof(double) * n * m);
  *     if not M:             # <<<<<<<<<<<<<<
  *         raise MemoryError()
  *     cdef char * elem_1
  */
-  __pyx_t_4 = ((!(__pyx_v_M != 0)) != 0);
-  if (__pyx_t_4) {
+  __pyx_t_2 = ((!(__pyx_v_M != 0)) != 0);
+  if (__pyx_t_2) {
 
-    /* "d_matrix_omp.pyx":95
+    /* "d_matrix_omp.pyx":96
  *     cdef double * M = <double *> malloc(sizeof(double) * n * m);
  *     if not M:
  *         raise MemoryError()             # <<<<<<<<<<<<<<
  *     cdef char * elem_1
- *     cdef const char ** list1 = <char**> malloc(n * sizeof(char*));
+ * 
  */
-    PyErr_NoMemory(); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 95; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    PyErr_NoMemory(); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
-    /* "d_matrix_omp.pyx":94
+    /* "d_matrix_omp.pyx":95
  *     cdef Py_ssize_t i, j
  *     cdef double * M = <double *> malloc(sizeof(double) * n * m);
  *     if not M:             # <<<<<<<<<<<<<<
@@ -1629,196 +1615,136 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
  */
   }
 
-  /* "d_matrix_omp.pyx":97
- *         raise MemoryError()
+  /* "d_matrix_omp.pyx":99
  *     cdef char * elem_1
- *     cdef const char ** list1 = <char**> malloc(n * sizeof(char*));             # <<<<<<<<<<<<<<
+ * 
+ *     cdef char ** list1 = <char**> malloc(n * sizeof(char*));             # <<<<<<<<<<<<<<
  *     if not list1:
  *         raise MemoryError()
  */
   __pyx_v_list1 = ((char **)malloc((__pyx_v_n * (sizeof(char *)))));
 
-  /* "d_matrix_omp.pyx":98
- *     cdef char * elem_1
- *     cdef const char ** list1 = <char**> malloc(n * sizeof(char*));
- *     if not list1:             # <<<<<<<<<<<<<<
- *         raise MemoryError()
- *     for i in range(n):
- */
-  __pyx_t_4 = ((!(__pyx_v_list1 != 0)) != 0);
-  if (__pyx_t_4) {
-
-    /* "d_matrix_omp.pyx":99
- *     cdef const char ** list1 = <char**> malloc(n * sizeof(char*));
- *     if not list1:
- *         raise MemoryError()             # <<<<<<<<<<<<<<
- *     for i in range(n):
- *         list1[i] = <const char *>PyString_AsString(list3[i])
- */
-    PyErr_NoMemory(); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 99; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-    /* "d_matrix_omp.pyx":98
- *     cdef char * elem_1
- *     cdef const char ** list1 = <char**> malloc(n * sizeof(char*));
- *     if not list1:             # <<<<<<<<<<<<<<
- *         raise MemoryError()
- *     for i in range(n):
- */
-  }
-
   /* "d_matrix_omp.pyx":100
- *     if not list1:
+ * 
+ *     cdef char ** list1 = <char**> malloc(n * sizeof(char*));
+ *     if not list1:             # <<<<<<<<<<<<<<
  *         raise MemoryError()
- *     for i in range(n):             # <<<<<<<<<<<<<<
- *         list1[i] = <const char *>PyString_AsString(list3[i])
- *         fprintf(stderr, "list1 %s\n", list1[i])
+ *     for i in xrange(n):
  */
-  __pyx_t_3 = __pyx_v_n;
-  for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_3; __pyx_t_5+=1) {
-    __pyx_v_i = __pyx_t_5;
+  __pyx_t_2 = ((!(__pyx_v_list1 != 0)) != 0);
+  if (__pyx_t_2) {
 
     /* "d_matrix_omp.pyx":101
- *         raise MemoryError()
- *     for i in range(n):
- *         list1[i] = <const char *>PyString_AsString(list3[i])             # <<<<<<<<<<<<<<
- *         fprintf(stderr, "list1 %s\n", list1[i])
- * 
+ *     cdef char ** list1 = <char**> malloc(n * sizeof(char*));
+ *     if not list1:
+ *         raise MemoryError()             # <<<<<<<<<<<<<<
+ *     for i in xrange(n):
+ *         list1[i] = PyString_AsString(list3[i])
  */
-    __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_list3, __pyx_v_i, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 0, 0); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_6 = PyString_AsString(__pyx_t_1); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    (__pyx_v_list1[__pyx_v_i]) = ((char const *)__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+    PyErr_NoMemory(); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 101; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
-    /* "d_matrix_omp.pyx":102
- *     for i in range(n):
- *         list1[i] = <const char *>PyString_AsString(list3[i])
- *         fprintf(stderr, "list1 %s\n", list1[i])             # <<<<<<<<<<<<<<
+    /* "d_matrix_omp.pyx":100
  * 
- *     cdef const char ** list2 = <char**> malloc(m * sizeof(char*));
+ *     cdef char ** list1 = <char**> malloc(n * sizeof(char*));
+ *     if not list1:             # <<<<<<<<<<<<<<
+ *         raise MemoryError()
+ *     for i in xrange(n):
  */
-    fprintf(stderr, __pyx_k_list1_s, (__pyx_v_list1[__pyx_v_i]));
   }
 
-  /* "d_matrix_omp.pyx":104
- *         fprintf(stderr, "list1 %s\n", list1[i])
+  /* "d_matrix_omp.pyx":102
+ *     if not list1:
+ *         raise MemoryError()
+ *     for i in xrange(n):             # <<<<<<<<<<<<<<
+ *         list1[i] = PyString_AsString(list3[i])
+ *         # fprintf(stderr, "list1 - before %s -- %x\n", list1[i], list1[i])
+ */
+  __pyx_t_1 = __pyx_v_n;
+  for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_1; __pyx_t_3+=1) {
+    __pyx_v_i = __pyx_t_3;
+
+    /* "d_matrix_omp.pyx":103
+ *         raise MemoryError()
+ *     for i in xrange(n):
+ *         list1[i] = PyString_AsString(list3[i])             # <<<<<<<<<<<<<<
+ *         # fprintf(stderr, "list1 - before %s -- %x\n", list1[i], list1[i])
  * 
- *     cdef const char ** list2 = <char**> malloc(m * sizeof(char*));             # <<<<<<<<<<<<<<
+ */
+    __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_list3, __pyx_v_i, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 0, 0); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 103; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+    __Pyx_GOTREF(__pyx_t_4);
+    __pyx_t_5 = PyString_AsString(__pyx_t_4); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 103; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    (__pyx_v_list1[__pyx_v_i]) = __pyx_t_5;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
+  }
+
+  /* "d_matrix_omp.pyx":106
+ *         # fprintf(stderr, "list1 - before %s -- %x\n", list1[i], list1[i])
+ * 
+ *     cdef char ** list2 = <char**> malloc(m * sizeof(char*));             # <<<<<<<<<<<<<<
  *     if not list2:
  *         raise MemoryError()
  */
   __pyx_v_list2 = ((char **)malloc((__pyx_v_m * (sizeof(char *)))));
 
-  /* "d_matrix_omp.pyx":105
- * 
- *     cdef const char ** list2 = <char**> malloc(m * sizeof(char*));
- *     if not list2:             # <<<<<<<<<<<<<<
- *         raise MemoryError()
- *     for i in range(m):
- */
-  __pyx_t_4 = ((!(__pyx_v_list2 != 0)) != 0);
-  if (__pyx_t_4) {
-
-    /* "d_matrix_omp.pyx":106
- *     cdef const char ** list2 = <char**> malloc(m * sizeof(char*));
- *     if not list2:
- *         raise MemoryError()             # <<<<<<<<<<<<<<
- *     for i in range(m):
- *         list2[i] = <const char *>PyString_AsString(list4[i])
- */
-    PyErr_NoMemory(); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 106; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-
-    /* "d_matrix_omp.pyx":105
- * 
- *     cdef const char ** list2 = <char**> malloc(m * sizeof(char*));
- *     if not list2:             # <<<<<<<<<<<<<<
- *         raise MemoryError()
- *     for i in range(m):
- */
-  }
-
   /* "d_matrix_omp.pyx":107
- *     if not list2:
+ * 
+ *     cdef char ** list2 = <char**> malloc(m * sizeof(char*));
+ *     if not list2:             # <<<<<<<<<<<<<<
  *         raise MemoryError()
- *     for i in range(m):             # <<<<<<<<<<<<<<
- *         list2[i] = <const char *>PyString_AsString(list4[i])
- *         fprintf(stderr, "list2 %s\n", list2[i])
+ *     for i in xrange(m):
  */
-  __pyx_t_3 = __pyx_v_m;
-  for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_3; __pyx_t_5+=1) {
-    __pyx_v_i = __pyx_t_5;
+  __pyx_t_2 = ((!(__pyx_v_list2 != 0)) != 0);
+  if (__pyx_t_2) {
 
     /* "d_matrix_omp.pyx":108
+ *     cdef char ** list2 = <char**> malloc(m * sizeof(char*));
+ *     if not list2:
+ *         raise MemoryError()             # <<<<<<<<<<<<<<
+ *     for i in xrange(m):
+ *         # fprintf(stderr, "list1 - meanwhile before %s -- %x\n", list1[i], list1[i])
+ */
+    PyErr_NoMemory(); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 108; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+
+    /* "d_matrix_omp.pyx":107
+ * 
+ *     cdef char ** list2 = <char**> malloc(m * sizeof(char*));
+ *     if not list2:             # <<<<<<<<<<<<<<
  *         raise MemoryError()
- *     for i in range(m):
- *         list2[i] = <const char *>PyString_AsString(list4[i])             # <<<<<<<<<<<<<<
- *         fprintf(stderr, "list2 %s\n", list2[i])
- * 
+ *     for i in xrange(m):
  */
-    __pyx_t_1 = __Pyx_GetItemInt(__pyx_v_list4, __pyx_v_i, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 0, 0); if (unlikely(__pyx_t_1 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 108; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
-    __Pyx_GOTREF(__pyx_t_1);
-    __pyx_t_6 = PyString_AsString(__pyx_t_1); if (unlikely(__pyx_t_6 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 108; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-    (__pyx_v_list2[__pyx_v_i]) = ((char const *)__pyx_t_6);
-    __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-
-    /* "d_matrix_omp.pyx":109
- *     for i in range(m):
- *         list2[i] = <const char *>PyString_AsString(list4[i])
- *         fprintf(stderr, "list2 %s\n", list2[i])             # <<<<<<<<<<<<<<
- * 
- *     # for i in range(n*m):
- */
-    fprintf(stderr, __pyx_k_list2_s, (__pyx_v_list2[__pyx_v_i]));
   }
 
-  /* "d_matrix_omp.pyx":113
- *     # for i in range(n*m):
- *         # M[i] = 0.0
- *     for i in range(n):             # <<<<<<<<<<<<<<
- *         fprintf(stderr, "list1 %s\n", list1[i])
- *     for i in range(m):
+  /* "d_matrix_omp.pyx":109
+ *     if not list2:
+ *         raise MemoryError()
+ *     for i in xrange(m):             # <<<<<<<<<<<<<<
+ *         # fprintf(stderr, "list1 - meanwhile before %s -- %x\n", list1[i], list1[i])
+ *         list2[i] = PyString_AsString(list4[i])
  */
-  __pyx_t_3 = __pyx_v_n;
-  for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_3; __pyx_t_5+=1) {
-    __pyx_v_i = __pyx_t_5;
+  __pyx_t_1 = __pyx_v_m;
+  for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_1; __pyx_t_3+=1) {
+    __pyx_v_i = __pyx_t_3;
 
-    /* "d_matrix_omp.pyx":114
- *         # M[i] = 0.0
- *     for i in range(n):
- *         fprintf(stderr, "list1 %s\n", list1[i])             # <<<<<<<<<<<<<<
- *     for i in range(m):
- *         fprintf(stderr, "list2 %s\n", list2[i])
+    /* "d_matrix_omp.pyx":111
+ *     for i in xrange(m):
+ *         # fprintf(stderr, "list1 - meanwhile before %s -- %x\n", list1[i], list1[i])
+ *         list2[i] = PyString_AsString(list4[i])             # <<<<<<<<<<<<<<
+ *         # fprintf(stderr, "list2 - before %s -- %x\n", list2[i], list2[i])
+ *         # fprintf(stderr, "list1 - meanwhile after %s -- %x\n", list1[i], list1[i])
  */
-    fprintf(stderr, __pyx_k_list1_s, (__pyx_v_list1[__pyx_v_i]));
+    __pyx_t_4 = __Pyx_GetItemInt(__pyx_v_list4, __pyx_v_i, Py_ssize_t, 1, PyInt_FromSsize_t, 0, 0, 0); if (unlikely(__pyx_t_4 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 111; __pyx_clineno = __LINE__; goto __pyx_L1_error;};
+    __Pyx_GOTREF(__pyx_t_4);
+    __pyx_t_5 = PyString_AsString(__pyx_t_4); if (unlikely(__pyx_t_5 == NULL)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 111; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+    (__pyx_v_list2[__pyx_v_i]) = __pyx_t_5;
+    __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
   }
 
-  /* "d_matrix_omp.pyx":115
- *     for i in range(n):
- *         fprintf(stderr, "list1 %s\n", list1[i])
- *     for i in range(m):             # <<<<<<<<<<<<<<
- *         fprintf(stderr, "list2 %s\n", list2[i])
- *     # cdef int num_threads
- */
-  __pyx_t_3 = __pyx_v_m;
-  for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_3; __pyx_t_5+=1) {
-    __pyx_v_i = __pyx_t_5;
-
-    /* "d_matrix_omp.pyx":116
- *         fprintf(stderr, "list1 %s\n", list1[i])
- *     for i in range(m):
- *         fprintf(stderr, "list2 %s\n", list2[i])             # <<<<<<<<<<<<<<
- *     # cdef int num_threads
- *     # openmp.private(elem_1)
- */
-    fprintf(stderr, __pyx_k_list2_s, (__pyx_v_list2[__pyx_v_i]));
-  }
-
-  /* "d_matrix_omp.pyx":120
+  /* "d_matrix_omp.pyx":127
  *     # openmp.private(elem_1)
  *     # openmp.omp_set_dynamic(1)
  *     for i in prange(n, nogil=True):             # <<<<<<<<<<<<<<
  *         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
- *         fprintf(stderr, "list1[%d] = %s\n", i, list1[i])
+ *         elem_1 = list1[i]
  */
   {
       #ifdef WITH_THREAD
@@ -1826,7 +1752,7 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
       Py_UNBLOCK_THREADS
       #endif
       /*try:*/ {
-        __pyx_t_3 = __pyx_v_n;
+        __pyx_t_1 = __pyx_v_n;
         if (1 == 0) abort();
         {
             #if ((defined(__APPLE__) || defined(__OSX__)) && (defined(__GNUC__) && (__GNUC__ > 2 || (__GNUC__ == 2 && (__GNUC_MINOR__ > 95)))))
@@ -1835,63 +1761,45 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
                 #define likely(x)   (x)
                 #define unlikely(x) (x)
             #endif
-            __pyx_t_7 = (__pyx_t_3 - 0) / 1;
-            if (__pyx_t_7 > 0)
+            __pyx_t_6 = (__pyx_t_1 - 0) / 1;
+            if (__pyx_t_6 > 0)
             {
                 #ifdef _OPENMP
-                #pragma omp parallel private(__pyx_t_9, __pyx_t_8)
+                #pragma omp parallel private(__pyx_t_8, __pyx_t_7)
                 #endif /* _OPENMP */
                 {
                     #ifdef _OPENMP
-                    #pragma omp for lastprivate(__pyx_v_elem_1) lastprivate(__pyx_v_j) firstprivate(__pyx_v_i) lastprivate(__pyx_v_i)
+                    #pragma omp for firstprivate(__pyx_v_i) lastprivate(__pyx_v_i) lastprivate(__pyx_v_elem_1) lastprivate(__pyx_v_j)
                     #endif /* _OPENMP */
-                    for (__pyx_t_5 = 0; __pyx_t_5 < __pyx_t_7; __pyx_t_5++){
+                    for (__pyx_t_3 = 0; __pyx_t_3 < __pyx_t_6; __pyx_t_3++){
                         {
-                            __pyx_v_i = 0 + 1 * __pyx_t_5;
+                            __pyx_v_i = 0 + 1 * __pyx_t_3;
                             /* Initialize private variables to invalid values */
                             __pyx_v_elem_1 = ((char *)1);
                             __pyx_v_j = ((Py_ssize_t)0xbad0bad0);
 
-                            /* "d_matrix_omp.pyx":122
+                            /* "d_matrix_omp.pyx":129
  *     for i in prange(n, nogil=True):
  *         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
- *         fprintf(stderr, "list1[%d] = %s\n", i, list1[i])             # <<<<<<<<<<<<<<
- *         elem_1 = list1[i]
- *         fprintf(stderr, "elem     = %s\n", elem_1)
- */
-                            fprintf(stderr, __pyx_k_list1_d_s, __pyx_v_i, (__pyx_v_list1[__pyx_v_i]));
-
-                            /* "d_matrix_omp.pyx":123
- *         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
- *         fprintf(stderr, "list1[%d] = %s\n", i, list1[i])
  *         elem_1 = list1[i]             # <<<<<<<<<<<<<<
- *         fprintf(stderr, "elem     = %s\n", elem_1)
- *         for j in range(m):
- */
-                            __pyx_v_elem_1 = (__pyx_v_list1[__pyx_v_i]);
-
-                            /* "d_matrix_omp.pyx":124
- *         fprintf(stderr, "list1[%d] = %s\n", i, list1[i])
- *         elem_1 = list1[i]
- *         fprintf(stderr, "elem     = %s\n", elem_1)             # <<<<<<<<<<<<<<
  *         for j in range(m):
  *             fprintf(stderr, "Analising %s and %s\n", elem_1, list2[j])
  */
-                            fprintf(stderr, __pyx_k_elem_s, __pyx_v_elem_1);
+                            __pyx_v_elem_1 = (__pyx_v_list1[__pyx_v_i]);
 
-                            /* "d_matrix_omp.pyx":125
+                            /* "d_matrix_omp.pyx":130
+ *         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
  *         elem_1 = list1[i]
- *         fprintf(stderr, "elem     = %s\n", elem_1)
  *         for j in range(m):             # <<<<<<<<<<<<<<
  *             fprintf(stderr, "Analising %s and %s\n", elem_1, list2[j])
  *             M[i*m+j] = cdist_function(elem_1, list2[j])
  */
-                            __pyx_t_8 = __pyx_v_m;
-                            for (__pyx_t_9 = 0; __pyx_t_9 < __pyx_t_8; __pyx_t_9+=1) {
-                              __pyx_v_j = __pyx_t_9;
+                            __pyx_t_7 = __pyx_v_m;
+                            for (__pyx_t_8 = 0; __pyx_t_8 < __pyx_t_7; __pyx_t_8+=1) {
+                              __pyx_v_j = __pyx_t_8;
 
-                              /* "d_matrix_omp.pyx":126
- *         fprintf(stderr, "elem     = %s\n", elem_1)
+                              /* "d_matrix_omp.pyx":131
+ *         elem_1 = list1[i]
  *         for j in range(m):
  *             fprintf(stderr, "Analising %s and %s\n", elem_1, list2[j])             # <<<<<<<<<<<<<<
  *             M[i*m+j] = cdist_function(elem_1, list2[j])
@@ -1899,7 +1807,7 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
  */
                               fprintf(stderr, __pyx_k_Analising_s_and_s, __pyx_v_elem_1, (__pyx_v_list2[__pyx_v_j]));
 
-                              /* "d_matrix_omp.pyx":127
+                              /* "d_matrix_omp.pyx":132
  *         for j in range(m):
  *             fprintf(stderr, "Analising %s and %s\n", elem_1, list2[j])
  *             M[i*m+j] = cdist_function(elem_1, list2[j])             # <<<<<<<<<<<<<<
@@ -1921,25 +1829,25 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
         #endif
       }
 
-      /* "d_matrix_omp.pyx":120
+      /* "d_matrix_omp.pyx":127
  *     # openmp.private(elem_1)
  *     # openmp.omp_set_dynamic(1)
  *     for i in prange(n, nogil=True):             # <<<<<<<<<<<<<<
  *         #print("I am %i of %i" % (threadid(), openmp.omp_get_num_threads()))
- *         fprintf(stderr, "list1[%d] = %s\n", i, list1[i])
+ *         elem_1 = list1[i]
  */
       /*finally:*/ {
         /*normal exit:*/{
           #ifdef WITH_THREAD
           Py_BLOCK_THREADS
           #endif
-          goto __pyx_L16;
+          goto __pyx_L12;
         }
-        __pyx_L16:;
+        __pyx_L12:;
       }
   }
 
-  /* "d_matrix_omp.pyx":130
+  /* "d_matrix_omp.pyx":135
  * 
  * 
  *     free(list1)             # <<<<<<<<<<<<<<
@@ -1948,7 +1856,7 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
  */
   free(__pyx_v_list1);
 
-  /* "d_matrix_omp.pyx":131
+  /* "d_matrix_omp.pyx":136
  * 
  *     free(list1)
  *     free(list2)             # <<<<<<<<<<<<<<
@@ -1957,7 +1865,7 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
  */
   free(__pyx_v_list2);
 
-  /* "d_matrix_omp.pyx":132
+  /* "d_matrix_omp.pyx":137
  *     free(list1)
  *     free(list2)
  *     return M             # <<<<<<<<<<<<<<
@@ -1967,7 +1875,7 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
   __pyx_r = __pyx_v_M;
   goto __pyx_L0;
 
-  /* "d_matrix_omp.pyx":86
+  /* "d_matrix_omp.pyx":88
  * @cython.boundscheck(False)
  * @cython.wraparound(False)
  * cdef double* dist_matrix(list3, list4):             # <<<<<<<<<<<<<<
@@ -1977,8 +1885,7 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
 
   /* function exit code */
   __pyx_L1_error:;
-  __Pyx_XDECREF(__pyx_t_1);
-  __Pyx_XDECREF(__pyx_t_2);
+  __Pyx_XDECREF(__pyx_t_4);
   __Pyx_WriteUnraisable("d_matrix_omp.dist_matrix", __pyx_clineno, __pyx_lineno, __pyx_filename, 0, 0);
   __pyx_r = 0;
   __pyx_L0:;
@@ -1986,7 +1893,7 @@ static double *__pyx_f_12d_matrix_omp_dist_matrix(PyObject *__pyx_v_list3, PyObj
   return __pyx_r;
 }
 
-/* "d_matrix_omp.pyx":134
+/* "d_matrix_omp.pyx":139
  *     return M
  * 
  * cdef data_to_numpy_array_with_spec(void * ptr, np.npy_intp N, int t):             # <<<<<<<<<<<<<<
@@ -2011,22 +1918,22 @@ static PyObject *__pyx_f_12d_matrix_omp_data_to_numpy_array_with_spec(void *__py
   __pyx_pybuffernd_arr.data = NULL;
   __pyx_pybuffernd_arr.rcbuffer = &__pyx_pybuffer_arr;
 
-  /* "d_matrix_omp.pyx":135
+  /* "d_matrix_omp.pyx":140
  * 
  * cdef data_to_numpy_array_with_spec(void * ptr, np.npy_intp N, int t):
  *     cdef np.ndarray[double, ndim=1] arr = np.PyArray_SimpleNewFromData(1, &N, t, ptr)             # <<<<<<<<<<<<<<
  *     return arr
  * 
  */
-  __pyx_t_1 = PyArray_SimpleNewFromData(1, (&__pyx_v_N), __pyx_v_t, __pyx_v_ptr); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 135; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = PyArray_SimpleNewFromData(1, (&__pyx_v_N), __pyx_v_t, __pyx_v_ptr); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 135; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (!(likely(((__pyx_t_1) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_1, __pyx_ptype_5numpy_ndarray))))) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_t_2 = ((PyArrayObject *)__pyx_t_1);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
     if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_arr.rcbuffer->pybuffer, (PyObject*)__pyx_t_2, &__Pyx_TypeInfo_double, PyBUF_FORMAT| PyBUF_STRIDES, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_arr = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_arr.rcbuffer->pybuffer.buf = NULL;
-      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 135; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+      {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
     } else {__pyx_pybuffernd_arr.diminfo[0].strides = __pyx_pybuffernd_arr.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_arr.diminfo[0].shape = __pyx_pybuffernd_arr.rcbuffer->pybuffer.shape[0];
     }
   }
@@ -2034,7 +1941,7 @@ static PyObject *__pyx_f_12d_matrix_omp_data_to_numpy_array_with_spec(void *__py
   __pyx_v_arr = ((PyArrayObject *)__pyx_t_1);
   __pyx_t_1 = 0;
 
-  /* "d_matrix_omp.pyx":136
+  /* "d_matrix_omp.pyx":141
  * cdef data_to_numpy_array_with_spec(void * ptr, np.npy_intp N, int t):
  *     cdef np.ndarray[double, ndim=1] arr = np.PyArray_SimpleNewFromData(1, &N, t, ptr)
  *     return arr             # <<<<<<<<<<<<<<
@@ -2046,7 +1953,7 @@ static PyObject *__pyx_f_12d_matrix_omp_data_to_numpy_array_with_spec(void *__py
   __pyx_r = ((PyObject *)__pyx_v_arr);
   goto __pyx_L0;
 
-  /* "d_matrix_omp.pyx":134
+  /* "d_matrix_omp.pyx":139
  *     return M
  * 
  * cdef data_to_numpy_array_with_spec(void * ptr, np.npy_intp N, int t):             # <<<<<<<<<<<<<<
@@ -2073,7 +1980,7 @@ static PyObject *__pyx_f_12d_matrix_omp_data_to_numpy_array_with_spec(void *__py
   return __pyx_r;
 }
 
-/* "d_matrix_omp.pyx":138
+/* "d_matrix_omp.pyx":143
  *     return arr
  * 
  * def wrapper(list3, list4):             # <<<<<<<<<<<<<<
@@ -2113,11 +2020,11 @@ static PyObject *__pyx_pw_12d_matrix_omp_1wrapper(PyObject *__pyx_self, PyObject
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_list4)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("wrapper", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("wrapper", 1, 2, 2, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "wrapper") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "wrapper") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 2) {
       goto __pyx_L5_argtuple_error;
@@ -2130,7 +2037,7 @@ static PyObject *__pyx_pw_12d_matrix_omp_1wrapper(PyObject *__pyx_self, PyObject
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("wrapper", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("wrapper", 1, 2, 2, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
   __Pyx_AddTraceback("d_matrix_omp.wrapper", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -2156,7 +2063,7 @@ static PyObject *__pyx_pf_12d_matrix_omp_wrapper(CYTHON_UNUSED PyObject *__pyx_s
   int __pyx_clineno = 0;
   __Pyx_RefNannySetupContext("wrapper", 0);
 
-  /* "d_matrix_omp.pyx":139
+  /* "d_matrix_omp.pyx":144
  * 
  * def wrapper(list3, list4):
  *     a = dist_matrix(list3, list4)             # <<<<<<<<<<<<<<
@@ -2165,21 +2072,21 @@ static PyObject *__pyx_pf_12d_matrix_omp_wrapper(CYTHON_UNUSED PyObject *__pyx_s
  */
   __pyx_v_a = __pyx_f_12d_matrix_omp_dist_matrix(__pyx_v_list3, __pyx_v_list4);
 
-  /* "d_matrix_omp.pyx":140
+  /* "d_matrix_omp.pyx":145
  * def wrapper(list3, list4):
  *     a = dist_matrix(list3, list4)
  *     arr = data_to_numpy_array_with_spec(a, len(list3)*len(list4), np.NPY_DOUBLE)             # <<<<<<<<<<<<<<
  *     return arr
  * 
  */
-  __pyx_t_1 = PyObject_Length(__pyx_v_list3); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_t_2 = PyObject_Length(__pyx_v_list4); if (unlikely(__pyx_t_2 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_t_3 = __pyx_f_12d_matrix_omp_data_to_numpy_array_with_spec(__pyx_v_a, (__pyx_t_1 * __pyx_t_2), NPY_DOUBLE); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 140; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = PyObject_Length(__pyx_v_list3); if (unlikely(__pyx_t_1 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 145; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = PyObject_Length(__pyx_v_list4); if (unlikely(__pyx_t_2 == -1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 145; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_3 = __pyx_f_12d_matrix_omp_data_to_numpy_array_with_spec(__pyx_v_a, (__pyx_t_1 * __pyx_t_2), NPY_DOUBLE); if (unlikely(!__pyx_t_3)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 145; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_3);
   __pyx_v_arr = __pyx_t_3;
   __pyx_t_3 = 0;
 
-  /* "d_matrix_omp.pyx":141
+  /* "d_matrix_omp.pyx":146
  *     a = dist_matrix(list3, list4)
  *     arr = data_to_numpy_array_with_spec(a, len(list3)*len(list4), np.NPY_DOUBLE)
  *     return arr             # <<<<<<<<<<<<<<
@@ -2191,7 +2098,7 @@ static PyObject *__pyx_pf_12d_matrix_omp_wrapper(CYTHON_UNUSED PyObject *__pyx_s
   __pyx_r = __pyx_v_arr;
   goto __pyx_L0;
 
-  /* "d_matrix_omp.pyx":138
+  /* "d_matrix_omp.pyx":143
  *     return arr
  * 
  * def wrapper(list3, list4):             # <<<<<<<<<<<<<<
@@ -2211,7 +2118,7 @@ static PyObject *__pyx_pf_12d_matrix_omp_wrapper(CYTHON_UNUSED PyObject *__pyx_s
   return __pyx_r;
 }
 
-/* "d_matrix_omp.pyx":143
+/* "d_matrix_omp.pyx":148
  *     return arr
  * 
  * def d_f(el, list, dist_function):             # <<<<<<<<<<<<<<
@@ -2253,16 +2160,16 @@ static PyObject *__pyx_pw_12d_matrix_omp_3d_f(PyObject *__pyx_self, PyObject *__
         case  1:
         if (likely((values[1] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_list)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("d_f", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("d_f", 1, 3, 3, 1); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
         case  2:
         if (likely((values[2] = PyDict_GetItem(__pyx_kwds, __pyx_n_s_dist_function)) != 0)) kw_args--;
         else {
-          __Pyx_RaiseArgtupleInvalid("d_f", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+          __Pyx_RaiseArgtupleInvalid("d_f", 1, 3, 3, 2); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
         }
       }
       if (unlikely(kw_args > 0)) {
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "d_f") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_pyargnames, 0, values, pos_args, "d_f") < 0)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
       }
     } else if (PyTuple_GET_SIZE(__pyx_args) != 3) {
       goto __pyx_L5_argtuple_error;
@@ -2277,7 +2184,7 @@ static PyObject *__pyx_pw_12d_matrix_omp_3d_f(PyObject *__pyx_self, PyObject *__
   }
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("d_f", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
+  __Pyx_RaiseArgtupleInvalid("d_f", 1, 3, 3, PyTuple_GET_SIZE(__pyx_args)); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L3_error;}
   __pyx_L3_error:;
   __Pyx_AddTraceback("d_matrix_omp.d_f", __pyx_clineno, __pyx_lineno, __pyx_filename);
   __Pyx_RefNannyFinishContext();
@@ -2290,7 +2197,7 @@ static PyObject *__pyx_pw_12d_matrix_omp_3d_f(PyObject *__pyx_self, PyObject *__
   return __pyx_r;
 }
 
-/* "d_matrix_omp.pyx":144
+/* "d_matrix_omp.pyx":149
  * 
  * def d_f(el, list, dist_function):
  *     return map(lambda x: dist_function(el,x), list)             # <<<<<<<<<<<<<<
@@ -2329,8 +2236,8 @@ static PyObject *__pyx_lambda_funcdef_lambda(PyObject *__pyx_self, PyObject *__p
   __pyx_outer_scope = (struct __pyx_obj_12d_matrix_omp___pyx_scope_struct__d_f *) __Pyx_CyFunction_GetClosure(__pyx_self);
   __pyx_cur_scope = __pyx_outer_scope;
   __Pyx_XDECREF(__pyx_r);
-  if (unlikely(!__pyx_cur_scope->__pyx_v_dist_function)) { __Pyx_RaiseClosureNameError("dist_function"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
-  if (unlikely(!__pyx_cur_scope->__pyx_v_el)) { __Pyx_RaiseClosureNameError("el"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
+  if (unlikely(!__pyx_cur_scope->__pyx_v_dist_function)) { __Pyx_RaiseClosureNameError("dist_function"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
+  if (unlikely(!__pyx_cur_scope->__pyx_v_el)) { __Pyx_RaiseClosureNameError("el"); {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;} }
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_dist_function);
   __pyx_t_2 = __pyx_cur_scope->__pyx_v_dist_function; __pyx_t_3 = NULL;
   __pyx_t_4 = 0;
@@ -2344,7 +2251,7 @@ static PyObject *__pyx_lambda_funcdef_lambda(PyObject *__pyx_self, PyObject *__p
       __pyx_t_4 = 1;
     }
   }
-  __pyx_t_5 = PyTuple_New(2+__pyx_t_4); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_5 = PyTuple_New(2+__pyx_t_4); if (unlikely(!__pyx_t_5)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_5);
   if (__pyx_t_3) {
     __Pyx_GIVEREF(__pyx_t_3); PyTuple_SET_ITEM(__pyx_t_5, 0, __pyx_t_3); __pyx_t_3 = NULL;
@@ -2355,7 +2262,7 @@ static PyObject *__pyx_lambda_funcdef_lambda(PyObject *__pyx_self, PyObject *__p
   __Pyx_INCREF(__pyx_v_x);
   __Pyx_GIVEREF(__pyx_v_x);
   PyTuple_SET_ITEM(__pyx_t_5, 1+__pyx_t_4, __pyx_v_x);
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_5, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
@@ -2377,7 +2284,7 @@ static PyObject *__pyx_lambda_funcdef_lambda(PyObject *__pyx_self, PyObject *__p
   return __pyx_r;
 }
 
-/* "d_matrix_omp.pyx":143
+/* "d_matrix_omp.pyx":148
  *     return arr
  * 
  * def d_f(el, list, dist_function):             # <<<<<<<<<<<<<<
@@ -2408,7 +2315,7 @@ static PyObject *__pyx_pf_12d_matrix_omp_2d_f(CYTHON_UNUSED PyObject *__pyx_self
   __Pyx_INCREF(__pyx_cur_scope->__pyx_v_dist_function);
   __Pyx_GIVEREF(__pyx_cur_scope->__pyx_v_dist_function);
 
-  /* "d_matrix_omp.pyx":144
+  /* "d_matrix_omp.pyx":149
  * 
  * def d_f(el, list, dist_function):
  *     return map(lambda x: dist_function(el,x), list)             # <<<<<<<<<<<<<<
@@ -2416,9 +2323,9 @@ static PyObject *__pyx_pf_12d_matrix_omp_2d_f(CYTHON_UNUSED PyObject *__pyx_self
  * 
  */
   __Pyx_XDECREF(__pyx_r);
-  __pyx_t_1 = __Pyx_CyFunction_NewEx(&__pyx_mdef_12d_matrix_omp_3d_f_lambda, 0, __pyx_n_s_d_f_locals_lambda, ((PyObject*)__pyx_cur_scope), __pyx_n_s_d_matrix_omp, __pyx_d, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_CyFunction_NewEx(&__pyx_mdef_12d_matrix_omp_3d_f_lambda, 0, __pyx_n_s_d_f_locals_lambda, ((PyObject*)__pyx_cur_scope), __pyx_n_s_d_matrix_omp, __pyx_d, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = PyTuple_New(2); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_GIVEREF(__pyx_t_1);
   PyTuple_SET_ITEM(__pyx_t_2, 0, __pyx_t_1);
@@ -2426,14 +2333,14 @@ static PyObject *__pyx_pf_12d_matrix_omp_2d_f(CYTHON_UNUSED PyObject *__pyx_self
   __Pyx_GIVEREF(__pyx_v_list);
   PyTuple_SET_ITEM(__pyx_t_2, 1, __pyx_v_list);
   __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_map, __pyx_t_2, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_PyObject_Call(__pyx_builtin_map, __pyx_t_2, NULL); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __pyx_r = __pyx_t_1;
   __pyx_t_1 = 0;
   goto __pyx_L0;
 
-  /* "d_matrix_omp.pyx":143
+  /* "d_matrix_omp.pyx":148
  *     return arr
  * 
  * def d_f(el, list, dist_function):             # <<<<<<<<<<<<<<
@@ -5396,6 +5303,7 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_n_s_dist_function, __pyx_k_dist_function, sizeof(__pyx_k_dist_function), 0, 0, 1, 1},
   {&__pyx_n_s_double, __pyx_k_double, sizeof(__pyx_k_double), 0, 0, 1, 1},
   {&__pyx_n_s_el, __pyx_k_el, sizeof(__pyx_k_el), 0, 0, 1, 1},
+  {&__pyx_n_s_gc, __pyx_k_gc, sizeof(__pyx_k_gc), 0, 0, 1, 1},
   {&__pyx_kp_s_home_fede_src_ignet_ignet_paral, __pyx_k_home_fede_src_ignet_ignet_paral, sizeof(__pyx_k_home_fede_src_ignet_ignet_paral), 0, 0, 1, 0},
   {&__pyx_n_s_import, __pyx_k_import, sizeof(__pyx_k_import), 0, 0, 1, 1},
   {&__pyx_n_s_list, __pyx_k_list, sizeof(__pyx_k_list), 0, 0, 1, 1},
@@ -5406,16 +5314,21 @@ static __Pyx_StringTabEntry __pyx_string_tab[] = {
   {&__pyx_kp_u_ndarray_is_not_C_contiguous, __pyx_k_ndarray_is_not_C_contiguous, sizeof(__pyx_k_ndarray_is_not_C_contiguous), 0, 1, 0, 0},
   {&__pyx_kp_u_ndarray_is_not_Fortran_contiguou, __pyx_k_ndarray_is_not_Fortran_contiguou, sizeof(__pyx_k_ndarray_is_not_Fortran_contiguou), 0, 1, 0, 0},
   {&__pyx_n_s_range, __pyx_k_range, sizeof(__pyx_k_range), 0, 0, 1, 1},
-  {&__pyx_n_s_shape, __pyx_k_shape, sizeof(__pyx_k_shape), 0, 0, 1, 1},
   {&__pyx_n_s_test, __pyx_k_test, sizeof(__pyx_k_test), 0, 0, 1, 1},
   {&__pyx_kp_u_unknown_dtype_code_in_numpy_pxd, __pyx_k_unknown_dtype_code_in_numpy_pxd, sizeof(__pyx_k_unknown_dtype_code_in_numpy_pxd), 0, 1, 0, 0},
   {&__pyx_n_s_wrapper, __pyx_k_wrapper, sizeof(__pyx_k_wrapper), 0, 0, 1, 1},
+  {&__pyx_n_s_xrange, __pyx_k_xrange, sizeof(__pyx_k_xrange), 0, 0, 1, 1},
   {0, 0, 0, 0, 0, 0, 0}
 };
 static int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 95; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 100; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
-  __pyx_builtin_map = __Pyx_GetBuiltinName(__pyx_n_s_map); if (!__pyx_builtin_map) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 144; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_builtin_MemoryError = __Pyx_GetBuiltinName(__pyx_n_s_MemoryError); if (!__pyx_builtin_MemoryError) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 96; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  #if PY_MAJOR_VERSION >= 3
+  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_xrange) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  #else
+  __pyx_builtin_xrange = __Pyx_GetBuiltinName(__pyx_n_s_xrange); if (!__pyx_builtin_xrange) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 102; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  #endif
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 130; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_builtin_map = __Pyx_GetBuiltinName(__pyx_n_s_map); if (!__pyx_builtin_map) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 149; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_builtin_ValueError = __Pyx_GetBuiltinName(__pyx_n_s_ValueError); if (!__pyx_builtin_ValueError) {__pyx_filename = __pyx_f[2]; __pyx_lineno = 218; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_builtin_RuntimeError = __Pyx_GetBuiltinName(__pyx_n_s_RuntimeError); if (!__pyx_builtin_RuntimeError) {__pyx_filename = __pyx_f[2]; __pyx_lineno = 799; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   return 0;
@@ -5493,29 +5406,29 @@ static int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__6);
   __Pyx_GIVEREF(__pyx_tuple__6);
 
-  /* "d_matrix_omp.pyx":138
+  /* "d_matrix_omp.pyx":143
  *     return arr
  * 
  * def wrapper(list3, list4):             # <<<<<<<<<<<<<<
  *     a = dist_matrix(list3, list4)
  *     arr = data_to_numpy_array_with_spec(a, len(list3)*len(list4), np.NPY_DOUBLE)
  */
-  __pyx_tuple__7 = PyTuple_Pack(4, __pyx_n_s_list3, __pyx_n_s_list4, __pyx_n_s_a, __pyx_n_s_arr); if (unlikely(!__pyx_tuple__7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_tuple__7 = PyTuple_Pack(4, __pyx_n_s_list3, __pyx_n_s_list4, __pyx_n_s_a, __pyx_n_s_arr); if (unlikely(!__pyx_tuple__7)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_tuple__7);
   __Pyx_GIVEREF(__pyx_tuple__7);
-  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(2, 0, 4, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_fede_src_ignet_ignet_paral, __pyx_n_s_wrapper, 138, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_codeobj__8 = (PyObject*)__Pyx_PyCode_New(2, 0, 4, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__7, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_fede_src_ignet_ignet_paral, __pyx_n_s_wrapper, 143, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__8)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
 
-  /* "d_matrix_omp.pyx":143
+  /* "d_matrix_omp.pyx":148
  *     return arr
  * 
  * def d_f(el, list, dist_function):             # <<<<<<<<<<<<<<
  *     return map(lambda x: dist_function(el,x), list)
  * 
  */
-  __pyx_tuple__9 = PyTuple_Pack(3, __pyx_n_s_el, __pyx_n_s_list, __pyx_n_s_dist_function); if (unlikely(!__pyx_tuple__9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_tuple__9 = PyTuple_Pack(3, __pyx_n_s_el, __pyx_n_s_list, __pyx_n_s_dist_function); if (unlikely(!__pyx_tuple__9)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_tuple__9);
   __Pyx_GIVEREF(__pyx_tuple__9);
-  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(3, 0, 3, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_fede_src_ignet_ignet_paral, __pyx_n_s_d_f, 143, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_codeobj__10 = (PyObject*)__Pyx_PyCode_New(3, 0, 3, 0, 0, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__9, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_home_fede_src_ignet_ignet_paral, __pyx_n_s_d_f, 148, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__10)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -5624,7 +5537,7 @@ PyMODINIT_FUNC PyInit_d_matrix_omp(void)
   /*--- Variable export code ---*/
   /*--- Function export code ---*/
   /*--- Type init code ---*/
-  if (PyType_Ready(&__pyx_type_12d_matrix_omp___pyx_scope_struct__d_f) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyType_Ready(&__pyx_type_12d_matrix_omp___pyx_scope_struct__d_f) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __pyx_type_12d_matrix_omp___pyx_scope_struct__d_f.tp_print = 0;
   __pyx_ptype_12d_matrix_omp___pyx_scope_struct__d_f = &__pyx_type_12d_matrix_omp___pyx_scope_struct__d_f;
   /*--- Type import code ---*/
@@ -5650,28 +5563,40 @@ PyMODINIT_FUNC PyInit_d_matrix_omp(void)
   if (__Pyx_patch_abc() < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 1; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   #endif
 
-  /* "d_matrix_omp.pyx":8
+  /* "d_matrix_omp.pyx":6
+ * cimport cython
+ * 
+ * import gc             # <<<<<<<<<<<<<<
+ * 
+ * from numpy cimport ndarray
+ */
+  __pyx_t_1 = __Pyx_Import(__pyx_n_s_gc, 0, -1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_GOTREF(__pyx_t_1);
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_gc, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 6; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
+
+  /* "d_matrix_omp.pyx":10
  * from numpy cimport ndarray
  * from cython.parallel cimport parallel, prange, threadid
  * from ctypes import c_double as double             # <<<<<<<<<<<<<<
  * from cpython cimport array
  * from cpython.string cimport PyString_AsString, PyString_AS_STRING
  */
-  __pyx_t_1 = PyList_New(1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 8; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = PyList_New(1); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 10; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
   __Pyx_INCREF(__pyx_n_s_c_double);
   __Pyx_GIVEREF(__pyx_n_s_c_double);
   PyList_SET_ITEM(__pyx_t_1, 0, __pyx_n_s_c_double);
-  __pyx_t_2 = __Pyx_Import(__pyx_n_s_ctypes, __pyx_t_1, -1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 8; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = __Pyx_Import(__pyx_n_s_ctypes, __pyx_t_1, -1); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 10; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_c_double); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 8; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_1 = __Pyx_ImportFrom(__pyx_t_2, __pyx_n_s_c_double); if (unlikely(!__pyx_t_1)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 10; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_1);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_double, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 8; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_double, __pyx_t_1) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 10; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "d_matrix_omp.pyx":17
+  /* "d_matrix_omp.pyx":19
  * # from libcpp.vector cimport vector
  * 
  * np.import_array()             # <<<<<<<<<<<<<<
@@ -5680,28 +5605,28 @@ PyMODINIT_FUNC PyInit_d_matrix_omp(void)
  */
   import_array();
 
-  /* "d_matrix_omp.pyx":138
+  /* "d_matrix_omp.pyx":143
  *     return arr
  * 
  * def wrapper(list3, list4):             # <<<<<<<<<<<<<<
  *     a = dist_matrix(list3, list4)
  *     arr = data_to_numpy_array_with_spec(a, len(list3)*len(list4), np.NPY_DOUBLE)
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_12d_matrix_omp_1wrapper, NULL, __pyx_n_s_d_matrix_omp); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_12d_matrix_omp_1wrapper, NULL, __pyx_n_s_d_matrix_omp); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_wrapper, __pyx_t_2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 138; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_wrapper, __pyx_t_2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "d_matrix_omp.pyx":143
+  /* "d_matrix_omp.pyx":148
  *     return arr
  * 
  * def d_f(el, list, dist_function):             # <<<<<<<<<<<<<<
  *     return map(lambda x: dist_function(el,x), list)
  * 
  */
-  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_12d_matrix_omp_3d_f, NULL, __pyx_n_s_d_matrix_omp); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  __pyx_t_2 = PyCFunction_NewEx(&__pyx_mdef_12d_matrix_omp_3d_f, NULL, __pyx_n_s_d_matrix_omp); if (unlikely(!__pyx_t_2)) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_d_f, __pyx_t_2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 143; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_d_f, __pyx_t_2) < 0) {__pyx_filename = __pyx_f[0]; __pyx_lineno = 148; __pyx_clineno = __LINE__; goto __pyx_L1_error;}
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "d_matrix_omp.pyx":1
@@ -7693,33 +7618,7 @@ static void __Pyx_ReleaseBuffer(Py_buffer *view) {
 #endif
 
 
-        static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
-    const long neg_one = (long) -1, const_zero = (long) 0;
-    const int is_unsigned = neg_one > const_zero;
-    if (is_unsigned) {
-        if (sizeof(long) < sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(long) <= sizeof(unsigned long)) {
-            return PyLong_FromUnsignedLong((unsigned long) value);
-        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
-            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
-        }
-    } else {
-        if (sizeof(long) <= sizeof(long)) {
-            return PyInt_FromLong((long) value);
-        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
-            return PyLong_FromLongLong((PY_LONG_LONG) value);
-        }
-    }
-    {
-        int one = 1; int little = (int)*(unsigned char *)&one;
-        unsigned char *bytes = (unsigned char *)&value;
-        return _PyLong_FromByteArray(bytes, sizeof(long),
-                                     little, !is_unsigned);
-    }
-}
-
-#if CYTHON_CCOMPLEX
+        #if CYTHON_CCOMPLEX
   #ifdef __cplusplus
     static CYTHON_INLINE __pyx_t_float_complex __pyx_t_float_complex_from_parts(float x, float y) {
       return ::std::complex< float >(x, y);
@@ -8216,6 +8115,32 @@ static CYTHON_INLINE PyObject* __Pyx_PyInt_From_enum__NPY_TYPES(enum NPY_TYPES v
         int one = 1; int little = (int)*(unsigned char *)&one;
         unsigned char *bytes = (unsigned char *)&value;
         return _PyLong_FromByteArray(bytes, sizeof(enum NPY_TYPES),
+                                     little, !is_unsigned);
+    }
+}
+
+static CYTHON_INLINE PyObject* __Pyx_PyInt_From_long(long value) {
+    const long neg_one = (long) -1, const_zero = (long) 0;
+    const int is_unsigned = neg_one > const_zero;
+    if (is_unsigned) {
+        if (sizeof(long) < sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(long) <= sizeof(unsigned long)) {
+            return PyLong_FromUnsignedLong((unsigned long) value);
+        } else if (sizeof(long) <= sizeof(unsigned PY_LONG_LONG)) {
+            return PyLong_FromUnsignedLongLong((unsigned PY_LONG_LONG) value);
+        }
+    } else {
+        if (sizeof(long) <= sizeof(long)) {
+            return PyInt_FromLong((long) value);
+        } else if (sizeof(long) <= sizeof(PY_LONG_LONG)) {
+            return PyLong_FromLongLong((PY_LONG_LONG) value);
+        }
+    }
+    {
+        int one = 1; int little = (int)*(unsigned char *)&one;
+        unsigned char *bytes = (unsigned char *)&value;
+        return _PyLong_FromByteArray(bytes, sizeof(long),
                                      little, !is_unsigned);
     }
 }
