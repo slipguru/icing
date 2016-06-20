@@ -1,21 +1,11 @@
+#!/usr/bin/env python
 from __future__ import division
 
-# import csv, os, re, sys
-import numpy as np
-# import pandas as pd
-from itertools import izip  # combinations, izip, product
-# from collections import OrderedDict
-# from scipy.cluster.hierarchy import fcluster, linkage
-# from scipy.spatial.distance import squareform
-# from time import time
-# from Bio.Seq import Seq
-# from Bio.Alphabet import IUPAC
-from Bio.pairwise2 import align
+"""Utilities to compute distances between sequences."""
 
-# IgCore imports
-# sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-# from changeo.IgCore import scoreDNA, scoreAA, getOutputHandle, getFileType,
-# printLog, printProgress
+import numpy as np
+from itertools import izip  # combinations, izip, product
+from Bio.pairwise2 import align
 
 from ..utils import utils
 
@@ -27,8 +17,7 @@ def hamming(str1, str2):
 
 
 def get_nmers(sequences, n):
-    """
-    Break input sequences down into n-mers.
+    """Break input sequences down into n-mers.
 
     :param sequences: list of sequences to be broken into n-mers
     :param n: length of n-mers to return
@@ -43,8 +32,7 @@ def get_nmers(sequences, n):
 
 def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3,
                       c=35., length_constraint=True):
-    """
-    Calculate a distance between two input sequences
+    """Calculate a distance between two input sequences.
 
     :param seq1: first sequence
     :param seq2: second sequence
@@ -97,9 +85,9 @@ def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3,
     return sum([sym_fun([float(dist_mat.at[c1,n2]),float(dist_mat.at[c2,n1])]) \
                 for c1,c2,n1,n2 in izip(seqq1,seqq2,nmer1,nmer2)]) / (norm_by)
 
+
 def string_distance(seq1, seq2, dist_mat, norm_by, tol=3, length_constraint=True):
-    """
-    Calculate a distance between two input sequences
+    """Calculate a distance between two input sequences.
 
     :param seq1: first sequence
     :param seq2: second sequence
@@ -111,7 +99,7 @@ def string_distance(seq1, seq2, dist_mat, norm_by, tol=3, length_constraint=True
     if length_constraint:
         l1, l2 = len(seq1), len(seq2)
         if abs(l1 - l2) > tol:
-            return 1. #min(l1, l2) / norm_by  # should be 1
+            return 1.  # min(l1, l2) / norm_by  # should be 1
 
         if 0 < abs(l1 - l2) <= tol:
             # different lengths, seqs alignment
