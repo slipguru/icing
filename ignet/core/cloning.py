@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-"""
-Assign Ig sequences into clones
-"""
-#
-# # Imports
-import os, sys, imp
+"""Assign Ig sequences into clones."""
+
+import os
+import sys
+import imp
 import multiprocessing as mp
 import numpy as np
 import scipy
@@ -12,15 +11,17 @@ import joblib as jl
 
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
-
-import changeo
-from changeo import DbCore
+from sklearn.utils.sparsetools import connected_components
 
 from .distances import junction_distance, string_distance
 from .similarity_scores import similarity_score_tripartite as mwi
 from .. import parallel_distance
 from ..utils import io
 from ..utils import utils
+from ..plotting import silhouette
+from ..externals import DbCore
+
+__author__ = 'Federico Tomasi'
 
 
 def neg_exp(x, a, c, d):
@@ -40,7 +41,7 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
         return 0.
 
     if not dist_mat:
-        dist_mat = changeo.DbCore.getModelMatrix(model)
+        dist_mat = DbCore.getModelMatrix(model)
 
     V_genes_ig1 = ig1.getVGene('set')
     V_genes_ig2 = ig2.getVGene('set')
@@ -53,7 +54,8 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
         junc1 = utils.junction_re(ig1.junction)
         junc2 = utils.junction_re(ig2.junction)
         norm_by = min(len(junc1), len(junc2))
-        if model == 'hs1f': norm_by *= 2.08
+        if model == 'hs1f':
+            norm_by *= 2.08
         dist = string_distance(junc1, junc2, dist_mat, norm_by)
         ss *= (1 - dist)
     if ss > 0:
@@ -84,7 +86,7 @@ def getVJ(d, i_igs):
             d[v] = d.get(v, []) + [(i, ig)]
         for j in ig.getJGene('set'):
             # d.setdefault(j,[]).append((i,ig))
-            d[j] = d.get(j, []) + [(i,ig)]
+            d[j] = d.get(j, []) + [(i, ig)]
 
 def distance_matrix(config_file, sparse_mode=True):
     # Load the configuration file
@@ -132,8 +134,8 @@ def distance_matrix(config_file, sparse_mode=True):
                 for j in range(i+1, length):
                     indicator_matrix[v[i][0], v[j][0]] = True
     rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
-    data = jl.Parallel(n_jobs=-1)\
-        (jl.delayed(d_func)(igs[i], igs[j]) for i, j in zip(rows, cols))
+    data = jl.Parallel(n_jobs=-1) \
+           (jl.delayed(d_func)(igs[i], igs[j]) for i, j in zip(rows, cols))
     data = np.array(data)
     idx = data > 0
     data = data[idx]
@@ -160,8 +162,9 @@ def distance_matrix(config_file, sparse_mode=True):
     similarity_matrix = S_ + S_.T + scipy.eye(S_.shape[0])
     return similarity_matrix
 
-def define_clusts(similarity_matrix):
-    from sklearn.utils.sparsetools import connected_components
+
+def define_clusts(similarity_matrix, threshold=0.053447011367803443):
+    """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix)
     prev_max_clust = 0
     clusters = []
@@ -170,8 +173,8 @@ def define_clusts(similarity_matrix):
         if idxs[0].shape[0] > 1:
             D_ = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
             links = linkage(squareform(D_), 'ward')
-            clusters_ = fcluster(links, 0.053447011367803443,
-                                 criterion='distance') + prev_max_clust
+            clusters_ = fcluster(links, threshold,
+                        criterion='distance') + prev_max_clust
             clusters.append(clusters_)
             prev_max_clust = max(clusters_)
         else: # connected component contains just 1 element
@@ -183,7 +186,7 @@ def define_clusts(similarity_matrix):
 def sil_score(similarity_matrix, clusters):
     # links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
     # clusters = fcluster(links, 0.053447011367803443, criterion='distance')
-    DbCore.compute_silhouette_score(squareform(1. - similarity_matrix.toarray()), clusters, len(clusters))
+    silhouette.compute_silhouette_score(squareform(1. - similarity_matrix.toarray()), clusters, len(clusters))
 
 
 if __name__ == '__main__':

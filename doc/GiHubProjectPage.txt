@@ -1,0 +1,20 @@
+### Welcome to IGNET.
+IGNET is a machine learning framework for unsupervised analysis tailored for immunoglobulins (or antibodies). The goal of the framework is to group together immunoglobulins which share a common ancestor.
+
+### Implementation
+IGNET is based on different similarity indexes, such as Jaccard and Simpson indexes, which come directly from graph theory, then extended for the double bipartite graph representation which IGNET is based on.
+
+### Dependencies
+IGNET is developed using Python 2.7 and it is based on the standard Python packages for numerical computation:
+* numpy
+* scipy
+* scikit-learn
+* matplotlib
+* seaborn
+
+### Authors and Contributors
+Current developer: Federico Tomasi (@fdtomasi).
+
+### Support or Contact
+Having trouble with IGNET? Check out our [documentation](http://www.slipguru.unige.it/Software/ignet/) or contact us:
+* federico [dot] tomasi [at] dibris [dot] unige [dot] it

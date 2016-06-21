@@ -8,7 +8,7 @@ import re, os
 
 class Counter(object):
     """Counter which contains the lock. Atomic update"""
-    
+
     def __init__(self, initval=0):
         self.val = mp.RawValue('i', initval)
         self.lock = mp.Lock()
@@ -46,13 +46,13 @@ def get_time_from_seconds(seconds):
     return "{02d}:{02d}:{02d}".format(h, m, s)
 
 def get_time():
-    return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H:%M:%S')
+    return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
 
 def mkpath(path):
     if not os.path.exists(path):
         os.makedirs(path)
 
-### progress bar ###
+# progress bar
 try:
     TERMINAL_COLS = struct.unpack('hh',  fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ, '1234'))[1]
 except:
