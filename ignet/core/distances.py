@@ -3,6 +3,7 @@
 from __future__ import division
 
 import numpy as np
+
 from itertools import izip  # combinations, izip, product
 from Bio.pairwise2 import align
 
@@ -16,30 +17,59 @@ def hamming(str1, str2):
 
 
 def get_nmers(sequences, n):
-    """Break input sequences down into n-mers.
+    """Break sequences down into n-mers.
 
-    :param sequences: list of sequences to be broken into n-mers
-    :param n: length of n-mers to return
-    :return: dictionary of {sequence: [n-mers]}
+    Parameters
+    ----------
+    sequences : array-like
+        String sequences.
+    n : int
+        Choose how to break down sequences. Usually is 1 or 5. Length of n-mers
+        to return.
+
+    Returns
+    -------
+    nmers : dictionary
+        Dictionary built as: {sequence: [n-mers]}
     """
-    sequences_n = ['N' * ((n-1)/2) + seq + 'N' * ((n-1)/2) for seq in sequences]
+    sequences_n = ['N'*((n-1)/2) + seq + 'N'*((n-1)/2) for seq in sequences]
     nmers = {}
     for seq, seqn in izip(sequences, sequences_n):
         nmers[seq] = [seqn[i:i+n] for i in range(len(seqn)-n+1)]
     return nmers
 
 
-def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3,
-                      c=35., length_constraint=True):
-    """Calculate a distance between two input sequences.
+def junction_distance(seq1, seq2, n, dist_mat, norm, sym, tol=3, c=35.,
+                      length_constraint=True):
+    """[DEPRECATED] Calculate a distance between two input sequences.
 
-    :param seq1: first sequence
-    :param seq2: second sequence
-    :param n: length of n-mers to be used in calculating distance
-    :param dist_mat: pandas DataFrame of mutation distances
-    :param norm: normalization method
-    :param sym: symmetry method
-    :return: numpy matrix of pairwise distances between input sequences
+    Parameters
+    ----------
+    seq1, seq2 : str
+        String sequences.
+    n : int
+        Choose how to break down sequences. Usually is 1 or 5.
+    dist_mat : pandas.DataFrame
+        Matrix which define the distance between the single characters.
+    norm : ('len', 'mut', 'max', 'min', 'none')
+        Normalisation method.
+    sym : ('avg', 'min', 'sum')
+        Choose how to symmetrise distances between seq1 and seq2 or seq2 and
+        seq1.
+    tol : int, optional, default: 3
+        Tolerance in the length of the sequences. Default is 3 (3 nucleotides
+        form an amminoacid. If seq1 and seq2 represent amminoacidic sequences,
+        use tol = 1).
+    c : float, optional, default: 35.0, deprecated
+        Constant used with mutations. Now ignored. Will be removed.
+    length_constraint : boolean, optional, default: True
+        Insert the constraint on the difference between the lengths of seq1 and
+        seq2. If False, `tol` is ignored.
+
+    Returns
+    -------
+    distance : float
+        A normalised distance between seq1 and seq2. Values are in [0,1].
     """
     if length_constraint and 0 < abs(len(seq1)-len(seq2)) <= tol:
         # different lengths, seqs alignment
@@ -81,19 +111,34 @@ def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3,
     if length_constraint and abs(len(seq1)-len(seq2)) > tol:
         return min(len(seq1), len(seq2)) / norm_by
 
-    return sum([sym_fun([float(dist_mat.at[c1,n2]),float(dist_mat.at[c2,n1])]) \
-                for c1,c2,n1,n2 in izip(seqq1,seqq2,nmer1,nmer2)]) / (norm_by)
+    return sum([sym_fun([float(dist_mat.at[c1, n2]), float(dist_mat.at[c2, n1])])
+                for c1, c2, n1, n2 in izip(seqq1, seqq2, nmer1, nmer2)]) / (norm_by)
 
 
-def string_distance(seq1, seq2, dist_mat, norm_by, tol=3, length_constraint=True):
+def string_distance(seq1, seq2, dist_mat, norm_by, tol=3,
+                    length_constraint=True):
     """Calculate a distance between two input sequences.
 
-    :param seq1: first sequence
-    :param seq2: second sequence
-    :param dist_mat: pandas DataFrame of mutation distances
-    :param norm: normalization method
-    :param sym: symmetry method
-    :return: numpy matrix of pairwise distances between input sequences
+    Parameters
+    ----------
+    seq1, seq2 : str
+        String sequences.
+    dist_mat : pandas.DataFrame
+        Matrix which define the distance between the single characters.
+    norm_by : float
+        Normalising value for the distance.
+    tol : int, optional, default: 3
+        Tolerance in the length of the sequences. Default is 3 (3 nucleotides
+        form an amminoacid. If seq1 and seq2 represent amminoacidic sequences,
+        use tol = 1).
+    length_constraint : boolean, optional, default: True
+        Insert the constraint on the difference between the lengths of seq1 and
+        seq2. If False, `tol` is ignored.
+
+    Returns
+    -------
+    distance : float
+        A normalised distance between seq1 and seq2. Values are in [0,1].
     """
     if length_constraint:
         l1, l2 = len(seq1), len(seq2)
@@ -103,6 +148,6 @@ def string_distance(seq1, seq2, dist_mat, norm_by, tol=3, length_constraint=True
         if 0 < abs(l1 - l2) <= tol:
             # different lengths, seqs alignment
             seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
-            norm_by = len(seq1)
+            norm_by = len(seq1)  # lengths could be changed
 
-    return sum([np.mean((float(dist_mat.at[c1,c2]), float(dist_mat.at[c2,c1]))) for c1, c2 in izip(list(seq1),list(seq2)) if c1 != c2]) / norm_by
+    return sum([np.mean((float(dist_mat.at[c1, c2]), float(dist_mat.at[c2, c1]))) for c1, c2 in izip(list(seq1), list(seq2)) if c1 != c2]) / norm_by

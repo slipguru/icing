@@ -1,43 +1,68 @@
 #!/usr/bin/env python
 """Assign Ig sequences into clones."""
+from __future__ import print_function
 
 import os
 import sys
 import imp
-import multiprocessing as mp
 import numpy as np
 import scipy
+import multiprocessing as mp
 import joblib as jl
 
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 from sklearn.utils.sparsetools import connected_components
 
-from .distances import junction_distance, string_distance
+from .distances import string_distance  # , junction_distance
 from .similarity_scores import similarity_score_tripartite as mwi
-from .. import parallel_distance
+# from .. import parallel_distance
+from ..externals import DbCore
+from ..plotting import silhouette
 from ..utils import io
 from ..utils import extra
-from ..plotting import silhouette
-from ..externals import DbCore
 
 __author__ = 'Federico Tomasi'
 
 
-def neg_exp(x, a, c, d):
-    return a * np.exp(-c * x) + d
-
-
 def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):
-    '''Coefficient to balance distance according to mutation levels'''
+    """Coefficient to balance distance according to mutation levels."""
+    def _neg_exp(x, a, c, d):
+        return a * np.exp(-c * x) + d
+
     try:
         popt = np.load(fn)
-        return neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
+        return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
     except:
         return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
 
 
-def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None, tol=3):
+def dist_function(ig1, ig2, method='jaccard', model='ham',
+                  dist_mat=None, tol=3):
+    """Calculate a distance between two input immunoglobulins.
+
+    Parameters
+    ----------
+    ig1, ig2 : externals.DbCore.IgRecord
+        Instances of two immunoglobulins.
+    method : ('jaccard', 'simpson'), optional
+        Graph-based index.
+    model : ('ham', 'hs1f'), optional
+        Model for the distance between strings.
+    dist_mat : pandas.DataFrame, optional
+        Matrix which define the distance between the single characters.
+    tol : int, optional, default: 3
+        Tolerance in the length of the sequences. Default is 3 (3 nucleotides
+        form an amminoacid. If seq1 and seq2 represent amminoacidic sequences,
+        use tol = 1).
+
+    Returns
+    -------
+    similarity : float
+        A normalised similarity score between ig1 and ig2. Values are in [0,1].
+        0: ig1 is completely different from ig2.
+        1: ig1 and ig2 are the same.
+    """
     # nmer = 5 if model == 'hs5f' else 1
     if ig1.junction_length - ig2.junction_length > tol:
         return 0.
@@ -102,7 +127,7 @@ def distance_matrix(config_file, sparse_mode=True):
     # return X
     # print 'end loading'
     igs = list(db_iter)
-    print len(igs)
+    print("DEBUG # len igs read: ", len(igs))
     # r_index = dict()
     # for i, ig in enumerate(igs):
     #     igs.append(ig)
@@ -180,9 +205,11 @@ def define_clusts(similarity_matrix, threshold=0.053447011367803443):
 
 
 def sil_score(similarity_matrix, clusters):
+    """Compute the silhouette score given the similarity matrix."""
     # links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
     # clusters = fcluster(links, 0.053447011367803443, criterion='distance')
-    silhouette.compute_silhouette_score(1. - similarity_matrix.toarray(), clusters, max(clusters))
+    silhouette.compute_silhouette_score(1. - similarity_matrix.toarray(),
+                                        clusters, max(clusters))
 
 
 def run(config_file):
@@ -192,8 +219,10 @@ def run(config_file):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
-        print("USAGE: cloning.py <CONFIG_FILE>")
-        sys.exit(-1)
-
-    run(sys.argv[1])
+    print("This file cannot be launched directly. "
+          "Please run the script located in `ignet.scripts.ig_run.py` "
+          "with an argument, that is the location of the configuration file. "
+          "Alternatively, you can import \n"
+          "from ignet.core import cloning \n"
+          "and then launch `cloning.run(config_file)`")
+    sys.exit(-1)

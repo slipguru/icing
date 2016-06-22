@@ -2,3 +2,5 @@ numpy
 matplotlib
 seaborn
 scikit-learn
+biopython
+joblib
