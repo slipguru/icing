@@ -27,6 +27,7 @@ __author__ = 'Federico Tomasi'
 def neg_exp(x, a, c, d):
     return a * np.exp(-c * x) + d
 
+
 def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):
     '''Coefficient to balance distance according to mutation levels'''
     try:
@@ -35,9 +36,10 @@ def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):
     except:
         return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
 
-def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
+
+def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None, tol=3):
     # nmer = 5 if model == 'hs5f' else 1
-    if ig1.junction_length - ig2.junction_length > 3:
+    if ig1.junction_length - ig2.junction_length > tol:
         return 0.
 
     if not dist_mat:
@@ -56,7 +58,7 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
         norm_by = min(len(junc1), len(junc2))
         if model == 'hs1f':
             norm_by *= 2.08
-        dist = string_distance(junc1, junc2, dist_mat, norm_by)
+        dist = string_distance(junc1, junc2, dist_mat, norm_by, tol=tol)
         ss *= (1 - dist)
     if ss > 0:
         ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
@@ -64,20 +66,14 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None):
 # d_func = lambda x, y: dist_function(x, y, 'jaccard', 'ham')
 # d_wrapper = lambda x, y: (d_func(x[1], y[1]), (x[0], y[0]))
 
-def d_func(x,y):
+
+def d_func(x, y):
     return dist_function(x, y, 'jaccard', 'ham')
+
 
 def d_wrapper(x, y):
     return (d_func(x[1], y[1]), (x[0], y[0]))
 
-# def chunks(l, n):
-#     """Yield successive n-sized chunks from l."""
-#     for i in range(0, len(l), n):
-#         yield l[i:i+n]
-
-def split_list(l, n):
-    for i in xrange(n):
-        yield l[i*n:(i+1)*n]
 
 def getVJ(d, i_igs):
     for i, ig in i_igs:
@@ -117,7 +113,7 @@ def distance_matrix(config_file, sparse_mode=True):
     ndim = len(igs)
     n_proc = min(ndim, mp.cpu_count())
     ps = []
-    for i_igs in split_list(list(enumerate(igs)), n_proc):
+    for i_igs in utils.split_list(list(enumerate(igs)), n_proc):
         p = mp.Process(target=getVJ, args=(r_index, i_igs))
         p.start()
         ps.append(p)
@@ -159,7 +155,7 @@ def distance_matrix(config_file, sparse_mode=True):
 
     # sim = 1 - np.array(data)
     S_ = scipy.sparse.csr_matrix((data, (rows, cols)), shape=(ndim, ndim))
-    similarity_matrix = S_ + S_.T + scipy.eye(S_.shape[0])
+    similarity_matrix = S_ + S_.T + scipy.sparse.eye(S_.shape[0])
     return similarity_matrix
 
 
@@ -174,26 +170,30 @@ def define_clusts(similarity_matrix, threshold=0.053447011367803443):
             D_ = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
             links = linkage(squareform(D_), 'ward')
             clusters_ = fcluster(links, threshold,
-                        criterion='distance') + prev_max_clust
+                                 criterion='distance') + prev_max_clust
             clusters.append(clusters_)
             prev_max_clust = max(clusters_)
-        else: # connected component contains just 1 element
+        else:  # connected component contains just 1 element
             prev_max_clust += 1
             clusters.append(prev_max_clust)
-    return utils.flatten(clusters)
+    return np.array(utils.flatten(clusters))
 
 
 def sil_score(similarity_matrix, clusters):
     # links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
     # clusters = fcluster(links, 0.053447011367803443, criterion='distance')
-    silhouette.compute_silhouette_score(squareform(1. - similarity_matrix.toarray()), clusters, len(clusters))
+    silhouette.compute_silhouette_score(1. - similarity_matrix.toarray(), clusters, max(clusters))
+
+
+def run(config_file):
+    similarity_matrix = distance_matrix(config_file)
+    clusters = define_clusts(similarity_matrix)
+    sil_score(similarity_matrix, clusters)
 
 
 if __name__ == '__main__':
     if len(sys.argv) < 2:
-        print("USAGE: define_clones_network.py <CONFIG_FILE>")
+        print("USAGE: cloning.py <CONFIG_FILE>")
         sys.exit(-1)
 
-    similarity_matrix = distance_matrix(sys.argv[1])
-    clusters = define_clusts(similarity_matrix)
-    sil_score(similarity_matrix, clusters)
+    run(sys.argv[1])

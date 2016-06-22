@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """Plotting functions for silhouette analysis."""
+from __future__ import print_function
 
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
@@ -17,10 +19,8 @@ def compute_silhouette_score(X, cluster_labels, n_clusters):
 
     Parameters
     ----------
-    X : array_like
-        Distance matrix. Must be in the form returned by
-        scipy.spatial.distance.squareform,
-        e.g. squareform(1. - similarity_matrix.toarray())
+    X : array_like, shape [n_samples_a, n_samples_a]
+        Distance matrix.
     cluster_labels : array_like
         List of integers which represents the cluster of the corresponding
         point in X. The size must be the same has a dimension of X.
@@ -47,7 +47,7 @@ def compute_silhouette_score(X, cluster_labels, n_clusters):
     sample_silhouette_values = silhouette_samples(X, cluster_labels,
                                                   metric="precomputed")
     silhouette_avg = np.mean(sample_silhouette_values)
-    print "average silhouette_score: ", silhouette_avg
+    print("average silhouette_score: ", silhouette_avg)
 
     y_lower = 10
     for i in range(n_clusters):
@@ -57,7 +57,6 @@ def compute_silhouette_score(X, cluster_labels, n_clusters):
             sample_silhouette_values[cluster_labels == i]
 
         ith_cluster_silhouette_values.sort()
-
         size_cluster_i = ith_cluster_silhouette_values.shape[0]
         y_upper = y_lower + size_cluster_i
 
@@ -85,4 +84,6 @@ def compute_silhouette_score(X, cluster_labels, n_clusters):
     plt.suptitle(("Silhouette analysis (n_clusters {}, avg score {:.4f}, "
                   "tot Igs {}".format(n_clusters, silhouette_avg, X.shape[0])),
                  fontsize=14, fontweight='bold')
-    fig.savefig('silhouette_analysis_{}.png'.format(utils.get_time()))
+    filename = 'silhouette_analysis_{}.png'.format(utils.get_time())
+    fig.savefig(filename)
+    print("Figure saved in {}".format(os.path.abspath(filename)))
