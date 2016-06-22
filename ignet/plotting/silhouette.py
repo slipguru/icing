@@ -16,8 +16,7 @@ from sklearn.cluster import SpectralClustering
 from sklearn.metrics import silhouette_samples  # , silhouette_score
 
 from ..externals import Tango
-from ..utils import utils
-from ..utils.utils import _terminate
+from ..utils import extra
 
 
 __author__ = 'Federico Tomasi'
@@ -93,7 +92,7 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters):
     plt.suptitle(("Silhouette analysis (n_clusters {}, avg score {:.4f}, "
                   "tot Igs {}".format(n_clusters, silhouette_avg, X.shape[0])),
                  fontsize=14, fontweight='bold')
-    filename = 'silhouette_analysis_{}.png'.format(utils.get_time())
+    filename = 'silhouette_analysis_{}.png'.format(extra.get_time())
     fig.savefig(filename)
     print("Figure saved in {}".format(os.path.abspath(filename)))
 
@@ -170,11 +169,11 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters'):
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        extra._terminate(ps, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
+        extra._terminate(ps, 'ERROR: %s\n' % e)
     except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
     return queue_x, queue_y
 
 
@@ -231,8 +230,6 @@ def plot_average_silhouette_dendrogram(
         if verbose:
             print("Compute linkage with method = {}...".format(method))
         Z = linkage(dist_arr, method=method, metric='euclidean')
-        # dendrogram(Z)
-        # plt.close()
         if verbose:
             print("Start cutting ...")
         max_i = max(Z[:, 2])
@@ -252,8 +249,8 @@ def plot_average_silhouette_dendrogram(
     if interactive_mode:
         plt.show()
     path = "results"
-    utils.mkpath(path)
-    filename = os.path.join(path, "res_silh_HC_{}.png".format(utils.get_time()))
+    extra.mkpath(path)
+    filename = os.path.join(path, "res_silh_HC_{}.png".format(extra.get_time()))
     plt.savefig(filename)
     return filename
 
@@ -345,11 +342,11 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        extra._terminate(ps, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
+        extra._terminate(ps, 'ERROR: %s\n' % e)
     except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
     return queue_y
 
 
@@ -411,7 +408,7 @@ def plot_average_silhouette_spectral(
     if interactive_mode:
         plt.show()
     path = "results"
-    utils.mkpath(path)
-    filename = os.path.join(path, "res_silh_HC_{}.png".format(utils.get_time()))
+    extra.mkpath(path)
+    filename = os.path.join(path, "res_silh_HC_{}.png".format(extra.get_time()))
     plt.savefig(filename)
     return filename
