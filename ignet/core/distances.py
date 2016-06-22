@@ -6,7 +6,7 @@ import numpy as np
 from itertools import izip  # combinations, izip, product
 from Bio.pairwise2 import align
 
-from ..utils import utils
+from ..utils import extra
 
 
 def hamming(str1, str2):
@@ -43,7 +43,7 @@ def junction_distance(seq1, seq2, n, dist_mat, norm, sym, mutations=None, tol=3,
     """
     if length_constraint and 0 < abs(len(seq1)-len(seq2)) <= tol:
         # different lengths, seqs alignment
-        seq1, seq2 = map(utils.junction_re, align.globalxx(seq1, seq2)[0][:2])
+        seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
 
     nmers = get_nmers([seq1, seq2], n)
     mutated = np.array([i for i, (c1, c2) in enumerate(izip(seq1, seq2)) if c1 != c2])
@@ -102,7 +102,7 @@ def string_distance(seq1, seq2, dist_mat, norm_by, tol=3, length_constraint=True
 
         if 0 < abs(l1 - l2) <= tol:
             # different lengths, seqs alignment
-            seq1, seq2 = map(utils.junction_re, align.globalxx(seq1, seq2)[0][:2])
+            seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
             norm_by = len(seq1)
 
     return sum([np.mean((float(dist_mat.at[c1,c2]), float(dist_mat.at[c2,c1]))) for c1, c2 in izip(list(seq1),list(seq2)) if c1 != c2]) / norm_by

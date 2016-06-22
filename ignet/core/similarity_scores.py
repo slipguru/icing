@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""TODO ADD DOCSTRING."""
+"""Graph-based similarity scores."""
 from __future__ import division, print_function
 
 import sys

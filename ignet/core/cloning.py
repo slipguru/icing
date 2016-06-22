@@ -17,7 +17,7 @@ from .distances import junction_distance, string_distance
 from .similarity_scores import similarity_score_tripartite as mwi
 from .. import parallel_distance
 from ..utils import io
-from ..utils import utils
+from ..utils import extra
 from ..plotting import silhouette
 from ..externals import DbCore
 
@@ -53,8 +53,8 @@ def dist_function(ig1, ig2, method='jaccard', model='ham', dist_mat=None, tol=3)
     ss = mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method)
     if ss > 0.:
         # print V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2
-        junc1 = utils.junction_re(ig1.junction)
-        junc2 = utils.junction_re(ig2.junction)
+        junc1 = extra.junction_re(ig1.junction)
+        junc2 = extra.junction_re(ig2.junction)
         norm_by = min(len(junc1), len(junc2))
         if model == 'hs1f':
             norm_by *= 2.08
@@ -113,7 +113,7 @@ def distance_matrix(config_file, sparse_mode=True):
     ndim = len(igs)
     n_proc = min(ndim, mp.cpu_count())
     ps = []
-    for i_igs in utils.split_list(list(enumerate(igs)), n_proc):
+    for i_igs in extra.split_list(list(enumerate(igs)), n_proc):
         p = mp.Process(target=getVJ, args=(r_index, i_igs))
         p.start()
         ps.append(p)
@@ -176,7 +176,7 @@ def define_clusts(similarity_matrix, threshold=0.053447011367803443):
         else:  # connected component contains just 1 element
             prev_max_clust += 1
             clusters.append(prev_max_clust)
-    return np.array(utils.flatten(clusters))
+    return np.array(extra.flatten(clusters))
 
 
 def sil_score(similarity_matrix, clusters):

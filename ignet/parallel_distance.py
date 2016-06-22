@@ -8,7 +8,7 @@ import scipy
 import scipy.spatial
 import multiprocessing as mp
 
-from .utils.utils import _terminate, progressbar
+from .utils.extra import _terminate, progressbar
 
 
 def dnearest_inter_padding(l1, l2, dist_function):
