@@ -10,6 +10,8 @@ import multiprocessing as mp
 
 from .utils.extra import _terminate, progressbar
 
+__author__ = 'Federico Tomasi'
+
 
 def dnearest_inter_padding(l1, l2, dist_function):
     """Compute in a parallel way a dist2nearest for two 1-d arrays.

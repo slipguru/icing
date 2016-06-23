@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Distance models available for ignet."""
+"""Distance models available for ignet.
+
+The functions `char_dist_matrix` and `model_matrix` are adapted from Change-O
+functions. See changeo.DbCore for the original version.
+Reference: http://changeo.readthedocs.io/en/latest/
+"""
 import os
 import sys
 import numpy as np
@@ -8,6 +13,13 @@ import pandas as pd
 from itertools import product
 
 from ..externals.DbCore import scoreAA, scoreDNA
+
+
+__author__ = 'Federico Tomasi'
+# __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
+# __license__ = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
+# __version__ = '0.2.4'
+# __date__ = '2015.08.18'
 
 
 def char_dist_matrix(mat=None, n_score=0, gap_score=0, alphabet='dna'):

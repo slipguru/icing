@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Utilities to compute distances between sequences."""
+"""Utilities to compute distances between sequences.
+
+The functions `get_nmers`, `single_distance` and `junction_distance` are
+adapted from Change-O functions. See changeo.DbCore for the original version.
+Reference: http://changeo.readthedocs.io/en/latest/
+"""
 from __future__ import division
 
 import numpy as np
@@ -7,7 +12,10 @@ import numpy as np
 from itertools import izip  # combinations, izip, product
 from Bio.pairwise2 import align
 
+from ..align import align as igalign
 from ..utils import extra
+
+__author__ = 'Federico Tomasi'
 
 
 def hamming(str1, str2):
@@ -40,7 +48,7 @@ def get_nmers(sequences, n):
 
 
 def single_distance(seq1, seq2, n, dist_mat, norm, sym, mutations, tol=3,
-                     c=35., length_constraint=True):
+                    c=35., length_constraint=True):
     """[DEPRECATED] Calculate a distance between two input sequences.
 
     :param seq1: first sequence
@@ -188,7 +196,7 @@ def string_distance(seq1, seq2, dist_mat, norm_by=1, tol=3,
         String sequences.
     dist_mat : pandas.DataFrame
         Matrix which define the distance between the single characters.
-    norm_by : float
+    norm_by : float, deprecated
         Normalising value for the distance.
     tol : int, optional, default: 3
         Tolerance in the length of the sequences. Default is 3 (3 nucleotides
@@ -210,7 +218,8 @@ def string_distance(seq1, seq2, dist_mat, norm_by=1, tol=3,
 
         if 0 < abs(l1 - l2) <= tol:
             # different lengths, seqs alignment
-            seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
+            # seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
+            seq1, seq2 = map(extra.junction_re, igalign.alignment(seq1, seq2))
 
     norm_by = len(seq1) * np.max(dist_mat.as_matrix())
     # return sum([np.mean((float(dist_mat.at[c1, c2]), float(dist_mat.at[c2, c1]))) for c1, c2 in izip(list(seq1), list(seq2)) if c1 != c2]) / norm_by

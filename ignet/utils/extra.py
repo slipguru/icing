@@ -32,15 +32,18 @@ import numpy as np
 
 
 def split_list(l, n):
+    """Split list in n chunks."""
     for i in xrange(n):
         yield l[i*n:(i+1)*n]
 
 
 def junction_re(x, n='N', filt='[\.-/]'):
+    """Convert filt char in n in x."""
     return re.sub(filt, n, str(x))
 
 
 def flatten(x):
+    """Flatten a list."""
     return [y for l in x for y in flatten(l)] if type(x) in (list, np.ndarray) else [x]
 
 
