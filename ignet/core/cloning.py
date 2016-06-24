@@ -9,6 +9,9 @@ import numpy as np
 import scipy
 import multiprocessing as mp
 import joblib as jl
+import logging
+import cPickle as pkl
+import gzip
 
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
@@ -18,6 +21,7 @@ from .distances import string_distance  # , junction_distance
 from .similarity_scores import similarity_score_tripartite as mwi
 # from .. import parallel_distance
 from ..externals import DbCore
+from ..models.model import model_matrix
 from ..plotting import silhouette
 from ..utils import io
 from ..utils import extra
@@ -68,7 +72,7 @@ def dist_function(ig1, ig2, method='jaccard', model='ham',
         return 0.
 
     if not dist_mat:
-        dist_mat = DbCore.getModelMatrix(model)
+        dist_mat = model_matrix(model)
 
     V_genes_ig1 = ig1.getVGene('set')
     V_genes_ig2 = ig2.getVGene('set')
@@ -109,19 +113,8 @@ def getVJ(d, i_igs):
             # d.setdefault(j,[]).append((i,ig))
             d[j] = d.get(j, []) + [(i, ig)]
 
-def distance_matrix(config_file, sparse_mode=True):
-    # Load the configuration file
-    config_path = os.path.abspath(config_file)
-    config = imp.load_source('config', config_path)
 
-    # Load input file
-    allowed_subsets = ['n', 'naive']
-    allowed_mut = (0, 0)
-    # db_iter = io.read_db(config.db_file)
-    db_iter = io.read_db(config.db_file, filt=(lambda x: x.subset.lower() in allowed_subsets and allowed_mut[0] <= x.mut <= allowed_mut[1]))
-    # igs = np.array(filter(lambda x: x.subset.lower() in allowed_subsets and allowed_mut[0] <= x.mut <= allowed_mut[1], db_iter))
-    # igs = np.array([x for x in db_iter])
-    #
+def distance_matrix(db_iter, sparse_mode=True):
     # X = parallel_distance.distance_matrix_parallel(igs, d_func, sparse_mode=sparse_mode)
     # # np.savetxt("dist_matrix", dist_matrix, fmt="%.2f", delimiter=',')
     # return X
@@ -155,8 +148,8 @@ def distance_matrix(config_file, sparse_mode=True):
                 for j in range(i+1, length):
                     indicator_matrix[v[i][0], v[j][0]] = True
     rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
-    data = jl.Parallel(n_jobs=-1) \
-           (jl.delayed(d_func)(igs[i], igs[j]) for i, j in zip(rows, cols))
+    data = jl.Parallel(n_jobs=-1)\
+        (jl.delayed(d_func)(igs[i], igs[j]) for i, j in zip(rows, cols))
     data = np.array(data)
     idx = data > 0
     data = data[idx]
@@ -179,8 +172,8 @@ def distance_matrix(config_file, sparse_mode=True):
     # n = max(max(rows), max(cols))+1
 
     # sim = 1 - np.array(data)
-    S_ = scipy.sparse.csr_matrix((data, (rows, cols)), shape=(ndim, ndim))
-    similarity_matrix = S_ + S_.T + scipy.sparse.eye(S_.shape[0])
+    sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)), shape=(ndim, ndim))
+    similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(sparse_mat.shape[0])
     return similarity_matrix
 
 
@@ -188,19 +181,19 @@ def define_clusts(similarity_matrix, threshold=0.053447011367803443):
     """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix)
     prev_max_clust = 0
-    clusters = []
+    clusters = labels.copy()
     for i in range(n):
         idxs = np.where(labels == i)
         if idxs[0].shape[0] > 1:
-            D_ = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
-            links = linkage(squareform(D_), 'ward')
+            dm = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
+            links = linkage(squareform(dm), 'ward')
             clusters_ = fcluster(links, threshold,
                                  criterion='distance') + prev_max_clust
-            clusters.append(clusters_)
+            clusters[idxs[0]] = clusters_
             prev_max_clust = max(clusters_)
         else:  # connected component contains just 1 element
             prev_max_clust += 1
-            clusters.append(prev_max_clust)
+            clusters[idxs[0]] = prev_max_clust
     return np.array(extra.flatten(clusters))
 
 
@@ -208,21 +201,50 @@ def sil_score(similarity_matrix, clusters):
     """Compute the silhouette score given the similarity matrix."""
     # links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
     # clusters = fcluster(links, 0.053447011367803443, criterion='distance')
-    silhouette.compute_silhouette_score(1. - similarity_matrix.toarray(),
+    if similarity_matrix.shape[0] > 8000:
+        sys.stderr.write("Warning: you are about to allocate a 500MB "
+                         "matrix in memory.\n")
+    silhouette.plot_clusters_silhouette(1. - similarity_matrix.toarray(),
                                         clusters, max(clusters))
 
 
-def run(config_file):
-    similarity_matrix = distance_matrix(config_file)
+def define_clones(db_iter, exp_tag='debug', root=None):
+    """Run the pipeline of ignet."""
+    if not os.path.exists(root):
+        if root is None:
+            root = 'results_'+exp_tag+extra.get_time()
+        os.makedirs(root)
+        logging.warn("No root folder supplied, folder {} "
+                     "created".format(os.path.abspath(root)))
+
+    similarity_matrix = distance_matrix(db_iter)
+
+    output_filename = exp_tag
+    output_folder = os.path.join(root, output_filename)
+
+    # Create exp folder into the root folder
+    os.makedirs(output_folder)
+
+    with gzip.open(os.path.join(output_folder, output_filename +
+                                '_similarity_matrix.pkl.tz'), 'w+') as f:
+        pkl.dump(similarity_matrix, f)
+    logging.info("Dumped similarity matrix: {}"
+                 .format(os.path.join(output_folder, output_filename+'.pkl.tz')))
+
     clusters = define_clusts(similarity_matrix)
-    sil_score(similarity_matrix, clusters)
+
+    if similarity_matrix.shape[0] < 8000:
+        sil_score(similarity_matrix, clusters)
+    else:
+        sys.stderr.write("Silhouette analysis is not performed due to the "
+                         "matrix dimensions.\n")
+
+    clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
+    print(clone_dict)
+    return output_folder, clone_dict
 
 
 if __name__ == '__main__':
     print("This file cannot be launched directly. "
           "Please run the script located in `ignet.scripts.ig_run.py` "
-          "with an argument, that is the location of the configuration file. "
-          "Alternatively, you can import \n"
-          "from ignet.core import cloning \n"
-          "and then launch `cloning.run(config_file)`")
-    sys.exit(-1)
+          "with an argument, that is the location of the configuration file. ")
