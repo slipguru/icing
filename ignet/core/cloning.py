@@ -104,52 +104,115 @@ def d_wrapper(x, y):
     return (d_func(x[1], y[1]), (x[0], y[0]))
 
 
-def getVJ(d, i_igs):
-    for i, ig in i_igs:
-        for v in ig.getVGene('set'):
-            # d.setdefault(v,[]).append((i,ig))
-            d[v] = d.get(v, []) + [(i, ig)]
-        for j in ig.getJGene('set'):
-            # d.setdefault(j,[]).append((i,ig))
-            d[j] = d.get(j, []) + [(i, ig)]
+def compute_similarity_matrix(db_iter, sparse_mode=True):
+    """Compute the similarity matrix from a database iterator.
 
+    Parameters
+    ----------
+    db_iter : generator
+        Records loaded by the script `ig_run.py`.
+    sparse_mode : bool, optional, default `True`
+        Return a sparse similarity matrix.
 
-def distance_matrix(db_iter, sparse_mode=True):
-    # X = parallel_distance.distance_matrix_parallel(igs, d_func, sparse_mode=sparse_mode)
-    # # np.savetxt("dist_matrix", dist_matrix, fmt="%.2f", delimiter=',')
-    # return X
-    # print 'end loading'
+    Returns
+    -------
+    similarity_matrix : scipy.sparse array or numpy.ndarray
+        Similarity matrix between records in db_iter.
+
+    Notes
+    -----
+    This function uses sparse matrices and an inverse index to efficiently
+    compute the similarity matrix between a potentially long list of records.
+    In ancient times, this function was simply a call to
+     `parallel_distance.distance_matrix_parallel(db_iter, d_func, sparse_mode)`
+    However, this method is really inefficient, so the matrix is computed
+    between chosen couples of values.
+
+    The reverse index with one core, instead, looks like
+        r_index = dict()
+        for i, ig in enumerate(igs):
+            for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
+            for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
+    """
+    def _get_v_j(d, i_igs):
+        for i, ig in i_igs:
+            for v in ig.getVGene('set'):
+                # d.setdefault(v,[]).append((i,ig))
+                d[v] = d.get(v, []) + [(i, )]
+            for j in ig.getJGene('set'):
+                # d.setdefault(j,[]).append((i,ig))
+                d[j] = d.get(j, []) + [(i, )]
+
+    def _get_v_j_padding(d, idx, nprocs, igs_arr, n):
+        for i in range(idx, n, nprocs):
+            ig = igs_arr[i]
+            for v in ig.getVGene('set'):
+                # d.setdefault(v,[]).append((i,ig))
+                d[v] = d.get(v, []) + [(i, )]
+            for j in ig.getJGene('set'):
+                # d.setdefault(j,[]).append((i,ig))
+                d[j] = d.get(j, []) + [(i, )]
+
     igs = list(db_iter)
-    print("DEBUG # len igs read: ", len(igs))
-    # r_index = dict()
-    # for i, ig in enumerate(igs):
-    #     igs.append(ig)
-    #     for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
-    #     for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
+    # igs_arr = np.array(igs)
+    igs_arr = (igs)
+    n = len(igs)
+    logging.info("{} Igs read.".format(n))
     manager = mp.Manager()
     r_index = manager.dict()
-    ndim = len(igs)
-    n_proc = min(ndim, mp.cpu_count())
+    nprocs = min(n, mp.cpu_count())
     ps = []
-    for i_igs in extra.split_list(list(enumerate(igs)), n_proc):
-        p = mp.Process(target=getVJ, args=(r_index, i_igs))
+    # for idx in range(nprocs):
+        # p = mp.Process(target=_get_v_j_padding, args=(r_index, idx, nprocs, igs_arr, n))
+    for i_igs in extra.split_list(list(enumerate(igs)), nprocs):
+        p = mp.Process(target=_get_v_j, args=(r_index, i_igs))
         p.start()
         ps.append(p)
     for p in ps:
         p.join()
 
-    # print 'end inverse index'
-    indicator_matrix = scipy.sparse.lil_matrix((ndim, ndim), dtype=np.dtype('bool'))
+    print(r_index)
+    indicator_matrix = scipy.sparse.lil_matrix((n, n),
+                                               dtype=np.dtype('bool'))
+    s1 = set()
     r_index = dict(r_index)
     for k, v in r_index.iteritems():
         length = len(v)
         if length > 1:
-            for i in range(length):
-                for j in range(i+1, length):
-                    indicator_matrix[v[i][0], v[j][0]] = True
+            for k in (range(int(length*(length-1)/2))):
+                j = k%(length-1)+1; i = int(k/(length-1));
+                if i >= j:
+                    i = length-i-1; j=length-j
+                s1.add((v[i][0], v[j][0]))
+                s1.add((v[j][0], v[i][0]))
+                indicator_matrix[v[i][0], v[j][0]] = True
+
+    r_index = dict()
+    for i, ig in enumerate(igs):
+        for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,))
+        for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,))
+
+    s2 = set()
+    r_index = dict(r_index)
+    for k, v in r_index.iteritems():
+        length = len(v)
+        if length > 1:
+            for k in (range(int(length*(length-1)/2))):
+                j = k%(length-1)+1; i = int(k/(length-1));
+                if i >= j:
+                    i = length-i-1; j=length-j
+                s2.add((v[i][0], v[j][0]))
+                s2.add((v[j][0], v[i][0]))
+                indicator_matrix[v[i][0], v[j][0]] = True
+
+            # for i in range(length):
+            #     for j in range(i+1, length):
+    print(s1.difference(s2))
+    print(s2.difference(s1))
+
     rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
-    data = jl.Parallel(n_jobs=-1)\
-        (jl.delayed(d_func)(igs[i], igs[j]) for i, j in zip(rows, cols))
+    data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
+                                  (igs[i], igs[j]) for i, j in zip(rows, cols))
     data = np.array(data)
     idx = data > 0
     data = data[idx]
@@ -172,8 +235,13 @@ def distance_matrix(db_iter, sparse_mode=True):
     # n = max(max(rows), max(cols))+1
 
     # sim = 1 - np.array(data)
-    sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)), shape=(ndim, ndim))
-    similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(sparse_mat.shape[0])
+    sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)),
+                                         shape=(n, n))
+    similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
+                                                        sparse_mat.shape[0])
+    if not sparse_mode:
+        similarity_matrix = similarity_matrix.toarray()
+
     return similarity_matrix
 
 
@@ -206,7 +274,7 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False):
         logging.warn("No root folder supplied, folder {} "
                      "created".format(os.path.abspath(root)))
 
-    similarity_matrix = distance_matrix(db_iter)
+    similarity_matrix = compute_similarity_matrix(db_iter, sparse_mode=True)
 
     output_filename = exp_tag
     output_folder = os.path.join(root, output_filename)
@@ -214,28 +282,21 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False):
     # Create exp folder into the root folder
     os.makedirs(output_folder)
 
-    with gzip.open(os.path.join(output_folder, output_filename +
-                                '_similarity_matrix.pkl.tz'), 'w+') as f:
+    sm_filename = output_filename + '_similarity_matrix.pkl.tz'
+    with gzip.open(os.path.join(output_folder, sm_filename), 'w+') as f:
         pkl.dump(similarity_matrix, f)
     logging.info("Dumped similarity matrix: {}"
-                 .format(os.path.join(output_folder, output_filename+'.pkl.tz')))
+                 .format(os.path.join(output_folder, sm_filename)))
 
     clusters = define_clusts(similarity_matrix)
 
-    if force_silhouette or similarity_matrix.shape[0] < 8000:
-        silhouette.plot_clusters_silhouette(1. - similarity_matrix.toarray(),
-                                            clusters, max(clusters), root=root)
-    else:
-        logging.warn("Silhouette analysis is not performed due to the "
-                     "matrix dimensions. With a matrix {0}x{0}, you would "
-                     "need to allocate {1:.2f}MB in memory. If you know what "
-                     "you are doing, specify 'force_silhouette = True' in the "
-                     "config file.\n"
-                     .format(similarity_matrix.shape[0],
-                             similarity_matrix.shape[0]**2*8/(2.**20)))
+    cl_filename = output_filename + '_clusters.pkl.tz'
+    with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:
+        pkl.dump(clusters, f)
+    logging.info("Dumped clusters: {}"
+                 .format(os.path.join(output_folder, cl_filename)))
 
     clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
-    print(clone_dict)
     return output_folder, clone_dict
 
 
