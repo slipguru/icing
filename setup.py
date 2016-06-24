@@ -10,7 +10,7 @@ setup(
     name='ignet',
     version=version,
 
-    description=('A package to clonal relate Immunoglobulins'),
+    description=('A package to clonal relate immunoglobulins'),
     long_description=open('README.md').read(),
     author='Federico Tomasi',
     author_email='federico.tomasi@dibris.unige.it',
@@ -38,6 +38,6 @@ setup(
               'sklearn (>=0.17)',
               'matplotlib (>=1.5.1)',
               'seaborn (>=0.7.0)',
-              'fastcluster (>=1.1.20)'],
-    # scripts=['scripts/ade_run.py','scripts/ade_analysis.py'],
+              ],
+    scripts=['scripts/ig_run.py'],
 )
