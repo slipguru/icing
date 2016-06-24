@@ -74,6 +74,26 @@ def mkpath(path):
         os.makedirs(path)
 
 
+def items_iterator(dictionary):
+    """Add support for python2 or 3 dictionary iterators."""
+    try:
+        gen = dictionary.iteritems()  # python 2
+    except:
+        gen = dictionary.items()  # python 3
+    return gen
+
+
+def set_module_defaults(module, dictionary):
+    """Set default variables of a module, given a dictionary.
+
+    Used after the loading of the configuration file to set some defaults.
+    """
+    for k, v in items_iterator(dictionary):
+        try:
+            getattr(module, k)
+        except AttributeError:
+            setattr(module, k, v)
+
 # progress bar
 try:
     TERMINAL_COLS = struct.unpack('hh',  fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ, '1234'))[1]
