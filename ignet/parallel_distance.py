@@ -44,7 +44,7 @@ def dnearest_inter_padding(l1, l2, dist_function):
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
-                           args=(l1, l2, n, m, idx, shared_array,
+                           args=(l1, l2, n, m, idx, nprocs, shared_array,
                                  dist_function))
             p.start()
             ps.append(p)
@@ -94,7 +94,8 @@ def dnearest_intra_padding(l1, dist_function):
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
-                           args=(l1, n, idx, shared_array, dist_function))
+                           args=(l1, n, idx, nprocs, shared_array,
+                                 dist_function))
             p.start()
             ps.append(p)
 

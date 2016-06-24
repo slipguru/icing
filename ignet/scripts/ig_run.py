@@ -64,8 +64,10 @@ def main(config_file):
 
 if __name__ == '__main__':
     from ignet import __version__
-    parser = argparse.ArgumentParser(description='ignet script for running analysis.')
-    parser.add_argument('--version', action='version', version='%(prog)s v'+__version__)
+    parser = argparse.ArgumentParser(description='ignet script for running '
+                                                 'analysis.')
+    parser.add_argument('--version', action='version',
+                        version='%(prog)s v'+__version__)
     parser.add_argument("-c", "--create", dest="create", action="store_true",
                         help="create config file", default=False)
     parser.add_argument("configuration_file", help="specify config file",

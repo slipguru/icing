@@ -37,7 +37,6 @@ setup(
               'scipy (>=0.16.1)',
               'sklearn (>=0.17)',
               'matplotlib (>=1.5.1)',
-              'seaborn (>=0.7.0)',
-              ],
-    scripts=['scripts/ig_run.py'],
+              'seaborn (>=0.7.0)'],
+    scripts=['scripts/ig_run.py', 'scripts/ig_analysis.py'],
 )

@@ -49,13 +49,69 @@ def ensure_symmetry(X):
         return X
 
 
-def distance_to_affinity_matrix(X):
-    """Convert the distance matrix into an affinity matrix."""
-    delta = .2
+def distance_to_affinity_matrix(X, delta=.2, minimum_value=0):
+    """Convert the distance matrix into an affinity matrix.
+
+    Distances are converted into Gaussian affinities.
+
+    Parameters
+    ----------
+    X : array
+        Distance matrix.
+    delta : float, optional
+        Gaussian parameter.
+    minimum_value : float, optional
+        Positive number. Substitute this to 0 values.
+
+    Returns
+    -------
+    affinity : numpy.ndarray
+        Gaussian affinity matrix.
+    """
     affinity = np.exp(- X ** 2 / (2. * delta ** 2))
-    affinity[affinity == 0] += 1e-16
+    if minimum_value > 0:
+        affinity[affinity == 0] += minimum_value
     return affinity
 
+
+def affinity_to_laplacian_matrix(A, normalised=False, tol=None,
+                                 get_eigvals=False):
+    """Convert an affinity matrix into a Laplacian of the correspondent graph.
+
+    Distances are converted into Gaussian affinities.
+
+    Parameters
+    ----------
+    A : array
+        Affinity matrix.
+    normalised : bool, optional, default `False`
+        Compute the normalised version of the Laplacian matrix.
+    tol : None or float, optional
+        If specified, set to 0 all values in the Laplacian less than `tol`.
+    get_eigvals : bool, optional, default `False`
+        Return also the eigenvalues of the Laplacian.
+
+    Returns
+    -------
+    L : numpy.ndarray
+        Laplacian matrix.
+    """
+    W = A - np.diag(np.diag(A))
+    Deg = np.diag([np.sum(x) for x in W])
+    L = Deg - W
+
+    if normalised:
+        aux = np.linalg.inv(np.diag([np.sqrt(np.sum(x)) for x in W]))
+        L = np.eye(L.shape[0]) - (np.dot(np.dot(aux, W), aux))
+
+    if tol is not None:
+        L[np.abs(L) < tol] = 0.
+
+    if get_eigvals:
+        w = np.linalg.eigvals(L)
+        return L, w
+
+    return L
 
 
 def split_list(l, n):
@@ -85,11 +141,11 @@ def _terminate(ps, e=''):
     sys.exit()
 
 
-# def get_time_from_seconds(seconds):
-#     """Transform seconds into formatted time string"""
-#     m, s = divmod(seconds, 60)
-#     h, m = divmod(m, 60)
-#     return "{02d}:{02d}:{02d}".format(h, m, s)
+def get_time_from_seconds(seconds):
+    """Transform seconds into formatted time string."""
+    m, s = divmod(seconds, 60)
+    h, m = divmod(m, 60)
+    return "%d:%02d:%02d" % (h, m, s)
 
 
 def get_time():

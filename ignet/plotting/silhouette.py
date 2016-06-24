@@ -10,6 +10,7 @@ import matplotlib.cm as cm
 import multiprocessing as mp
 import sys; sys.setrecursionlimit(10000)
 import seaborn
+import logging
 
 from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.cluster import SpectralClustering
@@ -18,11 +19,11 @@ from sklearn.metrics import silhouette_samples  # , silhouette_score
 from ..externals import Tango
 from ..utils import extra
 
-
 __author__ = 'Federico Tomasi'
 
 
-def plot_clusters_silhouette(X, cluster_labels, n_clusters):
+def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
+                             file_format='pdf'):
     """Plot the silhouette score for each cluster, given the distance matrix X.
 
     Parameters
@@ -34,6 +35,14 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters):
         point in X. The size must be the same has a dimension of X.
     n_clusters : int
         The number of clusters.
+    root : str, optional
+        The root path for the output creation
+    file_format : ('pdf', 'png')
+        Choose the extension for output images.
+
+    Returns
+    -------
+    None
     """
     # Create a subplot with 1 row and 2 columns
     fig, (ax1) = plt.subplots(1, 1)
@@ -55,7 +64,7 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters):
     sample_silhouette_values = silhouette_samples(X, cluster_labels,
                                                   metric="precomputed")
     silhouette_avg = np.mean(sample_silhouette_values)
-    print("average silhouette_score: ", silhouette_avg)
+    logging.info("Average silhouette_score: {:.4f}".format(silhouette_avg))
 
     y_lower = 10
     for i in range(n_clusters):
@@ -92,9 +101,10 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters):
     plt.suptitle(("Silhouette analysis (n_clusters {}, avg score {:.4f}, "
                   "tot Igs {}".format(n_clusters, silhouette_avg, X.shape[0])),
                  fontsize=14, fontweight='bold')
-    filename = 'silhouette_analysis_{}.png'.format(extra.get_time())
+    filename = os.path.join(root, 'silhouette_analysis_{}.{}'
+                                  .format(extra.get_time(), file_format))
     fig.savefig(filename)
-    print("Figure saved in {}".format(os.path.abspath(filename)))
+    logging.info('Figured saved {}'.format(filename))
 
 
 def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters'):
@@ -177,21 +187,18 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters'):
     return queue_x, queue_y
 
 
-def plot_average_silhouette_dendrogram(
-                            X=None, config_file='config.py', method_list=None,
-                            mode='clusters', n=20, verbose=True,
-                            interactive_mode=False):
+def plot_average_silhouette_dendrogram(X, method_list=None,
+                                       mode='clusters', n=20, verbose=True,
+                                       interactive_mode=False,
+                                       file_format='pdf'):
     """Plot average silhouette for each tree cutting.
 
     A linkage matrix for each method in method_list is used.
 
     Parameters
     ----------
-    X : array-like, dimensions = 2
-        Distance matrix.
-    config_file : str, optional
-        If X is None, use config_file to compute X with
-            `ignet.core.cloning.distance_matrix`
+    X : array-like
+        Symmetric 2-dimensional distance matrix.
     method_list : array-like, optional
         String array which contains a list of methods for computing the
         linkage matrix. If None, all the avalable methods will be used.
@@ -204,15 +211,14 @@ def plot_average_silhouette_dendrogram(
     interactive_mode : boolean, optional
         True: final plot will be visualised and saved.
         False: final plot will be only saved.
+    file_format : ('pdf', 'png')
+        Choose the extension for output images.
 
     Returns
     -------
     filename : str
         The output filename.
     """
-    if X is None:
-        from ignet.core.cloning import distance_matrix
-        X = 1. - distance_matrix(config_file).toarray()
     if method_list is None:
         method_list = ('single', 'complete', 'average', 'weighted',
                        'centroid', 'median', 'ward')
@@ -250,53 +256,10 @@ def plot_average_silhouette_dendrogram(
         plt.show()
     path = "results"
     extra.mkpath(path)
-    filename = os.path.join(path, "res_silh_HC_{}.png".format(extra.get_time()))
+    filename = os.path.join(path, "result_silhouette_hierarchical_{}.{}"
+                                  .format(extra.get_time(), file_format))
     plt.savefig(filename)
     return filename
-
-# fn = '/home/fede/src/adenine/adenine/examples/TM_matrix.csv'
-# X = pd.io.parsers.read_csv(fn, header=0, index_col=0).as_matrix() # TM distance between Igs
-# if not (X.T == X).all():
-#     X = (X.T + X) / 2.
-#
-# # convert distance into an affinity matrix
-# delta = .2
-# A = np.exp(- X ** 2 / (2. * delta ** 2))
-# A[A==0] += 1e-16
-# l = []
-# cluster_list = range(8,700,3)
-# for i in cluster_list:
-#     sys.stdout.write("Begin SP with {} clusters. ".format(i))
-#     sys.stdout.flush()
-#     # W = A - np.diag(np.diag(A))
-#     # Deg = np.diag([np.sum(x) for x in W])
-#     # L = Deg - W
-#     # # aux = np.linalg.inv(np.diag([np.sqrt(np.sum(x)) for x in W]))
-#     # # L = np.eye(L.shape[0]) - (np.dot(np.dot(aux,W),aux)) # normalised L
-#     # print L
-#     # L[np.abs(L) < 1e-17] = 0.
-#     # print L
-#     # w, v = np.linalg.eig(L)
-#     # w = np.array(sorted(np.abs(w)))
-#     # print w[:15]
-#     # print("Num clusters: {}".format(w[w < 1e-8].shape[0]))
-#     # break
-#
-#     # D /= np.max(D)
-#     # print X.shape
-#     sp = SpectralClustering(n_clusters=i, affinity='precomputed')
-#     sp.fit(A)
-#     silh_list = silhouette_samples(X, sp.labels_, metric='precomputed')
-#     # print sp.affinity_matrix_
-#     # print sp.labels_
-#     # f, ax = plt.subplots()
-#     # heatmap = ax.pcolor(sp.affinity_matrix_, cmap=plt.cm.Blues, alpha=0.8)
-#     # plt.show()
-#     # silh_avg = silhouette_score(X, sp.labels_)
-#     silh_avg = np.mean(silh_list)
-#     sys.stdout.write("Avg silhouette: {:.4f}\n".format(silh_avg))
-#     sys.stdout.flush()
-#     l.append(silh_avg)
 
 
 def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
@@ -350,52 +313,34 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
     return queue_y
 
 
-def plot_average_silhouette_spectral(
-                X=None, fn=None, verbose=True, interactive_mode=False):
+def plot_average_silhouette_spectral(X, verbose=True,
+                                     interactive_mode=False,
+                                     file_format='pdf'):
     """Plot average silhouette for some clusters, using an affinity matrix.
 
     Parameters
     ----------
     X : array-like
-        2-dimensional distance matrix in sparse format.
-    fn : str, optional
-        If X is None, load X from fn as a standard csv file.
+        Symmetric 2-dimensional distance matrix.
     verbose : boolean, optional
         How many output messages visualise.
     interactive_mode : boolean, optional
         True: final plot will be visualised and saved.
         False: final plot will be only saved.
+    file_format : ('pdf', 'png')
+        Choose the extension for output images.
 
     Returns
     -------
     filename : str
         The output filename.
     """
-    if X is None:
-        try:
-            import pandas as pd
-            X = pd.io.parsers.read_csv(fn, header=0, index_col=0).as_matrix()
-        except:
-            sys.stderr.write("ERROR: {} cannot be read\n".format(fn))
-            sys.exit()
-
-    X = X.toarray()
-    # check symmetry
-    if not (X.T == X).all():
-        X = (X.T + X) / 2.
-
-    # convert distances into (Gaussian) affinities
-    delta = .2
-    A = np.exp(- X ** 2 / (2. * delta ** 2))
-    # A[A==0] += 1e-16
+    X = extra.ensure_symmetry(X.toarray())
+    A = extra.distance_to_affinity_matrix(X)
 
     fig, ax = (plt.gcf(), plt.gca())
     fig.suptitle("Average silhouette for each number of clusters")
-    # print_utils.ax_set_defaults(ax)
 
-    # convert distance matrix into a condensed one
-    # dist_arr = scipy.spatial.distance.squareform(dist_matrix)
-    # cluster_list = range(10,X.shape[0],10)
     cluster_list = map(int, np.linspace(10, X.shape[0], 30))
     y = multi_cut_spectral(cluster_list, A, X)
     ax.plot(cluster_list, y, Tango.next(), marker='o', linestyle='-', label='')
@@ -409,6 +354,7 @@ def plot_average_silhouette_spectral(
         plt.show()
     path = "results"
     extra.mkpath(path)
-    filename = os.path.join(path, "res_silh_HC_{}.png".format(extra.get_time()))
+    filename = os.path.join(path, "result_silhouette_spectral_{}.{}"
+                                  .format(extra.get_time(), file_format))
     plt.savefig(filename)
     return filename
