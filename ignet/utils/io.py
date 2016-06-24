@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+"""Utilities for input/output operations."""
+
 import sys
 import csv
 import itertools
@@ -90,3 +93,27 @@ def write_clusters_db(db_file, result_db, clones, dialect='excel-tab'):
                 all_list.append(row)
 
             writer.writerows(all_list)
+
+
+def load_dm_from_file(filename, index_col=0, header='infer',
+                      ensure_symmetry=False):
+    """Load a distance matrix."""
+    ext = filename[-3:].lower()
+    if ext == 'csv':
+        import pandas as pd
+        dm = pd.io.parsers.read_csv(filename, index_col=index_col,
+                                    header=header).as_matrix()
+    elif ext == 'npy':
+        import numpy as np
+        dm = np.load(filename)
+    elif filename[-7:] == '.pkl.tz':
+        import cPickle as pkl
+        import gzip
+        with gzip.open(filename, 'r') as f:
+            dm = pkl.load(f)
+
+    if ensure_symmetry:
+        from .extra import ensure_symmetry
+        dm = ensure_symmetry(dm)
+
+    return dm

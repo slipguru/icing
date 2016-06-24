@@ -197,18 +197,7 @@ def define_clusts(similarity_matrix, threshold=0.053447011367803443):
     return np.array(extra.flatten(clusters))
 
 
-def sil_score(similarity_matrix, clusters):
-    """Compute the silhouette score given the similarity matrix."""
-    # links = linkage(squareform(1. - similarity_matrix.toarray()), 'ward')
-    # clusters = fcluster(links, 0.053447011367803443, criterion='distance')
-    if similarity_matrix.shape[0] > 8000:
-        sys.stderr.write("Warning: you are about to allocate a 500MB "
-                         "matrix in memory.\n")
-    silhouette.plot_clusters_silhouette(1. - similarity_matrix.toarray(),
-                                        clusters, max(clusters))
-
-
-def define_clones(db_iter, exp_tag='debug', root=None):
+def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False):
     """Run the pipeline of ignet."""
     if not os.path.exists(root):
         if root is None:
@@ -233,11 +222,17 @@ def define_clones(db_iter, exp_tag='debug', root=None):
 
     clusters = define_clusts(similarity_matrix)
 
-    if similarity_matrix.shape[0] < 8000:
-        sil_score(similarity_matrix, clusters)
+    if force_silhouette or similarity_matrix.shape[0] < 8000:
+        silhouette.plot_clusters_silhouette(1. - similarity_matrix.toarray(),
+                                            clusters, max(clusters), root=root)
     else:
-        sys.stderr.write("Silhouette analysis is not performed due to the "
-                         "matrix dimensions.\n")
+        logging.warn("Silhouette analysis is not performed due to the "
+                     "matrix dimensions. With a matrix {0}x{0}, you would "
+                     "need to allocate {1:.2f}MB in memory. If you know what "
+                     "you are doing, specify 'force_silhouette = True' in the "
+                     "config file.\n"
+                     .format(similarity_matrix.shape[0],
+                             similarity_matrix.shape[0]**2*8/(2.**20)))
 
     clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
     print(clone_dict)

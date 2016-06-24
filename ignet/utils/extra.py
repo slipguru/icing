@@ -30,6 +30,33 @@ import numpy as np
 #     for i in range(0, len(l), n):
 #         yield l[i:i+n]
 
+def ensure_symmetry(X):
+    """Ensure matrix symmetry.
+
+    Parameters
+    -----------
+    X : numpy.ndarray
+        Input matrix of precomputed pairwise distances.
+
+    Returns
+    -----------
+    new_X : numpy.ndarray
+        Symmetric distance matrix. Values are averaged.
+    """
+    if not (X.T == X).all():
+        return (X.T + X) / 2.
+    else:
+        return X
+
+
+def distance_to_affinity_matrix(X):
+    """Convert the distance matrix into an affinity matrix."""
+    delta = .2
+    affinity = np.exp(- X ** 2 / (2. * delta ** 2))
+    affinity[affinity == 0] += 1e-16
+    return affinity
+
+
 
 def split_list(l, n):
     """Split list in n chunks."""

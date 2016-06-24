@@ -15,6 +15,7 @@ __author__ = 'Federico Tomasi'
 
 
 def main(config_file):
+    """Run ignet main features."""
     # Load the configuration file
     config_path = os.path.abspath(config_file)
     config = imp.load_source('config', config_path)
@@ -25,10 +26,11 @@ def main(config_file):
                                        'apply_filter': None,
                                        'dialect': 'excel-tab',
                                        'exp_tag': 'debug',
-                                       'output_root_folder': 'results'})
+                                       'output_root_folder': 'results',
+                                       'force_silhouette': False})
 
     db_iter = list(io.read_db(config.db_file, filt=config.apply_filter,
-                         dialect=config.dialect))
+                              dialect=config.dialect))
 
     # Define logging file
     root = config.output_root_folder
@@ -45,7 +47,8 @@ def main(config_file):
     ch.setFormatter(logging.Formatter('%(levelname)s (%(name)s): %(message)s'))
     root_logger.addHandler(ch)
 
-    outfolder, clone_dict = define_clones(db_iter, exp_tag=filename, root=root)
+    outfolder, clone_dict = define_clones(db_iter, exp_tag=filename, root=root,
+                                          force_silhouette=config.force_silhouette)
 
     # Copy the ade_config just used into the outFolder
     shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
