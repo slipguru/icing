@@ -5,7 +5,7 @@ from distutils.core import setup, Extension
 
 # Package Version
 from ignet import __version__ as version
-alignment_module = Extension('align.align', sources=['align/alignment.c'])
+alignment_module = Extension('align.align', sources=['ignet/align/alignment.c'])
 setup(
     name='ignet',
     version=version,
