@@ -5,6 +5,7 @@ from __future__ import print_function
 import os
 import sys
 import imp
+import time
 import numpy as np
 import scipy
 import multiprocessing as mp
@@ -104,6 +105,124 @@ def d_wrapper(x, y):
     return (d_func(x[1], y[1]), (x[0], y[0]))
 
 
+def inverse_index_sequential(records):
+    """..."""
+    from collections import defaultdict
+
+    r_index = defaultdict(list)
+    for i, ig in enumerate(list(records)):
+        for _ in ig.getVGene('set'):
+            r_index[_].append((i,))
+        for _ in ig.getJGene('set'):
+            r_index[_].append((i,))
+
+    return r_index
+
+
+def inverse_index(records):
+    """..."""
+
+    def _get_v_j(d, i_igs):
+        for i, ig in i_igs:
+            for v in ig.getVGene('set'):
+                # d.setdefault(v,[]).append((i,ig))
+                d[v] = d.get(v, []) + [(i, )]
+            for j in ig.getJGene('set'):
+                # d.setdefault(j,[]).append((i,ig))
+                d[j] = d.get(j, []) + [(i, )]
+
+    def _get_v_j_queue(d, i_igs):
+        for i, ig in i_igs:
+            for v in ig.getVGene('set'):
+                # d.setdefault(v,[]).append((i,ig))
+                d.put((v, (i,)))
+            for j in ig.getJGene('set'):
+                d.put((j, (i,)))
+
+    from collections import defaultdict
+    def _get_v_j_queue2(lock, q, i_igs):
+        local_dict = defaultdict(list)
+        for i, ig in i_igs:
+            for _ in ig.getVGene('set'):
+                local_dict[_].append((i,))
+                # if _ == 'IGHV6-1':
+                #     print("ciao", i)
+            for _ in ig.getJGene('set'):
+                local_dict[_].append((i,))
+        with lock:
+            # q.put(dict(local_dict))
+            q.append(local_dict)
+
+    def _get_v_j_padding(d, idx, nprocs, igs_arr, n):
+        for i in range(idx, n, nprocs):
+            ig = igs_arr[i]
+            for v in ig.getVGene('set'):
+                # d.setdefault(v,[]).append((i,ig))
+                d[v] = d.get(v, []) + [(i, )]
+            for j in ig.getJGene('set'):
+                # d.setdefault(j,[]).append((i,ig))
+                d[j] = d.get(j, []) + [(i, )]
+
+    def _get_v_j_padding2(lock, q, idx, nprocs, igs_arr, n):
+        local_dict = defaultdict(list)
+        for i in range(idx, n, nprocs):
+            ig = igs_arr[i]
+            for _ in ig.getVGene('set'):
+                local_dict[_].append((i,))
+                # if _ == 'IGHV6-1':
+                #     print("ciao", i)
+            for _ in ig.getJGene('set'): local_dict[_].append((i,))
+        with lock:
+            q.append(dict(local_dict))
+
+    def combine_dicts(a, b):
+        return dict(a.items() + b.items() + [(k, list(set(a[k] + b[k]))) for k in set(b) & set(a)])
+
+    n = len(records)
+    logging.info("{} Igs read.".format(n))
+
+    manager = mp.Manager()
+    # r_index = manager.dict()
+    lock = mp.Lock()
+
+    nprocs = min(n, mp.cpu_count())
+    ps = []
+
+    queue = manager.list()
+    for idx in range(nprocs):
+        p = mp.Process(target=_get_v_j_padding2,
+                       args=(lock, queue, idx, nprocs, records, n))
+    # for i_igs in extra.split_list(list(enumerate(igs)), int(n/nprocs)+1):
+    #     p = mp.Process(target=_get_v_j_queue2, args=(lock, queue, i_igs))
+        p.start()
+        ps.append(p)
+    for i, p in enumerate(ps):
+        p.join()
+        print("collected", i)
+
+    dd = {}
+    for d__ in queue:
+        dd = combine_dicts(dd, d__)
+    return dd
+
+
+def similar_elements(reverse_index):
+    """..."""
+    res = []
+    for k, v in reverse_index.iteritems():
+        length = len(v)
+        if length > 1:
+            for k in (range(int(length*(length-1)/2))):
+                j = k%(length-1)+1; i = int(k/(length-1));
+                if i >= j:
+                    i = length-i-1; j=length-j
+                res.append((v[i][0], v[j][0]))
+                res.append((v[j][0], v[i][0]))  # DEBUG
+                # s1.add((v[j][0], v[i][0]))
+                # indicator_matrix[v[i][0], v[j][0]] = True
+    return set(res)
+
+
 def compute_similarity_matrix(db_iter, sparse_mode=True):
     """Compute the similarity matrix from a database iterator.
 
@@ -134,85 +253,29 @@ def compute_similarity_matrix(db_iter, sparse_mode=True):
             for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
             for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
     """
-    def _get_v_j(d, i_igs):
-        for i, ig in i_igs:
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d[v] = d.get(v, []) + [(i, )]
-            for j in ig.getJGene('set'):
-                # d.setdefault(j,[]).append((i,ig))
-                d[j] = d.get(j, []) + [(i, )]
-
-    def _get_v_j_padding(d, idx, nprocs, igs_arr, n):
-        for i in range(idx, n, nprocs):
-            ig = igs_arr[i]
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d[v] = d.get(v, []) + [(i, )]
-            for j in ig.getJGene('set'):
-                # d.setdefault(j,[]).append((i,ig))
-                d[j] = d.get(j, []) + [(i, )]
-
     igs = list(db_iter)
-    # igs_arr = np.array(igs)
-    igs_arr = (igs)
-    n = len(igs)
-    logging.info("{} Igs read.".format(n))
-    manager = mp.Manager()
-    r_index = manager.dict()
-    nprocs = min(n, mp.cpu_count())
-    ps = []
-    # for idx in range(nprocs):
-        # p = mp.Process(target=_get_v_j_padding, args=(r_index, idx, nprocs, igs_arr, n))
-    for i_igs in extra.split_list(list(enumerate(igs)), nprocs):
-        p = mp.Process(target=_get_v_j, args=(r_index, i_igs))
-        p.start()
-        ps.append(p)
-    for p in ps:
-        p.join()
 
-    print(r_index)
-    indicator_matrix = scipy.sparse.lil_matrix((n, n),
-                                               dtype=np.dtype('bool'))
-    s1 = set()
-    r_index = dict(r_index)
-    for k, v in r_index.iteritems():
-        length = len(v)
-        if length > 1:
-            for k in (range(int(length*(length-1)/2))):
-                j = k%(length-1)+1; i = int(k/(length-1));
-                if i >= j:
-                    i = length-i-1; j=length-j
-                s1.add((v[i][0], v[j][0]))
-                s1.add((v[j][0], v[i][0]))
-                indicator_matrix[v[i][0], v[j][0]] = True
+    tic = time.time()
+    dd = inverse_index(igs)
+    s1 = similar_elements(dd)
+    print(time.time()-tic)
 
-    r_index = dict()
-    for i, ig in enumerate(igs):
-        for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,))
-        for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,))
+    tic = time.time()
+    dd = inverse_index_sequential(igs)
+    s2 = similar_elements(dd)
+    print(time.time()-tic)
 
-    s2 = set()
-    r_index = dict(r_index)
-    for k, v in r_index.iteritems():
-        length = len(v)
-        if length > 1:
-            for k in (range(int(length*(length-1)/2))):
-                j = k%(length-1)+1; i = int(k/(length-1));
-                if i >= j:
-                    i = length-i-1; j=length-j
-                s2.add((v[i][0], v[j][0]))
-                s2.add((v[j][0], v[i][0]))
-                indicator_matrix[v[i][0], v[j][0]] = True
+    assert(s1.difference(s2) == set())
+    assert(s2.difference(s1) == set())
+    sys.exit()
 
-            # for i in range(length):
-            #     for j in range(i+1, length):
-    print(s1.difference(s2))
-    print(s2.difference(s1))
-
-    rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
+    # indicator_matrix = scipy.sparse.lil_matrix((n, n),
+    #                                            dtype=np.dtype('bool'))
+    # rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
+    # data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
+    #                               (igs[i], igs[j]) for i, j in zip(rows, cols))
     data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
-                                  (igs[i], igs[j]) for i, j in zip(rows, cols))
+                                  (igs[i], igs[j]) for i, j in s2)
     data = np.array(data)
     idx = data > 0
     data = data[idx]
