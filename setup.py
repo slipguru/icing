@@ -1,11 +1,11 @@
 #!/usr/bin/python
 """ignet setup script."""
 
-from distutils.core import setup
+from distutils.core import setup, Extension
 
 # Package Version
 from ignet import __version__ as version
-
+alignment_module = Extension('align.align', sources=['align/alignment.c'])
 setup(
     name='ignet',
     version=version,
@@ -39,4 +39,5 @@ setup(
               'matplotlib (>=1.5.1)',
               'seaborn (>=0.7.0)'],
     scripts=['scripts/ig_run.py', 'scripts/ig_analysis.py'],
+    ext_modules=[alignment_module]
 )
