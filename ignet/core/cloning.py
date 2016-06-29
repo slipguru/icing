@@ -206,9 +206,13 @@ def inverse_index(records):
     return dd
 
 
-def similar_elements(reverse_index):
+def similar_elements(reverse_index, n):
     """..."""
-    res = []
+    indicator_matrix = scipy.sparse.lil_matrix((n, n),
+                                               dtype=np.dtype('bool'))
+    # data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
+    #                               (igs[i], igs[j]) for i, j in zip(rows, cols))
+    # res = []
     for k, v in reverse_index.iteritems():
         length = len(v)
         if length > 1:
@@ -216,11 +220,13 @@ def similar_elements(reverse_index):
                 j = k%(length-1)+1; i = int(k/(length-1));
                 if i >= j:
                     i = length-i-1; j=length-j
-                res.append((v[i][0], v[j][0]))
-                res.append((v[j][0], v[i][0]))  # DEBUG
+                # res.append((v[i][0], v[j][0]))
+                # res.append((v[j][0], v[i][0]))  # DEBUG
                 # s1.add((v[j][0], v[i][0]))
-                # indicator_matrix[v[i][0], v[j][0]] = True
-    return set(res)
+                indicator_matrix[v[i][0], v[j][0]] = True
+                indicator_matrix[v[j][0], v[i][0]] = True
+    rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
+    return set(zip(rows, cols))
 
 
 def compute_similarity_matrix(db_iter, sparse_mode=True):
@@ -257,12 +263,12 @@ def compute_similarity_matrix(db_iter, sparse_mode=True):
 
     tic = time.time()
     dd = inverse_index(igs)
-    s1 = similar_elements(dd)
+    s1 = similar_elements(dd, len(igs))
     print(time.time()-tic)
 
     tic = time.time()
     dd = inverse_index_sequential(igs)
-    s2 = similar_elements(dd)
+    s2 = similar_elements(dd, len(igs))
     print(time.time()-tic)
 
     assert(s1.difference(s2) == set())
