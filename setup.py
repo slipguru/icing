@@ -32,7 +32,8 @@ setup(
         'Operating System :: MacOS'
     ],
     license='FreeBSD',
-    packages=['ignet', 'ignet.core', 'ignet.utils', 'ignet.align'],
+    packages=['ignet', 'ignet.core', 'ignet.utils', 'ignet.align',
+              'ignet.externals', 'ignet.models', 'ignet.parallel', 'ignet.plotting'],
     requires=['numpy (>=1.10.1)',
               'scipy (>=0.16.1)',
               'sklearn (>=0.17)',
