@@ -388,15 +388,17 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     This function uses sparse matrices and an inverse index to efficiently
     compute the similarity matrix between a potentially long list of records.
     In ancient times, this function was simply a call to
-     `parallel_distance.distance_matrix_parallel(db_iter, d_func, sparse_mode)`
+    ``parallel_distance.distance_matrix_parallel(db_iter, d_func, sparse_mode)``
     However, this method is really inefficient, so the matrix is computed
     between chosen couples of values.
 
-    The reverse index with one core, instead, looks like
-      r_index = dict()
-      for i, ig in enumerate(igs):
-        for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
-        for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
+    The reverse index with one core, instead, looks like::
+
+        r_index = dict()
+        for i, ig in enumerate(igs):
+            for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
+            for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
+
     """
     igs = list(db_iter)
     n = len(igs)

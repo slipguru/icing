@@ -49,7 +49,11 @@ def get_nmers(sequences, n):
 
 def single_distance(seq1, seq2, n, dist_mat, norm, sym, mutations, tol=3,
                     c=35., length_constraint=True):
-    """[DEPRECATED] Calculate a distance between two input sequences.
+    """Calculate a distance between two input sequences.
+
+    .. note:: Deprecated.
+          `single_distance` will be removed in ignet 0.2. It is replaced by
+          `string_distance`.
 
     :param seq1: first sequence
     :param seq2: second sequence
@@ -112,7 +116,11 @@ def single_distance(seq1, seq2, n, dist_mat, norm, sym, mutations, tol=3,
 
 def junction_distance(seq1, seq2, n, dist_mat, norm, sym, tol=3, c=35.,
                       length_constraint=True):
-    """[DEPRECATED] Calculate a distance between two input sequences.
+    """Calculate a distance between two input sequences.
+
+    .. note:: Deprecated.
+          `junction_distance` will be removed in ignet 0.2. It is replaced by
+          `string_distance`.
 
     Parameters
     ----------
