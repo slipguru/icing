@@ -39,18 +39,24 @@ def read_db(db_file, filt=None, ig=True, dialect='excel-tab'):
     return db_iter
 
 
-def get_max_mut(db_file):
+def get_max_mut(db_file, dialect='excel-tab'):
     """Get the maximum amount of mutations in a database file.
 
-    Arguments:
-    db_file = a tab delimited database file
+    Parameters
+    ----------
+    db_file : str
+        A database file. Delimited according to `dialect`.
+    dialect : ('excel-tab', 'excel')
+        Dialect for csv.DictReader.
 
-    Returns:
-    the maximum mutation level
+    Returns
+    -------
+    _ : float
+        The maximum mutation level between all the records.
     """
     try:
         f = open(db_file, 'rb')
-        db_reader = csv.DictReader(f, dialect='excel-tab')
+        db_reader = csv.DictReader(f, dialect=dialect)
         return max(float(row['MUT']) for row in db_reader)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % db_file)
@@ -72,9 +78,6 @@ def write_clusters_db(db_file, result_db, clones, dialect='excel-tab'):
     dialect : ('excel-tab', 'excel')
         Dialect for csv.DictReader.
 
-    Returns
-    -------
-    None
     """
     with open(db_file, 'r') as csvinput:
         with open(result_db, 'w') as csvoutput:
