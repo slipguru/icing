@@ -51,7 +51,7 @@ def get_max_mut(db_file, dialect='excel-tab'):
 
     Returns
     -------
-    _ : float
+    max_mutation : float
         The maximum mutation level between all the records.
     """
     try:
