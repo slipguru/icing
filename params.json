@@ -1,6 +1,6 @@
 {
   "name": "Ignet",
   "tagline": "A Python package to clonal relate immunoglobulins",
-  "body": "# ignet\r\nA Python package to clonal relate immunoglobulins.\r\n\r\n## TODO add documentation\r\n",
+  "body": "=======\r\nIGNET\r\n=======\r\nA Python package to clonal relate immunoglobulins.\r\n\r\n**IGNET** is an implementation of an unsupervised learning technique\r\nused to identify `clones`, which are groups of immunoglobulins which share\r\na common ancestor. In other words, immunoglobulins in the same group descend\r\nfrom the same germline.\r\nAlso, the method is designed to be used also in contexts where\r\nthe number of samples is very high. For this reason, the framework can be used\r\nin combination with NGS technologies.\r\n\r\n## Dependencies\r\nIGNET is developed using Python 2.7 and inherits its main functionalities from:\r\n\r\n* numpy\r\n* scipy\r\n* scikit-learn\r\n* matplotlib\r\n* seaborn\r\n\r\n## Authors and Contributors\r\nCurrent developer: Federico Tomasi ([@fdtomasi](https://github.com/fdtomasi)).\r\n\r\n## Support or Contact\r\nCheck out our documentation or contact us:\r\n\r\n* federico [dot] tomasi [at] dibris [dot] unige [dot] it\r\n",
   "note": "Don't delete this file! It's used internally to help with page regeneration."
 }
