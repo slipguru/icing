@@ -42,8 +42,8 @@ def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):
         return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
 
 
-def dist_function(ig1, ig2, method='jaccard', model='ham',
-                  dist_mat=None, tol=3):
+def sim_function(ig1, ig2, method='jaccard', model='ham',
+                 dist_mat=None, tol=3):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
@@ -72,7 +72,7 @@ def dist_function(ig1, ig2, method='jaccard', model='ham',
     if ig1.junction_length - ig2.junction_length > tol:
         return 0.
 
-    if not dist_mat:
+    if dist_mat is None:
         dist_mat = model_matrix(model)
 
     V_genes_ig1 = ig1.getVGene('set')
@@ -93,35 +93,51 @@ def dist_function(ig1, ig2, method='jaccard', model='ham',
     if ss > 0:
         ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
     return ss
-# d_func = lambda x, y: dist_function(x, y, 'jaccard', 'ham')
-# d_wrapper = lambda x, y: (d_func(x[1], y[1]), (x[0], y[0]))
 
 
-def d_func(x, y):
-    return dist_function(x, y, 'jaccard', 'ham')
+def inverse_index(records):
+    """Compute a inverse index given records, based on their V and J genes.
 
+    Parameters
+    ----------
+    records : list of externals.DbCore.IgRecord
+        Records must have the getVGene and getJGene methods.
 
-def d_wrapper(x, y):
-    return (d_func(x[1], y[1]), (x[0], y[0]))
-
-
-def inverse_index_sequential(records):
-    """..."""
+    Returns
+    -------
+    reverse_index : dict
+        Reverse index. For each key (a string which represent a gene), it has
+        the list of indices of records which contains that gene.
+        Example: reverse_index = {'IGHV3' : [0,3,5] ...}
+    """
     from collections import defaultdict
-
     r_index = defaultdict(list)
     for i, ig in enumerate(list(records)):
         for _ in ig.getVGene('set'):
-            r_index[_].append((i,))
+            r_index[_].append(i)
         for _ in ig.getJGene('set'):
-            r_index[_].append((i,))
+            r_index[_].append(i)
 
     return r_index
 
 
-def inverse_index(records):
-    """..."""
+def inverse_index_parallel(records):
+    """Compute a inverse index given records, based on their V and J genes.
 
+    It computes in a parallel way.
+
+    Parameters
+    ----------
+    records : list of externals.DbCore.IgRecord
+        Records must have the getVGene and getJGene methods.
+
+    Returns
+    -------
+    reverse_index : dict
+        Reverse index. For each key (a string which represent a gene), it has
+        the list of indices of records which contains that gene.
+        Example: reverse_index = {'IGHV3' : [0,3,5] ...}
+    """
     def _get_v_j(d, i_igs):
         for i, ig in i_igs:
             for v in ig.getVGene('set'):
@@ -140,6 +156,7 @@ def inverse_index(records):
                 d.put((j, (i,)))
 
     from collections import defaultdict
+
     def _get_v_j_queue2(lock, q, i_igs):
         local_dict = defaultdict(list)
         for i, ig in i_igs:
@@ -192,8 +209,6 @@ def inverse_index(records):
     for idx in range(nprocs):
         p = mp.Process(target=_get_v_j_padding2,
                        args=(lock, queue, idx, nprocs, records, n))
-    # for i_igs in extra.split_list(list(enumerate(igs)), int(n/nprocs)+1):
-    #     p = mp.Process(target=_get_v_j_queue2, args=(lock, queue, i_igs))
         p.start()
         ps.append(p)
     for i, p in enumerate(ps):
@@ -206,30 +221,152 @@ def inverse_index(records):
     return dd
 
 
-def similar_elements(reverse_index, n):
-    """..."""
-    indicator_matrix = scipy.sparse.lil_matrix((n, n),
-                                               dtype=np.dtype('bool'))
-    # data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
-    #                               (igs[i], igs[j]) for i, j in zip(rows, cols))
-    # res = []
+def similar_elements(reverse_index, records, n, distance_function):
+    """Return a set of elements on which to compute similarity.
+
+    Parameters
+    ----------
+    reverse_index : dict
+        Reverse index. For each key (a string which represent a gene), it has
+        the list of indices of records which contains that gene.
+        Example: reverse_index = {'IGHV3' : [0,3,5] ...}
+    n : int
+        Number of records.
+
+    Returns
+    -------
+    _ : set
+        Set of pairs of elements on which further calculate the similarity.
+    """
+    # To avoid memory problems, use a sparse matrix.
+    # lil_matrix is good to update
+    indicator_matrix = scipy.sparse.lil_matrix((n, n), dtype=float)
+    #    dtype=np.dtype('bool'))
+
     for k, v in reverse_index.iteritems():
         length = len(v)
         if length > 1:
             for k in (range(int(length*(length-1)/2))):
-                j = k%(length-1)+1; i = int(k/(length-1));
+                j = k % (length-1)+1
+                i = int(k/(length-1))
                 if i >= j:
-                    i = length-i-1; j=length-j
-                # res.append((v[i][0], v[j][0]))
-                # res.append((v[j][0], v[i][0]))  # DEBUG
-                # s1.add((v[j][0], v[i][0]))
-                indicator_matrix[v[i][0], v[j][0]] = True
-                indicator_matrix[v[j][0], v[i][0]] = True
-    rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
-    return set(zip(rows, cols))
+                    i = length-i-1
+                    j = length-j
+                i = v[i]
+                j = v[j]
+                indicator_matrix[i, j] = distance_function(records[i], records[j])
+                # If the distance function is not symmetric,
+                # then turn the following on:
+                # indicator_matrix[v[j][0], v[i][0]] = True
+    rows, cols, data = map(list, scipy.sparse.find(indicator_matrix))
+    return data, rows, cols
 
 
-def compute_similarity_matrix(db_iter, sparse_mode=True):
+def similar_elements_parallel(reverse_index, records, n, similarity_function):
+    """Return the sparse similarity matrix in form of data, rows and cols.
+
+    Differently from similar_elements(), perform the calculation in a parallel
+    way.
+
+    Parameters
+    ----------
+    reverse_index : dict
+        Reverse index. For each key (a string which represent a gene), it has
+        the list of indices of records which contains that gene.
+        Example: reverse_index = {'IGHV3' : [0,3,5] ...}
+    records : list of externals.DbCore.IgRecord
+        List of records to analyse.
+    n : int
+        Number of records.
+    similarity_function : function
+        Function which computes the similarity between two records.
+
+    Returns
+    -------
+    _ : set
+        Set of pairs of elements on which further calculate the similarity.
+    """
+    def _internal(reverse_index, records, n, idx, nprocs, data, rows, cols,
+                  distance_function):
+        key_list = list(reverse_index)
+        m = len(key_list)
+        for ii in range(idx, m, nprocs):
+            v = reverse_index[key_list[ii]]
+            length = len(v)
+            if length > 1:
+                for k in (range(int(length*(length-1)/2))):
+                    j = k % (length-1)+1
+                    i = int(k/(length-1))
+                    if i >= j:
+                        i = length-i-1
+                        j = length-j
+                    i = v[i]
+                    j = v[j]
+                    c_idx = n*(n-1)/2 - (n-i)*(n-i-1)/2 + j - i - 1
+                    rows[c_idx] = int(i)
+                    cols[c_idx] = int(j)
+                    data[c_idx] = 1#similarity_function(records[i], records[j])
+
+    nprocs = min(mp.cpu_count(), n)
+    c_length = int(n*(n-1)/2)
+    data = mp.Array('d', [0]*c_length)
+    rows = mp.Array('d', [0]*c_length)
+    cols = mp.Array('d', [0]*c_length)
+    ps = []
+    try:
+        for idx in range(nprocs):
+            p = mp.Process(target=_internal,
+                           args=(reverse_index, records, n, idx, nprocs,
+                                 data, rows, cols, similarity_function))
+            p.start()
+            ps.append(p)
+        for p in ps:
+            p.join()
+    except (KeyboardInterrupt, SystemExit):
+        extra._terminate(ps, 'Exit signal received\n')
+    except Exception as e:
+        extra._terminate(ps, 'ERROR: %s\n' % e)
+    except:
+        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+
+    data = np.array(data, dtype=float)
+    idx = data > 0
+    data = data[idx]
+    rows = np.array(rows, dtype=int)[idx]
+    cols = np.array(cols, dtype=int)[idx]
+    return data, rows, cols
+
+
+def parallel_sim_matrix(rows, cols, records, n, similarity_function):
+    def _internal(data, rows, cols, records, idx, nprocs, similarity_function):
+        for i in range(idx, n, nprocs):
+            data[i] = similarity_function(records[rows[i]], records[cols[i]])
+
+    n = len(rows)
+    nprocs = min(mp.cpu_count(), n)
+    data = mp.Array('d', [0.]*n)
+    ps = []
+    try:
+        for idx in range(nprocs):
+            p = mp.Process(target=_internal,
+                           args=(data, rows, cols, records, idx, nprocs,
+                                 similarity_function))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+    except (KeyboardInterrupt, SystemExit):
+        _terminate(ps, 'Exit signal received\n')
+    except Exception as e:
+        _terminate(ps, 'ERROR: %s\n' % e)
+    except:
+        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+
+    return data
+
+
+def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     """Compute the similarity matrix from a database iterator.
 
     Parameters
@@ -238,6 +375,8 @@ def compute_similarity_matrix(db_iter, sparse_mode=True):
         Records loaded by the script `ig_run.py`.
     sparse_mode : bool, optional, default `True`
         Return a sparse similarity matrix.
+    sim_func_args : dict, optional
+        Optional parameters for the similarity function.
 
     Returns
     -------
@@ -254,39 +393,48 @@ def compute_similarity_matrix(db_iter, sparse_mode=True):
     between chosen couples of values.
 
     The reverse index with one core, instead, looks like
-        r_index = dict()
-        for i, ig in enumerate(igs):
-            for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
-            for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
+      r_index = dict()
+      for i, ig in enumerate(igs):
+        for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
+        for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
     """
     igs = list(db_iter)
+    n = len(igs)
 
-    tic = time.time()
     dd = inverse_index(igs)
-    s1 = similar_elements(dd, len(igs))
-    print(time.time()-tic)
+
+    from functools import partial
+    default_model = 'ham'
+    default_method = 'jaccard'
+    sim_func_args.setdefault('model', default_model)
+    sim_func_args.setdefault('method', default_method)
+    sim_func_args.setdefault('tol', 3)
+    dist_mat = sim_func_args.get('dist_mat', None)
+    if dist_mat is None:
+        dist_mat = sim_func_args.setdefault('dist_mat',
+                                            model_matrix(default_model))
+
+    print("Similarity function parameters: ", sim_func_args)
+    similarity_function = partial(sim_function, **sim_func_args)
 
     tic = time.time()
-    dd = inverse_index_sequential(igs)
-    s2 = similar_elements(dd, len(igs))
+    # data, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
+    _, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
+    data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
     print(time.time()-tic)
 
-    assert(s1.difference(s2) == set())
-    assert(s2.difference(s1) == set())
-    sys.exit()
-
-    # indicator_matrix = scipy.sparse.lil_matrix((n, n),
-    #                                            dtype=np.dtype('bool'))
-    # rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
-    # data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
-    #                               (igs[i], igs[j]) for i, j in zip(rows, cols))
-    data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
-                                  (igs[i], igs[j]) for i, j in s2)
-    data = np.array(data)
+    data = np.array(data, dtype=float)
     idx = data > 0
     data = data[idx]
-    rows = np.array(rows)[idx]
-    cols = np.array(cols)[idx]
+    rows = np.array(rows, dtype=int)[idx]
+    cols = np.array(cols, dtype=int)[idx]
+
+    # tic = time.time()
+    # data, rows, cols = similar_elements(dd, igs, n, similarity_function)
+    # print(time.time()-tic)
+    # rows, cols, _ = map(list, scipy.sparse.find(indicator_matrix))
+    # data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
+    #                               (igs[i], igs[j]) for i, j in s2)
 
     # inefficient:
     # S = set()
@@ -298,18 +446,14 @@ def compute_similarity_matrix(db_iter, sparse_mode=True):
     # d_func = lambda x, y: dist_function(x, y, 'jaccard', 'ham')
     # d_wrapper = lambda x, y: (d_func(x[1], y[1]), (x[0], y[0]))
 
-    # data, pos = zip(*jl.Parallel(n_jobs=mp.cpu_count())
-    #            (jl.delayed(d_wrapper)(i,j) for (i,j) in S))
-    # rows, cols = map(list, zip(*pos))
-    # n = max(max(rows), max(cols))+1
-
-    # sim = 1 - np.array(data)
     sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)),
-                                         shape=(n, n))
+                                          shape=(n, n))
     similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
                                                         sparse_mat.shape[0])
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
+
+    np.savetxt("simmat4.csv", similarity_matrix.toarray(), fmt='%.3f')
 
     return similarity_matrix
 
@@ -334,7 +478,8 @@ def define_clusts(similarity_matrix, threshold=0.053447011367803443):
     return np.array(extra.flatten(clusters))
 
 
-def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False):
+def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
+                  sim_func_args={}):
     """Run the pipeline of ignet."""
     if not os.path.exists(root):
         if root is None:
@@ -343,7 +488,8 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False):
         logging.warn("No root folder supplied, folder {} "
                      "created".format(os.path.abspath(root)))
 
-    similarity_matrix = compute_similarity_matrix(db_iter, sparse_mode=True)
+    similarity_matrix = compute_similarity_matrix(db_iter, sparse_mode=True,
+                                                  **sim_func_args)
 
     output_filename = exp_tag
     output_folder = os.path.join(root, output_filename)
