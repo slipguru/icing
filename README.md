@@ -21,7 +21,7 @@ IGNET is developed using Python 2.7 and inherits its main functionalities from:
 * seaborn
 
 ## Authors and Contributors
-Current developer: Federico Tomasi (@fdtomasi).
+Current developer: Federico Tomasi ([@fdtomasi](https://github.com/fdtomasi)).
 
 ## Support or Contact
 Check out our documentation or contact us:
