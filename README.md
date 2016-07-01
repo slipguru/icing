@@ -1,7 +1,7 @@
-# IGNET
+=======
+IGNET
 =======
 A Python package to clonal relate immunoglobulins.
-=======
 
 **IGNET** is an implementation of an unsupervised learning technique
 used to identify `clones`, which are groups of immunoglobulins which share
