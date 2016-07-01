@@ -57,7 +57,7 @@ The file must contain at least the following required columns:
 * JUNCTION
 * JUNCTION_LENGTH (optional)
 
-The format of the file is the same which is returned from `HighV-QUEST`. See ``http://www.imgt.org/HighV-QUEST/`` for further information.
+The format of the file is the same which is returned from HighV-QUEST [Brochet08]_ [#HighVQuest]_.
 
 
 .. _configuration:
@@ -83,7 +83,7 @@ Optionally, a ``force_silhouette`` variable can be defined and set to True if, i
 
 Experiment runner
 -----------------
-The ``ig_run.py`` script executes the IGNET main features, that is the definition of immunoglobulin clones. The prototype is the following:
+The ``ig_run.py`` script executes the IGNET main features, that is the definition of immunoglobulin clones. The prototype is the following::
 
     $ ig_run.py config.py
 
@@ -93,27 +93,41 @@ When launched, the script reads the record database from the filename specified 
 
 Results analysis
 ----------------
-If the number of records analysed is acceptable, or if the user specified  script provides useful summaries and graphs from the results of the experiment. This script accepts as only parameter a result directory
-already created::
+This is an optional step. If the number of analysed records is not too high
+with respect to the amount of RAM available on the machine on which experiments
+are being running, then an analysis on the clustering already performed with the
+``ig_run.py`` script can be done.
+This script accepts as only parameter a result directory already created::
 
     $ ig_analysis.py result-dir
 
-The script produces a set of textual and graphical results. An output example obtained by one of the implemented pipelines is represented below.
+The result of the script is a graphical result which shows the silhouette
+plot for each clone that has been found.
+An output example obtained by one of the implemented pipelines is represented below,
+where almost each clone is composed by a single Ig, because of the type of data
+used in the analysis (click on it to zoom in the figure). 
 
-.. image:: pca.png
-   :scale: 80 %
-   :alt: broken link
+.. image:: silhouette_analysis.png
+   :scale: 40 %
+   :align: center
+   :alt: Example silhouette analysis.
 
-.. image:: kpca.png
-   :scale: 80 %
-   :alt: broken link
 
+-------------
 You can reproduce the example above specifying ``data_source.load('circles')`` in the configuration file.
 
 Example dataset
 ----------------
 An example dataset can be dowloaded :download:`here <TCGA-PANCAN-HiSeq-801x20531.tar.gz>`. The dataset is a random extraction of 801 samples (with dimension 20531) measuring RNA-Seq gene expression of patients affected by 5 different types of tumor: breast invasive carcinoma (BRCA), kidney renal clear cell carcinoma (KIRC), colon  (COAD), lung  (LUAD) and prostate adenocarcinoma (PRAD). The full dataset is maintained by The Cancer Genome Atlas Pan-Cancer Project [1] and we refer to the `original repository <https://www.synapse.org/#!Synapse:syn4301332>`_ for furher details.
 
+.. rubric:: Footnotes
+
+.. [#HighVQuest] See ``http://www.imgt.org/HighV-QUEST/`` for further information.
+
 Reference
 ----------------
-[1] Weinstein, John N., et al. "The cancer genome atlas pan-cancer analysis project." Nature genetics 45.10 (2013): 1113-1120.
+
+.. [Brochet08]  Brochet, Xavier, Marie-Paule Lefranc, Véronique Giudicelli,
+                **IMGT/V-QUEST: the highly customized and integrated system for
+                IG and TR standardized VJ and VDJ sequence analysis**.
+                Nucleic acids research 36.suppl 2 (2008): W503-W508.
