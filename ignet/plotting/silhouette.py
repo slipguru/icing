@@ -39,10 +39,6 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
         The root path for the output creation
     file_format : ('pdf', 'png')
         Choose the extension for output images.
-
-    Returns
-    -------
-    None
     """
     # Create a subplot with 1 row and 2 columns
     fig, (ax1) = plt.subplots(1, 1)
@@ -273,6 +269,7 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
         Precomputed affinity matrix.
     dist_matrix : array-like
         Precomputed distance matrix between points.
+
     Returns
     -------
     queue_y : array-like

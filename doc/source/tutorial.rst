@@ -73,6 +73,7 @@ Other options can be specified, regarding the file loading configuration:
 * ``subsets`` is a tuple or list of allowed immunoglobulin subsets to load. The database should contain a SUBSET column, and this variable is used to load from the database only those immunoglobulins which have a subset compatible. Names in ``subsets`` should be lowercase.
 * ``mutation`` is a tuple or list composed by two float values. Only immunoglobulins which have a mutation level inside this range are loaded.
 * ``apply_filter`` allows to specify the final filter which is used to load records from the database. The default filter in the configuration file allows to load records according to the previous statement. IGNET, however, allows a full customisation of the analysis. Expert users, therefore, can modify this function in order to load arbitrary records following their rules.
+* ``sim_func_args`` is a dictionary which allows to tune the similarity function to be performed on the data, `i.e.`, it allows to change the options for the similarity function (like the method, tolerance and so on).
 
 There are also other options which are taken into account in the analysis step.
 They are:

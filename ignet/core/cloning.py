@@ -3,14 +3,10 @@
 from __future__ import print_function
 
 import os
-import sys
-import imp
-import time
 import numpy as np
 import scipy
-import multiprocessing as mp
-import joblib as jl
 import logging
+import multiprocessing as mp
 import cPickle as pkl
 import gzip
 
@@ -18,13 +14,9 @@ from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 from sklearn.utils.sparsetools import connected_components
 
-from .distances import string_distance  # , junction_distance
+from .distances import string_distance
 from .similarity_scores import similarity_score_tripartite as mwi
-# from .. import parallel_distance
-from ..externals import DbCore
 from ..models.model import model_matrix
-from ..plotting import silhouette
-from ..utils import io
 from ..utils import extra
 
 __author__ = 'Federico Tomasi'
@@ -357,11 +349,11 @@ def parallel_sim_matrix(rows, cols, records, n, similarity_function):
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        extra._terminate(ps, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
+        extra._terminate(ps, 'ERROR: %s\n' % e)
     except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
 
     return data
 
@@ -416,14 +408,14 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
         dist_mat = sim_func_args.setdefault('dist_mat',
                                             model_matrix(default_model))
 
-    print("Similarity function parameters: ", sim_func_args)
+    # print("Similarity function parameters: ", sim_func_args)
     similarity_function = partial(sim_function, **sim_func_args)
 
-    tic = time.time()
+    # tic = time.time()
     # data, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
     _, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
     data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
-    print(time.time()-tic)
+    # print(time.time()-tic)
 
     data = np.array(data, dtype=float)
     idx = data > 0
@@ -449,13 +441,13 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     # d_wrapper = lambda x, y: (d_func(x[1], y[1]), (x[0], y[0]))
 
     sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)),
-                                          shape=(n, n))
+                                         shape=(n, n))
     similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
                                                         sparse_mat.shape[0])
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
 
-    np.savetxt("simmat4.csv", similarity_matrix.toarray(), fmt='%.3f')
+    # np.savetxt("simmat4.csv", similarity_matrix.toarray(), fmt='%.3f')
 
     return similarity_matrix
 
@@ -519,5 +511,5 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
 
 if __name__ == '__main__':
     print("This file cannot be launched directly. "
-          "Please run the script located in `ignet.scripts.ig_run.py` "
+          "Please run the script located in `ignet/scripts/ig_run.py` "
           "with an argument, that is the location of the configuration file. ")

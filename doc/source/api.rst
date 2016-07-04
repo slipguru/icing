@@ -34,6 +34,6 @@ Plotting functions
 Extra tools
 -----------------------------
 
-.. automodule:: ignet.utils.utils
+.. automodule:: ignet.utils.extra
    :members:
 

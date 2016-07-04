@@ -9,6 +9,7 @@ subsets = ('n', 'naive')
 mutation = (0, 0)
 
 apply_filter = lambda x: x.subset.lower() in subsets and mutation[0] <= x.mut <= mutation[1]
+sim_func_args = {'method': 'jaccard'}
 
 # Analysis options
 file_format = 'png'
