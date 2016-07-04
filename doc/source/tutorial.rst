@@ -7,7 +7,7 @@ administrative or sudo permissions on GNU-Linux platforms)::
 
     $ pip install ignet
 
-    or
+or::
 
     $ easy_install ignet
 
@@ -30,7 +30,7 @@ Otherwise you can clone our `GitHub repository <https://github.com/slipguru/igne
 
 From here, you can follow the standard Python installation step::
 
-    $ python setup.py install
+    $ python setup.py build_ext --inplace install
 
 This tutorial assumes that you downloaded and extracted IGNET
 source package which contains a ``examples/data`` directory with some data files (``.npy`` or ``.csv``) which will be used to show IGNET functionalities.
@@ -47,7 +47,7 @@ Input data format
 Input data are assumed to be:
 
 * tabular data stored in tab-separated ``.tab`` files (or comma-separated ``.csv`` files; see the Configuration File section on how to specify your preferred format for loading the table) presenting the variables header on the first row and the sample indexes on the first column.
-The file must contain at least the following required columns:
+The file must contain at least the following columns:
 
 * SEQUENCE_ID
 * SUBSET (optional)

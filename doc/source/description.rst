@@ -153,7 +153,9 @@ is unchanged (`i.e.`, the similarity computed is reliable), while the similarity
 between two Igs with a very high mutation level, in any case, is never set to zero
 only because of their mutations.
 
-.. rubric:: References
+.. rubric::
+Reference
+---------
 
 .. [Brochet08]  Brochet, Xavier, Marie-Paule Lefranc, Véronique Giudicelli,
                 **IMGT/V-QUEST: the highly customized and integrated system for
@@ -161,14 +163,18 @@ only because of their mutations.
                 Nucleic acids research 36.suppl 2 (2008): W503-W508.
 
 .. [Yaari13]    Yaari G, Vander Heiden JA, Uduman M, et al. 
-                ***Models of Somatic Hypermutation Targeting and Substitution 
+                **Models of Somatic Hypermutation Targeting and Substitution 
                 Based on Synonymous Mutations from High-Throughput Immunoglobulin 
                 Sequencing Data**. 
                 Frontiers in Immunology. 2013;4:358. doi:10.3389/fimmu.2013.00358.
 
 
-.. [Gupta15]    Gupta, Namita T., Jason A. Vander Heiden, Mohamed Uduman, Daniel Gadala-Maria, Gur Yaari, and Steven H. Kleinstein. 
+.. [Gupta15]    Gupta, Namita T., Jason A. Vander Heiden, Mohamed Uduman, et al. 
                 **Change-O: a toolkit for analyzing large-scale B cell 
                 immunoglobulin repertoire sequencing data**.
                 Bioinformatics 31, no. 20 (2015): 3356-3358.
+
+.. [Bagnara15]  Bagnara, Davide, Margherita Squillario, David Kipling, et al.
+                **A reassessment of IgM memory subsets in humans**.
+                The Journal of Immunology 195, no. 8 (2015): 3716-3724.
 
