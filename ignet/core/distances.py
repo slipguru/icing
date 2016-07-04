@@ -228,7 +228,6 @@ def string_distance(seq1, seq2, dist_mat, norm_by=1, tol=3,
             # different lengths, seqs alignment
             # seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
             seq1, seq2 = map(extra.junction_re, igalign.alignment(seq1, seq2))
-
     norm_by = len(seq1) * np.max(dist_mat.as_matrix())
     # return sum([np.mean((float(dist_mat.at[c1, c2]), float(dist_mat.at[c2, c1]))) for c1, c2 in izip(list(seq1), list(seq2)) if c1 != c2]) / norm_by
     return sum([np.mean((float(dist_mat.at[c1, c2]), float(dist_mat.at[c2, c1]))) for c1, c2 in izip(list(seq1), list(seq2))]) / norm_by

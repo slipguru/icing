@@ -452,7 +452,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     return similarity_matrix
 
 
-def define_clusts(similarity_matrix, threshold=0.053447011367803443):
+def define_clusts(similarity_matrix, threshold):
     """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix)
     prev_max_clust = 0
@@ -473,7 +473,7 @@ def define_clusts(similarity_matrix, threshold=0.053447011367803443):
 
 
 def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
-                  sim_func_args={}):
+                  sim_func_args={}, threshold=0.05):
     """Run the pipeline of ignet."""
     if not os.path.exists(root):
         if root is None:
@@ -497,7 +497,7 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
     logging.info("Dumped similarity matrix: {}"
                  .format(os.path.join(output_folder, sm_filename)))
 
-    clusters = define_clusts(similarity_matrix)
+    clusters = define_clusts(similarity_matrix, threshold=threshold)
 
     cl_filename = output_filename + '_clusters.pkl.tz'
     with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:

@@ -28,7 +28,8 @@ def main(config_file):
                                        'exp_tag': 'debug',
                                        'output_root_folder': 'results',
                                        'force_silhouette': False,
-                                       'sim_func_args': {}})
+                                       'sim_func_args': {},
+                                       'threshold': 0.053447011367803443})
 
     db_iter = list(io.read_db(config.db_file, filt=config.apply_filter,
                               dialect=config.dialect))
@@ -50,7 +51,8 @@ def main(config_file):
 
     outfolder, clone_dict = define_clones(db_iter, exp_tag=filename, root=root,
                                           force_silhouette=config.force_silhouette,
-                                          sim_func_args=config.sim_func_args)
+                                          sim_func_args=config.sim_func_args,
+                                          threshold=config.threshold)
 
     # Copy the ade_config just used into the outFolder
     shutil.copy(config_path, os.path.join(outfolder, 'config.py'))

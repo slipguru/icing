@@ -81,6 +81,7 @@ They are:
 * ``file_format`` is a string which specifies the extension of the plots to be produced, and it can be 'png' or 'pdf'.
 * ``plotting_context`` is a string which specifies the seaborn context for the plots. [#seaborn]_
 * ``force_silhouette`` is a boolean variable that can be defined and set to True if, independently from the dimension of the distance matrix that will be produced, the user wants to perform a silhouette analysis on the data.
+* ``threshold`` is a floating point value which specifies the threshold where to cut the hierarchical clustering tree in order to form final clones. The default value is around 0.053, and it is a value empirically obtained from a large (private) dataset as the inflection point of distance distributions of no-mutated immunoglobulins.
 
 .. literalinclude:: ../../ignet/config.py
    :language: python
