@@ -74,7 +74,12 @@ Other options can be specified, regarding the file loading configuration:
 * ``mutation`` is a tuple or list composed by two float values. Only immunoglobulins which have a mutation level inside this range are loaded.
 * ``apply_filter`` allows to specify the final filter which is used to load records from the database. The default filter in the configuration file allows to load records according to the previous statement. IGNET, however, allows a full customisation of the analysis. Expert users, therefore, can modify this function in order to load arbitrary records following their rules.
 
-Optionally, a ``force_silhouette`` variable can be defined and set to True if, independently from the dimension of the distance matrix that will be produced, the user wants to perform a silhouette analysis on the data.
+There are also other options which are taken into account in the analysis step.
+They are:
+
+* ``file_format`` is a string which specifies the extension of the plots to be produced, and it can be 'png' or 'pdf'.
+* ``plotting_context`` is a string which specifies the seaborn context for the plots. [#seaborn]_
+* ``force_silhouette`` is a boolean variable that can be defined and set to True if, independently from the dimension of the distance matrix that will be produced, the user wants to perform a silhouette analysis on the data.
 
 .. literalinclude:: ../../ignet/config.py
    :language: python
@@ -123,6 +128,7 @@ An example dataset can be dowloaded :download:`here <TCGA-PANCAN-HiSeq-801x20531
 .. rubric:: Footnotes
 
 .. [#HighVQuest] See ``http://www.imgt.org/HighV-QUEST/`` for further information.
+.. [#seaborn] See ``https://stanford.edu/~mwaskom/software/seaborn/generated/seaborn.set_context.html`` for further information.
 
 Reference
 ----------------

@@ -9,3 +9,8 @@ subsets = ('n', 'naive')
 mutation = (0, 0)
 
 apply_filter = lambda x: x.subset.lower() in subsets and mutation[0] <= x.mut <= mutation[1]
+
+# Analysis options
+file_format = 'png'
+plotting_context = 'notebook'
+force_silhouette = False
