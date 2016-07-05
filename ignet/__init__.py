@@ -1,4 +1,8 @@
-__version__ = "0.0.1"
+"""init.py for ignet module.
 
-# from . import core
-# from . import utils
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
+
+__version__ = "0.0.1"

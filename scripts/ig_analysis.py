@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Perform the analysis on the results of `ig_run.py` script."""
+"""Perform the analysis on the results of `ig_run.py` script.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 
 from __future__ import print_function
 

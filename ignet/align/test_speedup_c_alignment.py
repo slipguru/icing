@@ -4,6 +4,10 @@
 This file is to visualise the speedup in using the alignment provided in
 this folder w.r.t. Bio.pairwise2, also with the non-documented parameters
 force_generic=True and one_alignment_only=True.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
 """
 import time
 import numpy as np
@@ -19,6 +23,7 @@ from ignet.align import align as igalign
 def _f(a, b):
     (align.globalxx(a, b, force_generic=True, one_alignment_only=True))
     return (max(len(a), len(b)))
+
 
 def _g(a, b):
     (igalign.alignment(a, b))

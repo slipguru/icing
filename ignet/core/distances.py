@@ -4,6 +4,10 @@
 The functions `get_nmers`, `single_distance` and `junction_distance` are
 adapted from Change-O functions. See changeo.DbCore for the original version.
 Reference: http://changeo.readthedocs.io/en/latest/
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
 """
 from __future__ import division
 
@@ -14,8 +18,6 @@ from Bio.pairwise2 import align
 
 from ..align import align as igalign
 from ..utils import extra
-
-__author__ = 'Federico Tomasi'
 
 
 def hamming(str1, str2):

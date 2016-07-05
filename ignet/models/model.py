@@ -1,25 +1,118 @@
 #!/usr/bin/env python
 """Distance models available for ignet.
 
-The functions `char_dist_matrix` and `model_matrix` are adapted from Change-O
-functions. See changeo.DbCore for the original version.
+The functions `score_dna`, `score_aa`,`char_dist_matrix` and `model_matrix`
+are adapted from Change-O functions.
+See changeo.DbCore for the original versions.
 Reference: http://changeo.readthedocs.io/en/latest/
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
 """
 import os
 import sys
 import numpy as np
 import pandas as pd
+import logging
 
 from itertools import product
 
-from ..externals.DbCore import scoreAA, scoreDNA
+
+def score_dna(a, b, n_score=None, n_char='N', gap_score=None, gap='-.'):
+    """Score a pair of IUPAC Ambiguous Nucleotide characters.
+
+    Parameters
+    ----------
+    a, b : str
+        Characters for which to calculate the match.
+    n_score : None or float
+        Score for all matches against a `N` character.
+        If None, use IUPAC character identity.
+    n_char : str, default 'N'
+        N char.
+    gap_score: None or float
+        Score for all matches against a gap character;
+        If None, use IUPAC character identity.
+    gap : str, default '-.'
+        Gap characters.
+
+    Returns
+    -------
+    score : float
+        Score for the two nucleotides.
+    """
+    # Define ambiguous character translations
+    iupac_trans = {'AGWSKMBDHV': 'R', 'CTSWKMBDHV': 'Y', 'CGKMBDHV': 'S',
+                   'ATKMBDHV': 'W', 'GTBDHV': 'K', 'ACBDHV': 'M',
+                   'CGTDHV': 'B', 'AGTHV': 'D', 'ACTV': 'H', 'ACG': 'V',
+                   'ABCDGHKMRSTVWY': 'N', '-.': '.'}
+    # Create list of tuples of synonymous character pairs
+    iupac_matches = [p for k, v in iupac_trans.iteritems()
+                     for p in list(product(k, v))]
+
+    # Check gap condition
+    if gap_score is not None and (a in gap or b in gap):
+        return gap_score
+
+    # Check N-value condition
+    if n_score is not None and (a == n_char or b == n_char):
+        return n_score
+
+    # Determine and return score for IUPAC match conditions
+    # Symmetric and reflexive
+    if a == b:
+        return 1
+    elif (a, b) in iupac_matches or (b, a) in iupac_matches:
+        return 1
+    return 0
 
 
-__author__ = 'Federico Tomasi'
-# __copyright__ = 'Copyright 2014 Kleinstein Lab, Yale University. All rights reserved.'
-# __license__ = 'Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported'
-# __version__ = '0.2.4'
-# __date__ = '2015.08.18'
+def score_aa(a, b, n_score=None, n_char='X', gap_score=None, gap='-.'):
+    """Score a pair of IUPAC Extended Protein characters.
+
+    Parameters
+    ----------
+    a, b : str
+        Characters for which to calculate the match.
+    n_score : None or float
+        Score for all matches against a `N` character.
+        If None, use IUPAC character identity.
+    n_char : str, default 'X'
+        N char.
+    gap_score: None or float
+        Score for all matches against a gap character;
+        If None, use IUPAC character identity.
+    gap : str, default '-.'
+        Gap characters.
+
+    Returns
+    -------
+    score : float
+        Score for the two nucleotides.
+    """
+    # Define ambiguous character translations
+    iupac_trans = {'RN': 'B', 'EQ': 'Z', 'LI': 'J',
+                   'ABCDEFGHIJKLMNOPQRSTUVWYZ': 'X', '-.': '.'}
+    # Create list of tuples of synonymous character pairs
+    iupac_matches = [p for k, v in iupac_trans.iteritems()
+                     for p in list(product(k, v))]
+
+    # Check gap condition
+    if gap_score is not None and (a in gap or b in gap):
+        return gap_score
+
+    # Check X-value condition
+    if n_score is not None and (a == n_char or b == n_char):
+        return n_score
+
+    # Determine and return score for IUPAC match conditions
+    # Symmetric and reflexive
+    if a == b:
+        return 1
+    elif (a, b) in iupac_matches or (b, a) in iupac_matches:
+        return 1
+    return 0
 
 
 def char_dist_matrix(mat=None, n_score=0, gap_score=0, alphabet='dna'):
@@ -40,19 +133,19 @@ def char_dist_matrix(mat=None, n_score=0, gap_score=0, alphabet='dna'):
     a distance matrix (pandas DataFrame)
     """
     if alphabet == 'dna':
-        IUPAC_chars = list('-.ACGTRYSWKMBDHVN')
+        iupac_chars = list('-.ACGTRYSWKMBDHVN')
         n = 'N'
-        score_func = scoreDNA
+        score_func = score_dna
     elif alphabet == 'aa':
-        IUPAC_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+        iupac_chars = list('-.*ABCDEFGHIJKLMNOPQRSTUVWXYZ')
         n = 'X'
-        score_func = scoreAA
+        score_func = score_aa
     else:
-        sys.stderr.write('ERROR: The alphabet %s unrecognised.\n'.format(alphabet))
+        logging.critical('Alphabet %s unrecognised.\n'.format(alphabet))
 
     # Default matrix to inf
-    dist_mat = pd.DataFrame(float('inf'), index=IUPAC_chars,
-                            columns=IUPAC_chars, dtype=float)
+    dist_mat = pd.DataFrame(float('inf'), index=iupac_chars,
+                            columns=iupac_chars, dtype=float)
     # Set gap score
     for c in '-.':
         dist_mat.loc[c] = dist_mat.loc[:, c] = gap_score
@@ -68,7 +161,6 @@ def char_dist_matrix(mat=None, n_score=0, gap_score=0, alphabet='dna'):
             dist_mat.loc[i, j] = 1 - score_func(i, j, n_score=1-n_score,
                                                 gap_score=1-gap_score)
 
-    # print dist_mat # added by toma
     return dist_mat
 
 
@@ -134,10 +226,9 @@ def model_matrix(model, n_score=0, gap_score=0):
         return hs1f_model
     elif model == 'hs5f':
         # Human 5-mer DNA model
-        # model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'models')
         model_path = os.path.dirname(os.path.realpath(__file__))
         hs5f_file = os.path.join(model_path, 'HS5F_Distance.tab')
         hs5f_model = pd.read_csv(hs5f_file, sep='\t', index_col=0)
         return hs5f_model
     else:
-        sys.stderr.write('Unrecognized distance model: %s.\n' % model)
+        logging.critical('Unrecognized distance model: %s.\n' % model)

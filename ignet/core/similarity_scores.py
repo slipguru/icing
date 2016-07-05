@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Graph-based similarity scores."""
+"""Graph-based similarity scores.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 from __future__ import division, print_function
 
 import sys

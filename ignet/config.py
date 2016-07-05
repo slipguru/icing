@@ -1,4 +1,9 @@
-"""Default configuration file for ignet."""
+"""Default configuration file for ignet.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 
 exp_tag = 'debug'
 output_root_folder = 'results'

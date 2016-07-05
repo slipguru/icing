@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Utilities for input/output operations."""
+"""Utilities for input/output operations.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 
 import sys
 import csv
@@ -62,6 +67,34 @@ def get_max_mut(db_file, dialect='excel-tab'):
         sys.exit('ERROR:  File %s cannot be read' % db_file)
     except:
         sys.exit('ERROR:  File %s is invalid' % db_file)
+
+
+def get_num_records(db_file, dialect='excel-tab'):
+    """Get the number of records of a database file.
+
+    Parameters
+    ----------
+    db_file : str
+        A database file. Delimited according to `dialect`.
+    dialect : ('excel-tab', 'excel')
+        Dialect for csv.DictReader.
+
+    Returns
+    -------
+    num_records : int
+        The number of records.
+    """
+    # Count records and check file
+    try:
+        with open(db_file) as f:
+            for i, __ in enumerate(csv.reader(f, dialect=dialect)):
+                pass
+            db_count = i
+    except IOError:
+        sys.exit('ERROR:  File %s cannot be read' % db_file)
+    except:
+        sys.exit('ERROR:  File %s is invalid' % db_file)
+    return db_count
 
 
 def write_clusters_db(db_file, result_db, clones, dialect='excel-tab'):

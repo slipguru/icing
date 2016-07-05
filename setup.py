@@ -1,5 +1,10 @@
 #!/usr/bin/python
-"""ignet setup script."""
+"""ignet setup script.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 
 from distutils.core import setup, Extension
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Plotting functions for silhouette analysis."""
+"""Plotting functions for silhouette analysis.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 from __future__ import print_function
 
 import os
@@ -18,8 +23,6 @@ from sklearn.metrics import silhouette_samples  # , silhouette_score
 
 from ..externals import Tango
 from ..utils import extra
-
-__author__ = 'Federico Tomasi'
 
 
 def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',

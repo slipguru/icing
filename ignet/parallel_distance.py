@@ -2,6 +2,10 @@
 """Function to compute a user-defined distance function among lists.
 
 Distances can be between one (intra-distance) or two (inter-distances) lists.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
 """
 import numpy as np
 import scipy
@@ -9,8 +13,6 @@ import scipy.spatial
 import multiprocessing as mp
 
 from .utils.extra import _terminate, progressbar
-
-__author__ = 'Federico Tomasi'
 
 
 def dnearest_inter_padding(l1, l2, dist_function):

@@ -1,13 +1,9 @@
+/* author: Federico Tomasi
+ * license: FreeBSD License
+ * copyright: Copyright (C) 2016 Federico Tomasi
+ */
 #include <Python.h>
-//
-// #include "math.h"
-// #include "numpy/ndarraytypes.h"
-// #include "numpy/ufuncobject.h"
-// #include "numpy/halffloat.h"
-
 #include "alignment.h"
-
-/*Definitions*/
 int i, j, k;
 
 static void strrev(char *p) {

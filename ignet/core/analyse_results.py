@@ -1,11 +1,14 @@
 #!/usr/bin/env python
-"""TODO doc."""
+"""Perform the analysis on the results of ig_run.py.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 import logging
 import seaborn as sns
 
 from ..plotting import silhouette
-
-__author__ = 'Federico Tomasi'
 
 
 def analyse(X, labels, root='', plotting_context=None, file_format='pdf',

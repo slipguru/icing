@@ -1,27 +1,19 @@
 # Imports
-import os, signal, sys, textwrap, re
-import multiprocessing as mp
-import numpy as np
-from argparse import ArgumentParser
-from collections import OrderedDict
-from ctypes import c_bool
+import os, sys, re
 from itertools import chain
 from pandas import DataFrame
 from pandas.io.parsers import read_csv
 from time import time
-from Bio import pairwise2
-from Bio.Seq import translate, Seq
+from Bio.Seq import translate
 
 # IgCore imports
 sys.path.append(os.path.dirname(os.path.realpath(__file__)))
-from IgCore import default_out_args
-from IgCore import CommonHelpFormatter, getCommonArgParser, parseCommonArgs
-from IgCore import getFileType, getOutputHandle, printLog, printProgress
-from IgCore import getScoreDict
-from IgCore import manageProcesses
-from DbCore import countDbFile, readDbFile, getDbWriter
-from DbCore import DbData, DbResult, getDistMat
-from DbCore import calcDistances, formClusters
+from IgCore import printProgress
+from DbCore import getDistMat
+from DbCore import calcDistances
+
+from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.spatial.distance import squareform
 
 # Defaults
 default_translate = False
@@ -172,6 +164,29 @@ def indexJunctions(db_iter, fields=None, mode='gene', action='first'):
     printProgress(rec_count, step=1000, start_time=start_time, end=True)
 
     return clone_index
+
+
+def formClusters(dists, link, distance):
+    """Form clusters based on hierarchical clustering of input distance matrix
+    with linkage type and cutoff distance
+    :param dists: numpy matrix of distances
+    :param link: linkage type for hierarchical clustering
+    :param distance: distance at which to cut into clusters
+    :return: list of cluster assignments
+    """
+    # Make distance matrix square
+    dists = squareform(dists)
+    # Compute linkage
+    links = linkage(dists, link)
+
+    # import matplotlib.pyplot as plt
+    # from scipy.cluster import hierarchy
+    # plt.figure(figsize=(15,5))
+    # p = hierarchy.dendrogram(links)
+
+    # Break into clusters based on cutoff
+    clusters = fcluster(links, distance, criterion='distance')
+    return clusters
 
 
 def distanceClones(records, model=default_bygroup_model, distance=default_distance,

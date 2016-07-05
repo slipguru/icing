@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Assign Ig sequences into clones."""
+"""Assign Ig sequences into clones.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 from __future__ import print_function
 
 import os
@@ -18,8 +23,6 @@ from .distances import string_distance
 from .similarity_scores import similarity_score_tripartite as mwi
 from ..models.model import model_matrix
 from ..utils import extra
-
-__author__ = 'Federico Tomasi'
 
 
 def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):

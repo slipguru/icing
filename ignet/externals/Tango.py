@@ -2,10 +2,12 @@
 
 This file is a modification of the original Tango.py from GPy software.
 References: http://gpy.readthedocs.io/en/deploy/index.html
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
-# Copyright (c) 2012, GPy authors.
-# Licensed under the BSD 3-clause license (see LICENSE.txt)
 import matplotlib as mpl
 
 

@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Assign Ig sequences into clones."""
+"""Assign Ig sequences into clones.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 
 import os
 import imp

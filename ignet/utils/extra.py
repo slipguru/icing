@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Utility functions for ignet."""
+"""Utility functions for ignet.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
 
 import sys
 import time

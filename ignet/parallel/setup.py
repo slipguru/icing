@@ -1,3 +1,10 @@
+"""setup.py for parallel module.
+
+Author: Federico Tomasi
+Copyright (c) 2016, Federico Tomasi.
+Licensed under the FreeBSD license (see LICENSE.txt).
+"""
+
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
