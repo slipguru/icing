@@ -11,7 +11,6 @@ Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
 import os
-import sys
 import numpy as np
 import pandas as pd
 import logging

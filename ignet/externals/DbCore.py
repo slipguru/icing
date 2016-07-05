@@ -28,9 +28,8 @@ j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 
 # TODO:  might be better to just use the lower case column name as the member variable name. can use getattr and setattr.
 class IgRecord:
-    """
-    A class defining a V(D)J germline sequence alignment
-    """
+    """A class defining a V(D)J germline sequence alignment."""
+
     # Mapping of member variables to column names
     _key_map = {'id': 'SEQUENCE_ID',
                 'v_call': 'V_CALL',
@@ -112,10 +111,11 @@ class IgRecord:
                   'j_identity': '_float',
                   'j_evalue': '_float',
                   'mut': '_float',
-                  'subset': '_identity'} # added field MUT in IgRecord. --toma
+                  'subset': '_identity'}
 
-    _logical_parse = {'F':False, 'T':True, 'TRUE':True, 'FALSE':False, 'NA':None, 'None':None}
-    _logical_deparse = {False:'F', True:'T', None:'None'}
+    _logical_parse = {'F': False, 'T': True, 'TRUE': True, 'FALSE': False,
+                      'NA': None, 'None': None}
+    _logical_deparse = {False: 'F', True: 'T', None: 'None'}
 
     # Private methods
     @staticmethod
@@ -125,38 +125,54 @@ class IgRecord:
     @staticmethod
     def _logical(v, deparse=False):
         if not deparse:
-            try:  return IgRecord._logical_parse[v]
-            except:  return None
+            try:
+                return IgRecord._logical_parse[v]
+            except:
+                return None
         else:
-            try:  return IgRecord._logical_deparse[v]
-            except:  return ''
+            try:
+                return IgRecord._logical_deparse[v]
+            except:
+                return ''
 
     @staticmethod
     def _integer(v, deparse=False):
         if not deparse:
-            try:  return int(v)
-            except:  return None
+            try:
+                return int(v)
+            except:
+                return None
         else:
-            try:  return str(v)
-            except:  return ''
+            try:
+                return str(v)
+            except:
+                return ''
 
     @staticmethod
     def _float(v, deparse=False):
         if not deparse:
-            try:  return float(v)
-            except:  return None
+            try:
+                return float(v)
+            except:
+                return None
         else:
-            try:  return str(v)
-            except:  return ''
+            try:
+                return str(v)
+            except:
+                return ''
 
     @staticmethod
     def _sequence(v, deparse=False):
         if not deparse:
-            try:  return Seq(v, IUPAC.ambiguous_dna)
-            except:  return None
+            try:
+                return Seq(v, IUPAC.ambiguous_dna)
+            except:
+                return None
         else:
-            try:  return str(v)
-            except:  return ''
+            try:
+                return str(v)
+            except:
+                return ''
 
     # Initializer
     #
@@ -176,7 +192,7 @@ class IgRecord:
                 f = getattr(IgRecord, IgRecord._parse_map[k])
                 setattr(self, k, f(row.pop(IgRecord._key_map[k])))
         except:
-            sys.exit('ERROR:  Input must contain valid %s values' \
+            sys.exit('ERROR:  Input must contain valid %s values'
                      % ','.join([IgRecord._key_map[k] for k in required_keys]))
 
         # Defined optional logical values
@@ -230,12 +246,12 @@ class IgRecord:
             return None
 
     # Returns: dictionary of the namespace
-    def toDict(self):
+    def to_dict(self):
         d = {}
         n = self.__dict__
         for k, v in n.iteritems():
             if k == 'annotations':
-                d.update({i.upper():j for i, j in n['annotations'].iteritems()})
+                d.update({i.upper(): j for i, j in n['annotations'].iteritems()})
             else:
                 f = getattr(IgRecord, IgRecord._parse_map[k])
                 d[IgRecord._key_map[k]] = f(v, deparse=True)
@@ -253,15 +269,15 @@ class IgRecord:
         return [vdj[k] for k in calls]
 
     def getGeneCalls(self, calls, action='first'):
-        vdj = {'v':self.getVGene(action),
-               'd':self.getDGene(action),
-               'j':self.getJGene(action)}
+        vdj = {'v': self.getVGene(action),
+               'd': self.getDGene(action),
+               'j': self.getJGene(action)}
         return [vdj[k] for k in calls]
 
     def getFamilyCalls(self, calls, action='first'):
-        vdj = {'v':self.getVFamily(action),
-               'd':self.getDFamily(action),
-               'j':self.getJFamily(action)}
+        vdj = {'v': self.getVFamily(action),
+               'd': self.getDFamily(action),
+               'j': self.getJFamily(action)}
         return [vdj[k] for k in calls]
 
     # Individual allele, gene and family getter methods
@@ -296,7 +312,6 @@ class IgRecord:
 
     def getJFamily(self, action='first'):
         return parseAllele(self.j_call, family_regex, action)
-
 
 
 # TODO:  might be cleaner as getAllele(), getGene(), getFamily()
