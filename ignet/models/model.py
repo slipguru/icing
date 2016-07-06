@@ -178,7 +178,7 @@ def model_matrix(model, n_score=0, gap_score=0):
     """
     if model == 'aa':
         # Amino acid Hamming distance
-        # n_score is overrided in case of aa
+        # n_score is overridden in case of aa
         aa_model = char_dist_matrix(n_score=1, gap_score=gap_score, alphabet='aa')
         return aa_model
     elif model == 'blosum50':

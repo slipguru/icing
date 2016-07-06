@@ -35,6 +35,7 @@ import numpy as np
 #     for i in range(0, len(l), n):
 #         yield l[i:i+n]
 
+
 def ensure_symmetry(X):
     """Ensure matrix symmetry.
 
@@ -48,10 +49,7 @@ def ensure_symmetry(X):
     new_X : numpy.ndarray
         Symmetric distance matrix. Values are averaged.
     """
-    if not (X.T == X).all():
-        return (X.T + X) / 2.
-    else:
-        return X
+    return (X.T + X) / 2. if not (X.T == X).all() else X
 
 
 def distance_to_affinity_matrix(X, delta=.2, minimum_value=0):

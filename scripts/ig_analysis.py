@@ -54,7 +54,7 @@ def main(dumpfile):
     print("done: {} s".format(extra.get_time_from_seconds(time.time()-tic)))
 
     # Analyze the pipelines
-    analyse_results.analyse(X=(1.-sm.toarray()), labels=clusters,
+    analyse_results.analyse(sm=sm, labels=clusters,
                             root=os.path.dirname(dumpfile),
                             plotting_context=config.plotting_context,
                             file_format=config.file_format,
