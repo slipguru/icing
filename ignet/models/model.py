@@ -60,9 +60,7 @@ def score_dna(a, b, n_score=None, n_char='N', gap_score=None, gap='-.'):
 
     # Determine and return score for IUPAC match conditions
     # Symmetric and reflexive
-    if a == b:
-        return 1
-    elif (a, b) in iupac_matches or (b, a) in iupac_matches:
+    if a == b or (a, b) in iupac_matches or (b, a) in iupac_matches:
         return 1
     return 0
 
@@ -107,9 +105,7 @@ def score_aa(a, b, n_score=None, n_char='X', gap_score=None, gap='-.'):
 
     # Determine and return score for IUPAC match conditions
     # Symmetric and reflexive
-    if a == b:
-        return 1
-    elif (a, b) in iupac_matches or (b, a) in iupac_matches:
+    if a == b or (a, b) in iupac_matches or (b, a) in iupac_matches:
         return 1
     return 0
 

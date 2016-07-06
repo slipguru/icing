@@ -112,22 +112,21 @@ def write_clusters_db(db_file, result_db, clones, dialect='excel-tab'):
         Dialect for csv.DictReader.
 
     """
-    with open(db_file, 'r') as csvinput:
-        with open(result_db, 'w') as csvoutput:
-            reader = csv.reader(csvinput, dialect=dialect)
-            writer = csv.writer(csvoutput, dialect=dialect, lineterminator='\n')
+    with open(db_file, 'r') as csvinput, open(result_db, 'w') as csvoutput:
+        reader = csv.reader(csvinput, dialect=dialect)
+        writer = csv.writer(csvoutput, dialect=dialect, lineterminator='\n')
 
-            all_list = []
-            row = next(reader)
-            row.append('CLONE')
+        all_list = []
+        row = next(reader)
+        row.append('CLONE')
+        all_list.append(row)
+        indexid = [n.strip().upper() for n in row].index("SEQUENCE_ID")
+
+        for row in reader:
+            row.append(clones.get(row[indexid], ''))
             all_list.append(row)
-            indexid = [n.strip().upper() for n in row].index("SEQUENCE_ID")
 
-            for row in reader:
-                row.append(clones.get(row[indexid], ''))
-                all_list.append(row)
-
-            writer.writerows(all_list)
+        writer.writerows(all_list)
 
 
 def load_dm_from_file(filename, index_col=0, header='infer',
