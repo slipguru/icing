@@ -34,7 +34,7 @@ def main(config_file):
                                        'output_root_folder': 'results',
                                        'force_silhouette': False,
                                        'sim_func_args': {},
-                                       'threshold': 0.053447011367803443})
+                                       'threshold': 0.0536})
 
     db_iter = list(io.read_db(config.db_file, filt=config.apply_filter,
                               dialect=config.dialect))
