@@ -102,16 +102,19 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
         The computed similarity score between A and B.
         Values are in range [0,1].
     """
-    if not V_genes_A or not V_genes_B:
-        sys.stderr.write("V genes unspecified or empty.")
-        return 0.
-    if r1 < 0 or r2 < 0:
+    if not V_genes_A or not V_genes_B or (r1 == 0 and r2 != 0):
+        # sys.stderr.write("V genes unspecified or zero weight."
+        #                  "Computing similarity between J genes ..."
+        #                  "V1 = {}, V2 = {}\n".format(V_genes_A, V_genes_B))
+        return similarity_score_bipartite(J_genes_A, J_genes_B, method)
+    if r1 < 0 or r2 < 0 or (r1 == 0 and r2 == 0):
         raise ValueError("Weights cannot be negative")
-    if not J_genes_A or not J_genes_B:
-        sys.stderr.write("J genes unspecified or zero weight."
-                         "Computing similarity between V genes ..."
-                         "J1 = {}, J2 = {}\n".format(J_genes_A, J_genes_B))
+    if not J_genes_A or not J_genes_B or (r2 == 0 and r1 != 0):
+        # sys.stderr.write("J genes unspecified or zero weight."
+        #                  "Computing similarity between V genes ..."
+        #                  "J1 = {}, J2 = {}\n".format(J_genes_A, J_genes_B))
         return similarity_score_bipartite(V_genes_A, V_genes_B, method)
+
 
     # enforce sets
     V_genes_A = set(V_genes_A)
