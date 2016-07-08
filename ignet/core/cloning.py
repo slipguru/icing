@@ -38,7 +38,7 @@ def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):
 
 
 def sim_function(ig1, ig2, method='jaccard', model='ham',
-                 dist_mat=None, tol=3):
+                 dist_mat=None, tol=3, v_weight=1., j_weight=1.):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
@@ -75,7 +75,8 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
     J_genes_ig1 = ig1.getJGene('set')
     J_genes_ig2 = ig2.getJGene('set')
 
-    ss = mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method)
+    ss = mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method,
+             r1=v_weight, r2=j_weight)
     if ss > 0.:
         # print V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2
         junc1 = extra.junction_re(ig1.junction)
