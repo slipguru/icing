@@ -123,7 +123,7 @@ def write_clusters_db(db_file, result_db, clones, dialect='excel-tab'):
         indexid = [n.strip().upper() for n in row].index("SEQUENCE_ID")
 
         for row in reader:
-            row.append(clones.get(row[indexid], ''))
+            row.append(clones.get(row[indexid].upper(), ''))
             all_list.append(row)
 
         writer.writerows(all_list)
