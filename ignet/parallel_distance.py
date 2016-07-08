@@ -12,6 +12,8 @@ import scipy
 import scipy.spatial
 import multiprocessing as mp
 
+from itertools import chain
+
 from .utils.extra import _terminate, progressbar
 
 
@@ -85,13 +87,13 @@ def dnearest_intra_padding(l1, dist_function):
         for i in range(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
-            _min1 = min((dist_function(l1[i], l1[j]) for j in range(0, idx)))
-            _min2 = min((dist_function(l1[i], l1[j]) for j in range(idx+1, n)))
-            shared_arr[i] = min(_min1, _min2)
+            shared_arr[i] = min(chain(
+                (dist_function(l1[i], l1[j]) for j in range(0, i)),
+                (dist_function(l1[i], l1[j]) for j in range(i + 1, n))))
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
-    shared_array = mp.Array('d', [0.]*n)
+    shared_array = mp.Array('d', [0.] * n)
     ps = []
     try:
         for idx in range(nprocs):
