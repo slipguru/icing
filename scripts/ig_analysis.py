@@ -51,7 +51,7 @@ def main(dumpfile):
                    os.path.basename(dumpfile).replace('similarity_matrix',
                                                       'clusters')), 'r') as f:
         clusters = pkl.load(f)
-    print("done: {} s".format(extra.get_time_from_seconds(time.time()-tic)))
+    print("done: {} s".format(extra.get_time_from_seconds(time.time() - tic)))
 
     # Analyze the pipelines
     analyse_results.analyse(sm=sm, labels=clusters,

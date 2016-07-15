@@ -447,7 +447,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)),
                                          shape=(n, n))
     similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
-                                                        sparse_mat.shape[0])
+        sparse_mat.shape[0])
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
 
@@ -465,7 +465,7 @@ def define_clusts(similarity_matrix, threshold):
         idxs = np.where(labels == i)
         if idxs[0].shape[0] > 1:
             dm = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
-            links = linkage(squareform(dm), 'ward')
+            links = linkage(squareform(dm), method='single')
             clusters_ = fcluster(links, threshold,
                                  criterion='distance') + prev_max_clust
             clusters[idxs[0]] = clusters_

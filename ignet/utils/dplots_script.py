@@ -143,8 +143,7 @@ def job(f):
         max_mut = int(io.get_max_mut(f))
         sets = [(0, 0)] + [(i - 1, i) for i in range(1, 24)] + \
                [(23, max_mut + 1)]
-        combinations = [x for x in zip(sets, sets)]
-        for i, j in combinations:
+        for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(f, i, j, donor=f.split('/')[-1],
                                           bins=50, max_seqs=4000)
             out_fles.append(o)
@@ -244,8 +243,7 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
     p3 = np.poly1d(np.polyfit(x, y, 3))
     p4 = np.poly1d(np.polyfit(x, y, 4))
     def func(x, a, c, d):
-        return a*np.exp(-c*x)+d
-    # return x, y
+        return a * np.exp(-c * x) + d
     popt, pcov = curve_fit(func, x, y, p0=(1, 1e-1, 1))
 
     np.save("poly1d_1",p1)

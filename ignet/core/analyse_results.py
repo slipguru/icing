@@ -31,7 +31,7 @@ def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
     sns.set_context(plotting_context)
 
     if force_silhouette or sm.shape[0] < 8000:
-        silhouette.plot_clusters_silhouette(1-sm.toarray(), labels,
+        silhouette.plot_clusters_silhouette(1. - sm.toarray(), labels,
                                             max(labels), root=root,
                                             file_format=file_format)
     else:
@@ -40,4 +40,4 @@ def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
                      "need to allocate {1:.2f}MB in memory. If you know what "
                      "you are doing, specify 'force_silhouette = True' in the "
                      "config file in {}, then re-execute the analysis.\n"
-                     .format(sm.shape[0], sm.shape[0]**2*8/(2.**20), root))
+                     .format(sm.shape[0], sm.shape[0]**2 * 8 / (2.**20), root))
