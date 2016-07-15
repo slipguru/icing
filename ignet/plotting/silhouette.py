@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import multiprocessing as mp
 import sys; sys.setrecursionlimit(10000)
-import seaborn
+import seaborn as sns; sns.set_context('notebook')
 import logging
 
 from scipy.cluster.hierarchy import linkage, fcluster
@@ -128,10 +128,18 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters'):
         The average silhouette.
     """
     cluster_labels = fcluster(Z, threshold, 'distance')
-    silhouette_list = silhouette_samples(dist_matrix, cluster_labels,
-                                         metric="precomputed")
-    silhouette_avg = np.mean(silhouette_list)
-    x = max(cluster_labels) if mode == 'clusters' else threshold
+    try:
+        silhouette_list = silhouette_samples(dist_matrix, cluster_labels,
+                                             metric="precomputed")
+        silhouette_avg = np.mean(silhouette_list)
+        x = max(cluster_labels) if mode == 'clusters' else threshold
+    except ValueError as e:
+        if max(cluster_labels) == 1:
+            x = 1 if mode == 'clusters' else threshold
+            silhouette_avg = 0
+        else:
+            raise(e)
+
     return x, silhouette_avg
 
 
@@ -187,9 +195,14 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters'):
 
 
 def plot_average_silhouette_dendrogram(X, method_list=None,
-                                       mode='clusters', n=20, verbose=True,
+                                       mode='clusters', n=20,
+                                       min_threshold=0.02,
+                                       max_threshold=0.8,
+                                       verbose=True,
                                        interactive_mode=False,
-                                       file_format='pdf'):
+                                       file_format='pdf',
+                                       xticks=None,
+                                       xlim=None):
     """Plot average silhouette for each tree cutting.
 
     A linkage matrix for each method in method_list is used.
@@ -222,7 +235,6 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
         method_list = ('single', 'complete', 'average', 'weighted',
                        'centroid', 'median', 'ward')
 
-    threshold_arr = np.linspace(0.02, 0.8, n)
 
     plt.close()
     fig, ax = (plt.gcf(), plt.gca())  # if plt.get_fignums() else plt.subplots()
@@ -235,29 +247,48 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
         if verbose:
             print("Compute linkage with method = {}...".format(method))
         Z = linkage(dist_arr, method=method, metric='euclidean')
-        if verbose:
-            print("Start cutting ...")
-        max_i = max(Z[:, 2])
+        if method == 'ward':
+            threshold_arr = np.linspace(np.percentile(Z[:, 2], 70), max(Z[:, 2]), n)
+        else:
+            threshold_arr = np.linspace(min_threshold, max_threshold, n)
+            max_i = max(Z[:, 2]) if method != 'ward' else np.percentile(Z[:, 2], 99.5)
+            threshold_arr *= max_i
+
+
+        # print(threshold_arr)
+        # print(Z[:, 2])
         # if use_joblib:
         #     x, y = zip(*jl.Parallel(n_jobs=mp.cpu_count())
         #                (jl.delayed(compute_x_y)(X, Z, i, mode)
         #                for i in threshold_arr*max_i))
-        # else:
-        x, y = multi_cut_dendrogram(X, Z, threshold_arr*max_i, n, mode)
-        ax.plot(x, y, Tango.nextDark(), marker='o', linestyle='-', label=method)
+        x, y = multi_cut_dendrogram(X, Z, threshold_arr, n, mode)
+        ax.plot(x, y, Tango.nextDark(), marker='o', ms=3, ls='-', label=method)
 
-    leg = ax.legend(loc='lower right')
+    # fig.tight_layout()
+    box = ax.get_position()
+    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+    # Put a legend to the right of the current axis
+    leg = ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    # leg = ax.legend(loc='lower right')
     leg.get_frame().set_linewidth(0.0)
-    ax.set_xlabel(mode[0].upper()+mode[1:])
+    ax.set_xlabel(mode[0].upper() + mode[1:])
     ax.set_ylabel("Silhouette")
-    fig.tight_layout()
+    if xticks is not None:
+        plt.xticks(xticks)
+    if xlim is not None:
+        plt.xlim(xlim)
+    plt.margins(.2)
+    plt.subplots_adjust(bottom=0.15)
     if interactive_mode:
         plt.show()
+
     path = "results"
     extra.mkpath(path)
     filename = os.path.join(path, "result_silhouette_hierarchical_{}.{}"
                                   .format(extra.get_time(), file_format))
-    plt.savefig(filename)
+    fig.savefig(filename, bbox_extra_artists=(leg,), bbox_inches='tight')
+    # fig.savefig(filename, dpi=300, format='png')
     return filename
 
 
@@ -281,8 +312,8 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
 
     """
     def _internal(cluster_list, affinity_matrix, dist_matrix,
-                  idx, nprocs, arr_length, queue_y):
-        for i in range(idx, arr_length, nprocs):
+                  idx, nprocs, n, queue_y):
+        for i in range(idx, n, nprocs):
             sp = SpectralClustering(n_clusters=cluster_list[i],
                                     affinity='precomputed')
             sp.fit(affinity_matrix)
@@ -292,7 +323,7 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
 
     n = len(cluster_list)
     nprocs = min(mp.cpu_count(), n)
-    queue_y = mp.Array('d', [0.]*n)
+    queue_y = mp.Array('d', [0.] * n)
     ps = []
     try:
         for idx in range(nprocs):
@@ -313,7 +344,10 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
     return queue_y
 
 
-def plot_average_silhouette_spectral(X, verbose=True,
+def plot_average_silhouette_spectral(X, n=30,
+                                     min_clust=10,
+                                     max_clust=None,
+                                     verbose=True,
                                      interactive_mode=False,
                                      file_format='pdf'):
     """Plot average silhouette for some clusters, using an affinity matrix.
@@ -335,13 +369,15 @@ def plot_average_silhouette_spectral(X, verbose=True,
     filename : str
         The output filename.
     """
-    X = extra.ensure_symmetry(X.toarray())
+    X = extra.ensure_symmetry(X)
     A = extra.distance_to_affinity_matrix(X)
 
+    plt.close()
     fig, ax = (plt.gcf(), plt.gca())
     fig.suptitle("Average silhouette for each number of clusters")
 
-    cluster_list = map(int, np.linspace(10, X.shape[0], 30))
+    if max_clust is None: max_clust = X.shape[0]
+    cluster_list = np.unique(map(int, np.linspace(min_clust, max_clust, n)))
     y = multi_cut_spectral(cluster_list, A, X)
     ax.plot(cluster_list, y, Tango.next(), marker='o', linestyle='-', label='')
 
@@ -358,3 +394,16 @@ def plot_average_silhouette_spectral(X, verbose=True,
                                   .format(extra.get_time(), file_format))
     plt.savefig(filename)
     return filename
+
+
+if __name__ == '__main__':
+    import pandas as pd
+    from ignet.utils.extra import ensure_symmetry
+
+    df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
+                     'TM_matrix.csv', index_col=0)
+    X = df.as_matrix()
+    X = ensure_symmetry(X)
+
+    plot_average_silhouette_dendrogram(X)
+    plot_average_silhouette_spectral(X)
