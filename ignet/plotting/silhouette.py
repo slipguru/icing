@@ -202,7 +202,8 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
                                        interactive_mode=False,
                                        file_format='pdf',
                                        xticks=None,
-                                       xlim=None):
+                                       xlim=None,
+                                       figsize=None):
     """Plot average silhouette for each tree cutting.
 
     A linkage matrix for each method in method_list is used.
@@ -237,6 +238,8 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
 
 
     plt.close()
+    if figsize is not None:
+        fig = plt.figure(figsize=figsize)
     fig, ax = (plt.gcf(), plt.gca())  # if plt.get_fignums() else plt.subplots()
     fig.suptitle("Average silhouette for each tree cutting")
     # print_utils.ax_set_defaults(ax)
@@ -253,7 +256,6 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
             threshold_arr = np.linspace(min_threshold, max_threshold, n)
             max_i = max(Z[:, 2]) if method != 'ward' else np.percentile(Z[:, 2], 99.5)
             threshold_arr *= max_i
-
 
         # print(threshold_arr)
         # print(Z[:, 2])
