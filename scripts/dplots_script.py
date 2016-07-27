@@ -35,7 +35,7 @@ def calcDist(el1, el2):
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
-              donor1='B4', donor2=None, bins=100, max_seqs=1000):
+              donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=100):
     if os.path.exists(fn + '.npy'):
         return fn
     # sample if length is exceeded (for computational costs)
@@ -136,7 +136,7 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
                      donor2, bins, max_seqs), max(lim_mut1[1], lim_mut2[1])
 
 
-def job(f):
+def job(f, bins=50, max_seqs=4000):
     print("Analysing {} ...".format(f))
     out_fles, mut_lvls = [], []
     try:
@@ -145,7 +145,7 @@ def job(f):
                [(23, max_mut + 1)]
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(f, i, j, donor=f.split('/')[-1],
-                                          bins=50, max_seqs=4000)
+                                          bins=bins, max_seqs=max_seqs)
             out_fles.append(o)
             mut_lvls.append(mut)
     except Exception as e:
@@ -185,10 +185,12 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
     for k, v in __my_dict__.iteritems():
         for o in v:
             print(o)
-            if not o: continue
+            if not o:
+                continue
             dist2nearest = np.array(np.load("{}.npy".format(o))).reshape(-1, 1)
             if dist2nearest.shape[0] < 2:
-                print("Cannot fit a Gaussian with two distances."); continue
+                print("Cannot fit a Gaussian with two distances.")
+                continue
 
             dist2nearest_2 = -(np.array(sorted(dist2nearest)).reshape(-1, 1))
             dist2nearest = np.array(list(dist2nearest_2) +
@@ -210,7 +212,7 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
             mus.append(mean)
             sigmas.append(sigma)
             muts.append(k)
-            d_dict.setdefault(o.split('/')[0],dict()).setdefault(k, mean)
+            d_dict.setdefault(o.split('/')[0], dict()).setdefault(k, mean)
 
     norm_dict = dict()
     for k, v in d_dict.iteritems():
@@ -218,7 +220,7 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
         if mu_mut_0 > -1:
             for l, z in v.iteritems():
                 z = mu_mut_0 / z
-                norm_dict.setdefault(l,[]).append(z)
+                norm_dict.setdefault(l, []).append(z)
 
 
     x, y, e = [], [], []
