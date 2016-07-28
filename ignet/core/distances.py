@@ -16,7 +16,12 @@ import numpy as np
 from itertools import izip  # combinations, izip, product
 from Bio.pairwise2 import align
 
-from ..align import align as igalign
+try:
+    from ..align import align as igalign
+except ImportError:
+    raise ImportError("Module align.so not found. "
+                      "Did you compile icing with "
+                      "'python setup.py build_ext --inplace install'?")
 from ..utils import extra
 
 

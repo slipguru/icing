@@ -5,14 +5,18 @@ Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
+import os
 import logging
 import seaborn as sns
+import matplotlib.pyplot as plt
+
+from scipy.cluster import hierarchy
 
 from ..plotting import silhouette
-
+from ..utils import extra
 
 def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
-            force_silhouette=False):
+            force_silhouette=False, threshold=None):
     """Perform analysis.
 
     Parameters
@@ -41,3 +45,19 @@ def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
                      "you are doing, specify 'force_silhouette = True' in the "
                      "config file in {}, then re-execute the analysis.\n"
                      .format(sm.shape[0], sm.shape[0]**2 * 8 / (2.**20), root))
+
+    # Generate dendrogram
+    import scipy.spatial.distance as ssd
+    Z = hierarchy.linkage(ssd.squareform(1. - sm.toarray()), method='complete',
+                          metric='euclidean')
+
+    plt.close()
+    fig, (ax) = plt.subplots(1, 1)
+    fig.set_size_inches(20, 15)
+    hierarchy.dendrogram(Z, ax=ax)
+    ax.axhline(threshold, color="red", linestyle="--")
+    plt.show()
+    filename = os.path.join(root, 'dendrogram_{}.{}'
+                                  .format(extra.get_time(), file_format))
+    fig.savefig(filename)
+    logging.info('Figured saved {}'.format(filename))

@@ -29,7 +29,8 @@ def main(dumpfile):
     config = imp.load_source('config', config_path)
     extra.set_module_defaults(config, {'file_format': 'pdf',
                                        'plotting_context': 'paper',
-                                       'force_silhouette': False})
+                                       'force_silhouette': False,
+                                       'threshold': 0.0536})
 
     # Initialize the log file
     filename = 'results_' + os.path.basename(dumpfile)[0:-7]
@@ -58,7 +59,8 @@ def main(dumpfile):
                             root=os.path.dirname(dumpfile),
                             plotting_context=config.plotting_context,
                             file_format=config.file_format,
-                            force_silhouette=config.force_silhouette)
+                            force_silhouette=config.force_silhouette,
+                            threshold=config.threshold)
 
 # ----------------------------  RUN MAIN ---------------------------- #
 if __name__ == '__main__':
