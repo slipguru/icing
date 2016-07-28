@@ -400,7 +400,7 @@ def plot_average_silhouette_spectral(X, n=30,
 
 if __name__ == '__main__':
     import pandas as pd
-    from ignet.utils.extra import ensure_symmetry
+    from icing.utils.extra import ensure_symmetry
 
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
                      'TM_matrix.csv', index_col=0)

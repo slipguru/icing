@@ -39,7 +39,7 @@ ICING needs only an ingredient:
 
 * ``input table`` of immunoglobulins
 
-The path of ``input table`` is specified inside a ``configuration`` file, which must be passed as the only argument of the ``ig_run.py`` script.
+The path of ``input table`` is specified inside a ``configuration`` file, which must be passed as the only argument of the ``ici_run.py`` script.
 
 
 Input data format
@@ -90,9 +90,9 @@ They are:
 
 Experiment runner
 -----------------
-The ``ig_run.py`` script executes the ICING main features, that is the definition of immunoglobulin clones. The prototype is the following::
+The ``ici_run.py`` script executes the ICING main features, that is the definition of immunoglobulin clones. The prototype is the following::
 
-    $ ig_run.py config.py
+    $ ici_run.py config.py
 
 When launched, the script reads the record database from the filename specified in the ``config.py`` file , then it perform the analysis saving the results in a tree-like structure which has the current folder as root.
 
@@ -103,10 +103,10 @@ Results analysis
 This is an optional step. If the number of analysed records is not too high
 with respect to the amount of RAM available on the machine on which experiments
 are being running, then an analysis on the clustering already performed with the
-``ig_run.py`` script can be done.
+``ici_run.py`` script can be done.
 This script accepts as only parameter a result directory already created::
 
-    $ ig_analysis.py result-dir
+    $ ici_analysis.py result-dir
 
 The result of the script is a graphical result which shows the silhouette
 plot for each clone that has been found.

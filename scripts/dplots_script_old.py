@@ -9,7 +9,7 @@ import itertools
 
 from sklearn import mixture
 
-from ignet import parallel_distance
+from icing import parallel_distance
 
 ham_model = DbCore.getModelMatrix('ham')
 sym = cl.default_sym

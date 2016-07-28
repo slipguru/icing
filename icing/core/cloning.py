@@ -371,7 +371,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     Parameters
     ----------
     db_iter : generator
-        Records loaded by the script `ig_run.py`.
+        Records loaded by the script `ici_run.py`.
     sparse_mode : bool, optional, default `True`
         Return a sparse similarity matrix.
     sim_func_args : dict, optional
@@ -481,7 +481,7 @@ def define_clusts(similarity_matrix, threshold):
 
 def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
                   sim_func_args={}, threshold=0.05):
-    """Run the pipeline of ignet."""
+    """Run the pipeline of icing."""
     if not os.path.exists(root):
         if root is None:
             root = 'results_'+exp_tag+extra.get_time()
@@ -518,5 +518,5 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
 
 if __name__ == '__main__':
     print("This file cannot be launched directly. "
-          "Please run the script located in `ignet/scripts/ig_run.py` "
+          "Please run the script located in `icing/scripts/ici_run.py` "
           "with an argument, that is the location of the configuration file. ")

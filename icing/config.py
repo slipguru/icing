@@ -1,4 +1,4 @@
-"""Default configuration file for ignet.
+"""Default configuration file for icing.
 
 Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.

@@ -59,7 +59,7 @@ def single_distance(seq1, seq2, n, dist_mat, norm, sym, mutations, tol=3,
     """Calculate a distance between two input sequences.
 
     .. note:: Deprecated.
-          `single_distance` will be removed in ignet 0.2. It is replaced by
+          `single_distance` will be removed in icing 0.2. It is replaced by
           `string_distance`.
 
     :param seq1: first sequence
@@ -126,7 +126,7 @@ def junction_distance(seq1, seq2, n, dist_mat, norm, sym, tol=3, c=35.,
     """Calculate a distance between two input sequences.
 
     .. note:: Deprecated.
-          `junction_distance` will be removed in ignet 0.2. It is replaced by
+          `junction_distance` will be removed in icing 0.2. It is replaced by
           `string_distance`.
 
     Parameters

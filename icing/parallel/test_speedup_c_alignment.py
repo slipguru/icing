@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 import seaborn
 from Bio.pairwise2 import align
 
-from ignet.parallel import d_matrix_omp
-from ignet.parallel_distance import dense_dm_dual
+from icing.parallel import d_matrix_omp
+from icing.parallel_distance import dense_dm_dual
 
 
 def _f(a, b):

@@ -4,10 +4,10 @@ import numpy as np
 import joblib as jl
 import matplotlib.pyplot as plt
 
-from ignet.core import distances
-from ignet.models import model
-from ignet.utils import extra, io
-from ignet.parallel_distance import dnearest_inter_padding
+from icing.core import distances
+from icing.models import model
+from icing.utils import extra, io
+from icing.parallel_distance import dnearest_inter_padding
 
 ham_model = model.model_matrix('ham')
 ham_model['-'] = .75

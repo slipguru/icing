@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Perform the analysis on the results of `ig_run.py` script.
+"""Perform the analysis on the results of `ici_run.py` script.
 
 Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
@@ -17,12 +17,12 @@ import argparse
 import cPickle as pkl
 import gzip
 
-from ignet.core import analyse_results
-from ignet.utils import extra
+from icing.core import analyse_results
+from icing.utils import extra
 
 
 def main(dumpfile):
-    """Run ignet analysis."""
+    """Run icing analysis."""
     # Load the configuration file
     config_path = os.path.dirname(dumpfile)
     config_path = os.path.join(os.path.abspath(config_path), 'config.py')
@@ -64,9 +64,9 @@ def main(dumpfile):
 
 # ----------------------------  RUN MAIN ---------------------------- #
 if __name__ == '__main__':
-    from ignet import __version__
+    from icing import __version__
     parser = argparse.ArgumentParser(  # usage="%(prog)s RESULTS_DIR",
-                                     description='ignet script for analysing '
+                                     description='icing script for analysing '
                                                  'clustering.')
     parser.add_argument('--version', action='version',
                         version='%(prog)s v' + __version__)

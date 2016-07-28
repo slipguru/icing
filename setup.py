@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""ignet setup script.
+"""icing setup script.
 
 Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
@@ -9,10 +9,10 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 from distutils.core import setup, Extension
 
 # Package Version
-from ignet import __version__ as version
-alignment_module = Extension('ignet.align.align', sources=['ignet/align/alignment.c'])
+from icing import __version__ as version
+alignment_module = Extension('icing.align.align', sources=['icing/align/alignment.c'])
 setup(
-    name='ignet',
+    name='icing',
     version=version,
 
     description=('A package to clonal relate immunoglobulins'),
@@ -21,8 +21,8 @@ setup(
     author_email='federico.tomasi@dibris.unige.it',
     maintainer='Federico Tomasi',
     maintainer_email='federico.tomasi@dibris.unige.it',
-    url='https://github.com/slipguru/ignet',
-    download_url='https://github.com/slipguru/ignet/tarball/'+version,
+    url='https://github.com/slipguru/icing',
+    download_url='https://github.com/slipguru/icing/tarball/'+version,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -37,13 +37,14 @@ setup(
         'Operating System :: MacOS'
     ],
     license='FreeBSD',
-    packages=['ignet', 'ignet.core', 'ignet.utils', 'ignet.align',
-              'ignet.externals', 'ignet.models', 'ignet.parallel', 'ignet.plotting'],
+    packages=['icing', 'icing.core', 'icing.utils', 'icing.align',
+              'icing.externals', 'icing.models', 'icing.parallel',
+              'icing.plotting'],
     requires=['numpy (>=1.10.1)',
               'scipy (>=0.16.1)',
               'sklearn (>=0.17)',
               'matplotlib (>=1.5.1)',
               'seaborn (>=0.7.0)'],
-    scripts=['scripts/ig_run.py', 'scripts/ig_analysis.py'],
+    scripts=['scripts/ici_run.py', 'scripts/ici_analysis.py'],
     ext_modules=[alignment_module]
 )

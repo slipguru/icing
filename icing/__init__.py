@@ -1,4 +1,4 @@
-"""init.py for ignet module.
+"""init.py for icing module.
 
 Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.

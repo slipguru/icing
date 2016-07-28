@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Distance models available for ignet.
+"""Distance models available for icing.
 
 The functions `score_dna`, `score_aa`,`char_dist_matrix` and `model_matrix`
 are adapted from Change-O functions.

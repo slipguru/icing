@@ -12,15 +12,15 @@ import shutil
 import argparse
 import logging
 
-from ignet.core.cloning import define_clones
-from ignet.utils import extra
-from ignet.utils import io
+from icing.core.cloning import define_clones
+from icing.utils import extra
+from icing.utils import io
 
 __author__ = 'Federico Tomasi'
 
 
 def main(config_file):
-    """Run ignet main features."""
+    """Run icing main features."""
     # Load the configuration file
     config_path = os.path.abspath(config_file)
     config = imp.load_source('config', config_path)
@@ -44,7 +44,7 @@ def main(config_file):
     if not os.path.exists(root):
         os.makedirs(root)
 
-    filename = '_'.join(('ignet', config.exp_tag, extra.get_time()))
+    filename = '_'.join(('icing', config.exp_tag, extra.get_time()))
     logfile = os.path.join(root, filename+'.log')
     logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w',
                         format='%(levelname)s (%(name)s): %(message)s')
@@ -72,8 +72,8 @@ def main(config_file):
 
 
 if __name__ == '__main__':
-    from ignet import __version__
-    parser = argparse.ArgumentParser(description='ignet script for running '
+    from icing import __version__
+    parser = argparse.ArgumentParser(description='icing script for running '
                                                  'analysis.')
     parser.add_argument('--version', action='version',
                         version='%(prog)s v'+__version__)
@@ -84,14 +84,14 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.create:
-        import ignet
-        std_config_path = os.path.join(ignet.__path__[0], 'config.py')
+        import icing
+        std_config_path = os.path.join(icing.__path__[0], 'config.py')
         # Check for .pyc
         if std_config_path.endswith('.pyc'):
             std_config_path = std_config_path[:-1]
         # Check if the file already exists
         if os.path.exists(args.configuration_file):
-            parser.error("ignet configuration file already exists")
+            parser.error("icing configuration file already exists")
         # Copy the config file
         shutil.copy(std_config_path, args.configuration_file)
     else:

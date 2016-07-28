@@ -10,10 +10,10 @@ from scipy.optimize import curve_fit
 from sklearn import mixture
 
 from changeo import newDefineClones as cl
-from ignet import parallel_distance
-from ignet.core import distances
-from ignet.models import model
-from ignet.utils import io
+from icing import parallel_distance
+from icing.core import distances
+from icing.models import model
+from icing.utils import io
 
 ham_model = model.model_matrix('ham')
 sym = cl.default_sym

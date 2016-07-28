@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Perform the analysis on the results of `ig_run.py`.
+"""Perform the analysis on the results of `ici_run.py`.
 
 Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.

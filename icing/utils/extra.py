@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Utility functions for ignet.
+"""Utility functions for icing.
 
 Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
