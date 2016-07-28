@@ -1,9 +1,9 @@
-=======
-IGNET
-=======
+===========================================
+ICING - Infer clones of immunoglobulin data
+===========================================
 A Python package to clonal relate immunoglobulins.
 
-**IGNET** is an implementation of an unsupervised learning technique
+**ICING** is an implementation of an unsupervised learning technique
 used to identify `clones`, which are groups of immunoglobulins which share
 a common ancestor. In other words, immunoglobulins in the same group descend
 from the same germline.
@@ -12,7 +12,7 @@ the number of samples is very high. For this reason, the framework can be used
 in combination with NGS technologies.
 
 ## Dependencies
-IGNET is developed using Python 2.7 and inherits its main functionalities from:
+ICING is developed using Python 2.7 and inherits its main functionalities from:
 
 * numpy
 * scipy
