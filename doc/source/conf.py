@@ -21,7 +21,7 @@ import os
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.insert(0, os.path.abspath('sphinxext'))
 
-from ignet import __version__ as VERSION
+from icing import __version__ as VERSION
 
 # -- General configuration ------------------------------------------------
 
@@ -62,7 +62,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'IGNET'
+project = u'ICING'
 copyright = u'2016, Federico Tomasi'
 #modindex_common_prefix = ['adenine.']
 
@@ -140,7 +140,7 @@ html_theme_path = ['.']
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
-html_logo = 'ignet_logo_bitmap.png'
+html_logo = 'icing_logo_bitmap.png'
 
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
@@ -199,7 +199,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'ignetdoc'
+htmlhelp_basename = 'icingdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -219,7 +219,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'ignet.tex', u'ignet Documentation',
+  ('index', 'icing.tex', u'icing Documentation',
    u'Federico Tomasi', 'manual'),
 ]
 
@@ -249,7 +249,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'ignet', u'ignet Documentation',
+    ('index', 'icing', u'icing Documentation',
      [u'Federico Tomasi'], 1)
 ]
 
@@ -263,8 +263,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'ignet', u'ignet Documentation',
-   u'Federico Tomasi', 'ignet', 'One line description of project.',
+  ('index', 'icing', u'icing Documentation',
+   u'Federico Tomasi', 'icing', 'One line description of project.',
    'Miscellaneous'),
 ]
 
