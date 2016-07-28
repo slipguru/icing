@@ -8,6 +8,7 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 from __future__ import print_function
 
 import os
+import sys
 import numpy as np
 import scipy
 import logging
@@ -25,15 +26,17 @@ from ..models.model import model_matrix
 from ..utils import extra
 
 
-def alpha_mut(ig1, ig2, fn='../models/negexp_pars.npy'):
+def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
     """Coefficient to balance distance according to mutation levels."""
     def _neg_exp(x, a, c, d):
         return a * np.exp(-c * x) + d
 
     try:
-        popt = np.load(fn)
+        params_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+        popt = np.load(os.path.join(params_folder, fn))
         return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
     except:
+        sys.stderr.write("Coefficient file not found. Loading negative exponential...")
         return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
 
 
@@ -86,8 +89,8 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
             norm_by *= 2.08
         dist = string_distance(junc1, junc2, dist_mat, norm_by, tol=tol)
         ss *= (1 - dist)
-    if ss > 0:
-        ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
+    # if ss > 0:
+    #     ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
     return ss
 
 
