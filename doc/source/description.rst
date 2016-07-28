@@ -2,7 +2,7 @@
 
 Framework overview
 ===================
-IGNET is an implementation of an unsupervised learning technique used to 
+ICING is an implementation of an unsupervised learning technique used to 
 identify clones, which are groups of immunoglobulins which share a common
 ancestor. The method is particularly tailored for the immunoglobulin (Ig) 
 primary sequence data type. Such method aims to divide Igs in `clones`, 

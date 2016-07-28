@@ -8,32 +8,32 @@ This module contains functions and classes useful to manipulate input data
 Cloning utilities
 -----------------------------
 
-.. automodule:: ignet.core.cloning
+.. automodule:: icing.core.cloning
    :members:
 
-.. automodule:: ignet.core.distances
+.. automodule:: icing.core.distances
    :members:
 
-.. automodule:: ignet.core.similarity_scores
+.. automodule:: icing.core.similarity_scores
    :members:
 
 Input Data
 -----------------------------
 
-.. automodule:: ignet.utils.io
+.. automodule:: icing.utils.io
    :members:
 
 
 Plotting functions
 -----------------------------
 
-.. automodule:: ignet.plotting.silhouette
+.. automodule:: icing.plotting.silhouette
    :members:
 
 
 Extra tools
 -----------------------------
 
-.. automodule:: ignet.utils.extra
+.. automodule:: icing.utils.extra
    :members:
 

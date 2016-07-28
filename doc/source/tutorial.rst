@@ -2,40 +2,40 @@
 
 Quick start tutorial
 ====================
-IGNET may be installed using standard Python tools (with
+ICING may be installed using standard Python tools (with
 administrative or sudo permissions on GNU-Linux platforms)::
 
-    $ pip install ignet
+    $ pip install icing
 
 or::
 
-    $ easy_install ignet
+    $ easy_install icing
 
 Installation from sources
 -------------------------
-If you like to manually install IGNET, download the .zip or .tar.gz archive
-from `<http://slipguru.github.io/ignet/>`_. Then extract it and move into the root directory::
+If you like to manually install ICING, download the .zip or .tar.gz archive
+from `<http://slipguru.github.io/icing/>`_. Then extract it and move into the root directory::
 
-    $ unzip slipguru-ignet-|release|.zip
-    $ cd ignet-|release|/
+    $ unzip slipguru-icing-|release|.zip
+    $ cd icing-|release|/
 
 or::
 
-    $ tar xvf slipguru-ignet-|release|.tar.gz
-    $ cd ignet-|release|/
+    $ tar xvf slipguru-icing-|release|.tar.gz
+    $ cd icing-|release|/
 
-Otherwise you can clone our `GitHub repository <https://github.com/slipguru/ignet>`_::
+Otherwise you can clone our `GitHub repository <https://github.com/slipguru/icing>`_::
 
-   $ git clone https://github.com/slipguru/ignet.git
+   $ git clone https://github.com/slipguru/icing.git
 
 From here, you can follow the standard Python installation step::
 
     $ python setup.py build_ext --inplace install
 
-This tutorial assumes that you downloaded and extracted IGNET
-source package which contains a ``examples/data`` directory with some data files (``.npy`` or ``.csv``) which will be used to show IGNET functionalities.
+This tutorial assumes that you downloaded and extracted ICING
+source package which contains a ``examples/data`` directory with some data files (``.npy`` or ``.csv``) which will be used to show ICING functionalities.
 
-IGNET needs only an ingredient:
+ICING needs only an ingredient:
 
 * ``input table`` of immunoglobulins
 
@@ -64,7 +64,7 @@ The format of the file is the same which is returned from HighV-QUEST [Brochet08
 
 Configuration File
 ------------------
-IGNET configuration file is a standard Python script. It is
+ICING configuration file is a standard Python script. It is
 imported as a module, then all the code is executed. In this file the user can define all the option needed to read the data.
 A ``db_file`` filename is required. Note: to avoid problems, the path must be absolute.
 Other options can be specified, regarding the file loading configuration:
@@ -72,7 +72,7 @@ Other options can be specified, regarding the file loading configuration:
 * ``dialect`` is a string which is used to specify how values are separated in the database file. Only ``excel-tab`` and ``excel`` are supported by the standard library. If your database is a tab-delimited file (``.tab``), use ``excel-tab``. If the database is a comma-separated file (``.csv``), use ``excel``.
 * ``subsets`` is a tuple or list of allowed immunoglobulin subsets to load. The database should contain a SUBSET column, and this variable is used to load from the database only those immunoglobulins which have a subset compatible. Names in ``subsets`` should be lowercase.
 * ``mutation`` is a tuple or list composed by two float values. Only immunoglobulins which have a mutation level inside this range are loaded.
-* ``apply_filter`` allows to specify the final filter which is used to load records from the database. The default filter in the configuration file allows to load records according to the previous statement. IGNET, however, allows a full customisation of the analysis. Expert users, therefore, can modify this function in order to load arbitrary records following their rules.
+* ``apply_filter`` allows to specify the final filter which is used to load records from the database. The default filter in the configuration file allows to load records according to the previous statement. ICING, however, allows a full customisation of the analysis. Expert users, therefore, can modify this function in order to load arbitrary records following their rules.
 * ``sim_func_args`` is a dictionary which allows to tune the similarity function to be performed on the data, `i.e.`, it allows to change the options for the similarity function (like the method, tolerance and so on).
 
 There are also other options which are taken into account in the analysis step.
@@ -83,14 +83,14 @@ They are:
 * ``force_silhouette`` is a boolean variable that can be defined and set to True if, independently from the dimension of the distance matrix that will be produced, the user wants to perform a silhouette analysis on the data.
 * ``threshold`` is a floating point value which specifies the threshold where to cut the hierarchical clustering tree in order to form final clones. The default value is around 0.053, and it is a value empirically obtained from a large (private) dataset as the inflection point of distance distributions of no-mutated immunoglobulins.
 
-.. literalinclude:: ../../ignet/config.py
+.. literalinclude:: ../../icing/config.py
    :language: python
 
 .. _experiment:
 
 Experiment runner
 -----------------
-The ``ig_run.py`` script executes the IGNET main features, that is the definition of immunoglobulin clones. The prototype is the following::
+The ``ig_run.py`` script executes the ICING main features, that is the definition of immunoglobulin clones. The prototype is the following::
 
     $ ig_run.py config.py
 
