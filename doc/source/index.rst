@@ -4,7 +4,7 @@ ICING - Infer clones of immunoglobulin data
 
 :Release: |release|
 :Homepage: http://www.slipguru.unige.it/Software/icing
-:Repository: https://github.com/slipguru/ignet
+:Repository: https://github.com/slipguru/icing
 
 **ICING** is an implementation of an unsupervised learning technique
 used to identify `clones`, which are groups of immunoglobulins which share

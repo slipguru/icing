@@ -16,6 +16,7 @@ import multiprocessing as mp
 import sys; sys.setrecursionlimit(10000)
 import seaborn as sns; sns.set_context('notebook')
 import logging
+import pandas as pd
 
 from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.cluster import SpectralClustering
@@ -128,6 +129,12 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters'):
         The average silhouette.
     """
     cluster_labels = fcluster(Z, threshold, 'distance')
+    cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
+                            'TM_matrix.csv', index_col=0).columns)
+    with open("res_hierarchical_{:.2f}_clust.csv".format(np.unique(cluster_labels).shape[0]), 'w') as f:
+        for a, b in zip(cols, cluster_labels):
+            f.write("{}, {}\n".format(a, b))
+
     try:
         silhouette_list = silhouette_samples(dist_matrix, cluster_labels,
                                              metric="precomputed")
@@ -319,6 +326,12 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
             sp = SpectralClustering(n_clusters=cluster_list[i],
                                     affinity='precomputed')
             sp.fit(affinity_matrix)
+            cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
+                                    'TM_matrix.csv', index_col=0).columns)
+            with open("res_spectral_{:.2f}_clust.csv".format(cluster_list[i]), 'w') as f:
+                for a, b in zip(cols, sp.labels_):
+                    f.write("{}, {}\n".format(a, b))
+
             silhouette_list = silhouette_samples(dist_matrix, sp.labels_,
                                                  metric="precomputed")
             queue_y[i] = np.mean(silhouette_list)
@@ -401,11 +414,12 @@ def plot_average_silhouette_spectral(X, n=30,
 if __name__ == '__main__':
     import pandas as pd
     from icing.utils.extra import ensure_symmetry
+    from icing.plotting import silhouette
 
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
                      'TM_matrix.csv', index_col=0)
     X = df.as_matrix()
     X = ensure_symmetry(X)
 
-    plot_average_silhouette_dendrogram(X)
-    plot_average_silhouette_spectral(X)
+    silhouette.plot_average_silhouette_dendrogram(X, min_threshold=.7, max_threshold=1.1, n=200, xticks=range(0,50,4), xlim=[0,50], figsize=(20,8), method_list=('median','ward','complete'))
+    silhouette.plot_average_silhouette_spectral(X, min_clust=2, max_clust=10, n=10)
