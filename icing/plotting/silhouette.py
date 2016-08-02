@@ -5,7 +5,7 @@ Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
-from __future__ import print_function
+from __future__ import print_function, division
 
 import os
 import numpy as np
@@ -107,7 +107,23 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
     logging.info('Figured saved {}'.format(filename))
 
 
-def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters'):
+def best_intersection(id_list, cluster_dict):
+    # Compute Jaccard index between id_list and each list in dict, take the best
+    set1 = set(id_list)
+    best_score = 0.
+    best_set = None
+    for k in cluster_dict:
+        set2 = set(cluster_dict[k])
+        score = len(set1 & set2) / len(set1)
+        if score > best_score:
+            best_score = score
+            best_set = set2
+    # print(set1, "and best", best_set, best_score)
+    return best_score
+
+
+def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
+                                 method='single'):
     """Compute the average silhouette at a given threshold.
 
     Parameters
@@ -129,12 +145,64 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters'):
         The average silhouette.
     """
     cluster_labels = fcluster(Z, threshold, 'distance')
+    nclusts = np.unique(cluster_labels).shape[0]
     cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                            'TM_matrix.csv', index_col=0).columns)
-    with open("res_hierarchical_{:.2f}_clust.csv".format(np.unique(cluster_labels).shape[0]), 'w') as f:
+                            'TM_matrix_id_subset.csv', index_col=0).columns)
+    with open("res_hierarchical_{:.2f}_clust.csv".format(nclusts), 'w') as f:
         for a, b in zip(cols, cluster_labels):
             f.write("{}, {}\n".format(a, b))
 
+    # Go, stability!
+    # List of ids
+    ids = np.array(cols)
+
+    # Create original clusters
+    clusters = {}
+    for i in np.unique(cluster_labels):
+        clusters[i] = ids[np.where(cluster_labels == i)]
+
+    # Remove 20 random samples from dist_matrix
+    # idxs = np.where(labels == i)
+    from sklearn.utils import shuffle
+    idxs = list(range(0, dist_matrix.shape[0]))
+    shuffle(idxs, ids)
+
+    nsamples_to_remove = 20
+    idxs = idxs[:-nsamples_to_remove]
+    ids = ids[:-nsamples_to_remove]
+
+    dm = dist_matrix[idxs][:, idxs]
+    links_sampling = linkage(scipy.spatial.distance.squareform(dm),
+                             method=method, metric='euclidean')
+
+    cluster_labels_sampling = fcluster(links_sampling, threshold, 'distance')
+
+    # Create sampled clusters
+    clusters_sampling = {}
+    stability = 0.
+    for i in np.unique(cluster_labels_sampling):
+        clusters_sampling[i] = ids[np.where(cluster_labels_sampling == i)]
+        res = best_intersection(clusters_sampling[i], clusters)
+        # print("Stability for {}: {:.3f}".format(i, res))
+        stability += res
+    nclusts_sampling = np.unique(cluster_labels_sampling).shape[0]
+
+    print("stability: {:.3f} with {} clusts".format(stability, nclusts_sampling))
+    with open("res_hierarchical_{:.2f}_clust_{:.2f}_stability_sampling.csv"
+              .format(nclusts_sampling, stability), 'w') as f:
+        for a, b in zip(cols, cluster_labels_sampling):
+            f.write("{}, {}\n".format(a, b))
+    # from scipy.cluster.hierarchy import dendrogram
+    # plt.close()
+    # f = plt.gcf()
+    # dendrogram(Z)
+    # f.savefig("dendrogram_{:.2f}_clust_{:.2f}_stability_sampling-tr.png"
+    #           .format(nclusts_sampling, stability))
+    # plt.close()
+    # f = plt.gcf()
+    # dendrogram(links_sampling)
+    # f.savefig("dendrogram_{:.2f}_clust_{:.2f}_stability_sampling-sa.png"
+    #           .format(nclusts_sampling, stability))
     try:
         silhouette_list = silhouette_samples(dist_matrix, cluster_labels,
                                              metric="precomputed")
@@ -150,7 +218,8 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters'):
     return x, silhouette_avg
 
 
-def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters'):
+def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
+                         method='single'):
     """Cut a dendrogram at some heights.
 
     Parameters
@@ -174,10 +243,10 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters'):
 
     """
     def _internal(dist_matrix, Z, threshold_arr, idx, nprocs, arr_length,
-                  queue_x, queue_y, mode='clusters'):
+                  queue_x, queue_y, mode='clusters', method='single'):
         for i in range(idx, arr_length, nprocs):
             queue_x[i], queue_y[i] = single_silhouette_dendrogram(
-                                        dist_matrix, Z, threshold_arr[i], mode)
+                                        dist_matrix, Z, threshold_arr[i], mode, method)
 
     nprocs = min(mp.cpu_count(), n)
     queue_x, queue_y = mp.Array('d', [0.]*n), mp.Array('d', [0.]*n)
@@ -186,7 +255,7 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters'):
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(dist_matrix, Z, threshold_arr, idx, nprocs, n,
-                                 queue_x, queue_y, mode))
+                                 queue_x, queue_y, mode, method))
             p.start()
             ps.append(p)
 
@@ -270,7 +339,7 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
         #     x, y = zip(*jl.Parallel(n_jobs=mp.cpu_count())
         #                (jl.delayed(compute_x_y)(X, Z, i, mode)
         #                for i in threshold_arr*max_i))
-        x, y = multi_cut_dendrogram(X, Z, threshold_arr, n, mode)
+        x, y = multi_cut_dendrogram(X, Z, threshold_arr, n, mode, method)
         ax.plot(x, y, Tango.nextDark(), marker='o', ms=3, ls='-', label=method)
 
     # fig.tight_layout()
@@ -327,7 +396,7 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
                                     affinity='precomputed')
             sp.fit(affinity_matrix)
             cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                                    'TM_matrix.csv', index_col=0).columns)
+                                    'TM_matrix_id_subset.csv', index_col=0).columns)
             with open("res_spectral_{:.2f}_clust.csv".format(cluster_list[i]), 'w') as f:
                 for a, b in zip(cols, sp.labels_):
                     f.write("{}, {}\n".format(a, b))
@@ -417,7 +486,7 @@ if __name__ == '__main__':
     from icing.plotting import silhouette
 
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                     'TM_matrix.csv', index_col=0)
+                     'TM_matrix_id_subset.csv', index_col=0)
     X = df.as_matrix()
     X = ensure_symmetry(X)
 
