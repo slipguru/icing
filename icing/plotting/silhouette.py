@@ -165,7 +165,7 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     # idxs = np.where(labels == i)
     from sklearn.utils import shuffle
     idxs = list(range(0, dist_matrix.shape[0]))
-    shuffle(idxs, ids)
+    idxs, ids = shuffle(idxs, ids)
 
     nsamples_to_remove = 20
     idxs = idxs[:-nsamples_to_remove]

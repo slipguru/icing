@@ -26,29 +26,49 @@ def remove_duplicate_junctions(igs_list):
         if junc not in juncs:
             igs.append(ig)
             juncs.add(junc)
-    return igs, juncs
+    return igs, list(juncs)
+
+
+def _neg_exp(x, a, c, d):
+    return a * np.exp(-c * x) + d
+
+
+popt = np.load('/home/fede/src/slipguru/icing/scripts/negexp_pars.npy')
+
+
+def alpha_mut(ig1, ig2):
+    """Coefficient to balance distance according to mutation levels."""
+    return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
 
 
 def calcDist(el1, el2):
     # consider ham model
-    return distances.string_distance(el1, el2, ham_model)
+    dist = distances.string_distance(re.sub('[\.-]', 'N', str(el1.junction)),
+                                     re.sub('[\.-]', 'N', str(el2.junction)),
+                                     ham_model)
+    return dist * alpha_mut(el1, el2)
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
-              donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=100):
+              donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=100,
+              ig1=None, ig2=None):
     if os.path.exists(fn + '.npy'):
         return fn
     # sample if length is exceeded (for computational costs)
     min_seqs = 100
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
         return ''
+
+    from sklearn.utils import shuffle
     if len(juncs1) > max_seqs:
-        juncs1 = np.random.choice(juncs1, max_seqs, replace=False)
+        ig1, juncs1 = shuffle(ig1, juncs1)
+        ig1 = ig1[:max_seqs]
     if len(juncs2) > max_seqs:
-        juncs2 = np.random.choice(juncs2, max_seqs, replace=False)
+        ig2, juncs2 = shuffle(ig2, juncs2)
+        ig2 = ig2[:max_seqs]
 
     print("Computing {}".format(fn))
-    dist2nearest = parallel_distance.dnearest_inter_padding(juncs1, juncs2, calcDist)
+    dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, calcDist)
     if not os.path.exists(fn.split('/')[0]):
         os.makedirs(fn.split('/')[0])
     np.save(fn, dist2nearest)
@@ -89,16 +109,17 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
 
     if max(lim_mut1[1], lim_mut2[1]) == 0:
         igs = io.read_db(f, filt=(lambda x: x.mut == 0))
-        igs, juncs1 = remove_duplicate_junctions(igs)
+        igs1, juncs1 = remove_duplicate_junctions(igs)
         juncs2 = juncs1
+        igs2 = igs1
     else:
         igs = io.read_db(f, filt=(lambda x: lim_mut1[0] <= x.mut < lim_mut1[1]))
-        _, juncs1 = remove_duplicate_junctions(igs)
+        igs1, juncs1 = remove_duplicate_junctions(igs)
         igs = io.read_db(f, filt=(lambda x: lim_mut2[0] <= x.mut < lim_mut2[1]))
-        _, juncs2 = remove_duplicate_junctions(igs)
+        igs2, juncs2 = remove_duplicate_junctions(igs)
 
     return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor,
-                     None, bins, max_seqs), max(lim_mut1[1], lim_mut2[1])
+                     None, bins, max_seqs, ig1=igs1, ig2=igs2), max(lim_mut1[1], lim_mut2[1])
 
 
 def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
@@ -161,7 +182,7 @@ def all_intra_mut():
              ['/home/fede/Dropbox/projects/davide/new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
               '/home/fede/Dropbox/projects/davide/new_seqs/B5_db-pass.tab_CON-FUN-N.tab']
 
-    out_files, mut_levels = zip(*jl.Parallel(n_jobs=-1)
+    out_files, mut_levels = zip(*jl.Parallel(n_jobs=1)
                                 (jl.delayed(job)(f) for f in inputs))
     out_files = [item for sublist in out_files for item in sublist]
     mut_levels = [item for sublist in mut_levels for item in sublist]
