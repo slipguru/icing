@@ -106,6 +106,21 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
     fig.savefig(filename)
     logging.info('Figured saved {}'.format(filename))
 
+# Prior sets to calculate how good are the clusters
+sset1 = ('CLL011_1_K', 'CLL026_1_K', 'CLL154_1_K', 'CLL266_1_K',
+            'CLL270_1_K', 'CLL336_1_K', 'CLL360_1_K', 'CLLG063_1_K',
+            'G063_1_K', 'G086_1_K', 'PA0375_1_K', 'SI186_1_K', 'SI242_1_K',
+            'SI5_1_K', 'TS53_1_K')
+sset2 = ('CD0310_2_L', 'CLL175_2_L', 'CLL282_2_L', 'CLL412_2_L',
+            'CLL668_2_L', 'CLL785_2_L', 'SR0112_2_L')
+sset4 = ('G_183_4_K', 'G_342_4_K', 'G_733_4_K', 'G_G031_4_K', 'SI110_4_K')
+sset6 = ('CLL068_6_K', 'CLL258_6_K', 'CLL861_6_K', 'CLL900_6_K', 'G107_6_K',
+            'RC87_6_K', 'SI153_6_K')
+sset7 = ('SI15_7_L', 'SI21_7_L')
+sset8 = ('G_039_8_K', 'G_057_8_K', 'G_114_8_K', 'G_657_8_K', 'G_MS0115_8_K',
+            'G_NI099_8_K', 'G_RC25_8_K', 'G_SI89_8_K')
+sset9 = ('AD0221_9_L', 'CLL051_9_L')
+allsets = (sset1, sset2, sset4, sset6, sset7, sset8, sset9)
 
 def best_intersection(id_list, cluster_dict):
     # Compute Jaccard index between id_list and each list in dict, take the
@@ -148,7 +163,7 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     cluster_labels = fcluster(Z, threshold, 'distance')
     nclusts = np.unique(cluster_labels).shape[0]
     cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                            'TM_matrix_id_subset.csv', index_col=0).columns)
+                            'TM_matrix_ID_SUBSET_light.csv', index_col=0).columns)
     with open("res_hierarchical_{:.2f}_clust.csv".format(nclusts), 'w') as f:
         for a, b in zip(cols, cluster_labels):
             f.write("{}, {}\n".format(a, b))
@@ -162,37 +177,46 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     for i in np.unique(cluster_labels):
         clusters[i] = ids[np.where(cluster_labels == i)]
 
-    # Shuffle samples
-    from sklearn.utils import shuffle
-    idxs = list(range(0, dist_matrix.shape[0]))
-    idxs, ids = shuffle(idxs, ids)
-
-    # Remove some random samples from dist_matrix
-    nsamples_to_remove = 20
-    idxs = idxs[:-nsamples_to_remove]
-    ids = ids[:-nsamples_to_remove]
-
-    dm = dist_matrix[idxs][:, idxs]
-    links_sampling = linkage(scipy.spatial.distance.squareform(dm),
-                             method=method, metric='euclidean')
-
-    cluster_labels_sampling = fcluster(links_sampling, threshold, 'distance')
-
-    # Create sampled clusters
-    clusters_sampling = {}
     stability = 0.
-    for i in np.unique(cluster_labels_sampling):
-        clusters_sampling[i] = ids[np.where(cluster_labels_sampling == i)]
-        res = best_intersection(clusters_sampling[i], clusters)
+    for i in allsets:
+        res = best_intersection(i, clusters)
         # print("Stability for {}: {:.3f}".format(i, res))
         stability += res
-    nclusts_sampling = np.unique(cluster_labels_sampling).shape[0]
 
-    print("stability: {:.3f} with {} clusts".format(stability, nclusts_sampling))
-    with open("res_hierarchical_{:.2f}_clust_{:.2f}_stability_sampling.csv"
-              .format(nclusts_sampling, stability), 'w') as f:
-        for a, b in zip(cols, cluster_labels_sampling):
-            f.write("{}, {}\n".format(a, b))
+    print("stability: {:.3f} with {} clusts (allsets), {} nclusts".format(stability, len(allsets), nclusts))
+
+
+    # # Shuffle samples
+    # from sklearn.utils import shuffle
+    # idxs = list(range(0, dist_matrix.shape[0]))
+    # idxs, ids = shuffle(idxs, ids)
+    #
+    # # Remove some random samples from dist_matrix
+    # nsamples_to_remove = 20
+    # idxs = idxs[:-nsamples_to_remove]
+    # ids = ids[:-nsamples_to_remove]
+    #
+    # dm = dist_matrix[idxs][:, idxs]
+    # links_sampling = linkage(scipy.spatial.distance.squareform(dm),
+    #                          method=method, metric='euclidean')
+    #
+    # cluster_labels_sampling = fcluster(links_sampling, threshold, 'distance')
+    #
+    # # Create sampled clusters
+    # clusters_sampling = {}
+    # stability = 0.
+    # for i in np.unique(cluster_labels_sampling):
+    #     clusters_sampling[i] = ids[np.where(cluster_labels_sampling == i)]
+    #     res = best_intersection(clusters_sampling[i], clusters)
+    #     # print("Stability for {}: {:.3f}".format(i, res))
+    #     stability += res
+    # nclusts_sampling = np.unique(cluster_labels_sampling).shape[0]
+    #
+    # print("stability: {:.3f} with {} clusts".format(stability, nclusts_sampling))
+    # with open("res_hierarchical_{:.2f}_clust_{:.2f}_stability_sampling.csv"
+    #           .format(nclusts_sampling, stability), 'w') as f:
+    #     for a, b in zip(cols, cluster_labels_sampling):
+    #         f.write("{}, {}\n".format(a, b))
     # from scipy.cluster.hierarchy import dendrogram
     # plt.close()
     # f = plt.gcf()
@@ -397,7 +421,7 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
                                     affinity='precomputed')
             sp.fit(affinity_matrix)
             cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                                    'TM_matrix_id_subset.csv', index_col=0).columns)
+                                    'TM_matrix_ID_SUBSET_light.csv', index_col=0).columns)
             with open("res_spectral_{:.2f}_clust.csv".format(cluster_list[i]), 'w') as f:
                 for a, b in zip(cols, sp.labels_):
                     f.write("{}, {}\n".format(a, b))
@@ -487,7 +511,7 @@ if __name__ == '__main__':
     from icing.plotting import silhouette
 
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                     'TM_matrix_id_subset.csv', index_col=0)
+                     'TM_matrix_ID_SUBSET_light.csv', index_col=0)
     X = df.as_matrix()
     X = ensure_symmetry(X)
 
