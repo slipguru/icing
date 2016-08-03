@@ -108,16 +108,17 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
 
 
 def best_intersection(id_list, cluster_dict):
-    # Compute Jaccard index between id_list and each list in dict, take the best
+    # Compute Jaccard index between id_list and each list in dict, take the
+    # best
     set1 = set(id_list)
     best_score = 0.
-    best_set = None
+    # best_set = None
     for k in cluster_dict:
         set2 = set(cluster_dict[k])
         score = len(set1 & set2) / len(set1)
         if score > best_score:
             best_score = score
-            best_set = set2
+            # best_set = set2
     # print(set1, "and best", best_set, best_score)
     return best_score
 
@@ -161,12 +162,12 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     for i in np.unique(cluster_labels):
         clusters[i] = ids[np.where(cluster_labels == i)]
 
-    # Remove 20 random samples from dist_matrix
-    # idxs = np.where(labels == i)
+    # Shuffle samples
     from sklearn.utils import shuffle
     idxs = list(range(0, dist_matrix.shape[0]))
     idxs, ids = shuffle(idxs, ids)
 
+    # Remove some random samples from dist_matrix
     nsamples_to_remove = 20
     idxs = idxs[:-nsamples_to_remove]
     ids = ids[:-nsamples_to_remove]
