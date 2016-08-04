@@ -1,7 +1,7 @@
 =======================================================================================
     Federico Tomasi [federico dot tomasi at dibris dot unige dot it]
 
-    This file is part of ignet.
+    This file is part of icing.
 
     The code is released under the BSD 2-Clause (FreeBSD) License.
 
