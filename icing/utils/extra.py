@@ -61,9 +61,9 @@ def distance_to_affinity_matrix(X, delta=.2, minimum_value=0):
     ----------
     X : array
         Distance matrix.
-    delta : float, optional
+    delta : float, optional, default .2
         Gaussian parameter.
-    minimum_value : float, optional
+    minimum_value : float, optional, default 0
         Positive number. Substitute this to 0 values.
 
     Returns
