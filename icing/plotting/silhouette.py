@@ -120,9 +120,8 @@ sset7 = ('SI15_7_L', 'SI21_7_L')
 sset8 = ('G_039_8_K', 'G_057_8_K', 'G_114_8_K', 'G_657_8_K', 'G_MS0115_8_K',
          'G_NI099_8_K', 'G_RC25_8_K', 'G_SI89_8_K')
 sset9 = ('AD0221_9_L', 'CLL051_9_L')
-allsets = sorted([sset1, sset2, sset4, sset6, sset7, sset8,
-                  sset9], key=lambda x: len(x), reverse=True)
-# print(allsets)
+set_subset = sorted([sset1, sset2, sset4, sset6, sset7, sset8,
+                     sset9], key=lambda x: len(x), reverse=True)[:4]
 
 sset_K = (
     'AC0120__K',
@@ -846,19 +845,37 @@ def best_intersection(id_list, cluster_dict):
     """Compute score between id_list and each list in dict, take the best."""
     set1 = set(id_list)
     best_score = 0.
-    # best_set = None
+    best_set = ()
     best_key = -1
     for k in cluster_dict:
         set2 = set(cluster_dict[k])
         score = len(set1 & set2) / len(set1)
-        if score > best_score:
+        if score > best_score or best_key == -1:
             best_score = score
-            # best_set = set2
+            best_set = set2
             best_key = k
     # print(set1, "and best", best_set, best_score)
     if best_key != -1:
         del cluster_dict[best_key]
-    return best_score, cluster_dict
+    return best_score, cluster_dict, best_set
+
+
+def calc_stability(clusts, other_clusts):
+    stability = 0.
+    nclusts = len(clusts)
+    for _ in other_clusts:
+        res, clusts, best_set = best_intersection(_, clusts)
+        n_unknown = len([xx for xx in best_set if xx.endswith("_")])
+        print("{1:.2f} (K {2:.2f}, L {3:.2f})"
+              .format(_, res,
+                      (len(best_set) == 0 and -1) or (len([xx for xx in best_set if xx.endswith("_K") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown),
+                      (len(best_set) == 0 and -1) or (len([xx for xx in best_set if xx.endswith("_L") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown)
+                      ), end=' ')
+        stability += res
+
+    print("\nstability: {:.3f}, {} clusts (light), {} nclusts -- [{:.2f}%]"
+          .format(stability, len(other_clusts), nclusts,
+                  stability * 100. / len(other_clusts)))
 
 
 def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
@@ -886,8 +903,9 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     cluster_labels = fcluster(Z, threshold, 'distance')
     nclusts = np.unique(cluster_labels).shape[0]
     cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                            'TM_matrix_ID_SUBSET_light.csv', index_col=0).columns)
-    with open("res_hierarchical_{:.2f}_clust.csv".format(nclusts), 'w') as f:
+                            'TM_matrix_ID_SUBSET_light.csv',
+                            index_col=0).columns)
+    with open("res_hierarchical_{:03d}_clust.csv".format(nclusts), 'w') as f:
         for a, b in zip(cols, cluster_labels):
             f.write("{}, {}\n".format(a, b))
 
@@ -900,15 +918,7 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     for i in np.unique(cluster_labels):
         clusters[i] = ids[np.where(cluster_labels == i)]
 
-    stability = 0.
-    clusts = clusters
-    for i in set_light_chain:
-        res, clusts = best_intersection(i, clusts)
-        print("{1:.2f}".format(i, res), end=' ')
-        stability += res
-
-    print("stability: {:.3f}, {} clusts (light), {} nclusts".format(
-        stability, len(set_light_chain), nclusts))
+    calc_stability(clusters, set_subset)
 
     # # Shuffle samples
     # from sklearn.utils import shuffle
@@ -931,12 +941,12 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     # stability = 0.
     # for i in np.unique(cluster_labels_sampling):
     #     clusters_sampling[i] = ids[np.where(cluster_labels_sampling == i)]
-    #     res = best_intersection(clusters_sampling[i], clusters)
+    #     res, clusters = best_intersection(clusters_sampling[i], clusters)
     #     # print("Stability for {}: {:.3f}".format(i, res))
     #     stability += res
     # nclusts_sampling = np.unique(cluster_labels_sampling).shape[0]
     #
-    # print("stability: {:.3f} with {} clusts".format(stability, nclusts_sampling))
+    # print("stability: {:.3f} with {} clusts, {:.3f}%".format(stability, nclusts_sampling, stability * 100. / nclusts_sampling))
     # with open("res_hierarchical_{:.2f}_clust_{:.2f}_stability_sampling.csv"
     #           .format(nclusts_sampling, stability), 'w') as f:
     #     for a, b in zip(cols, cluster_labels_sampling):
@@ -968,7 +978,7 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
 
 
 def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
-                         method='single'):
+                         method='single', n_jobs=-1):
     """Cut a dendrogram at some heights.
 
     Parameters
@@ -991,20 +1001,20 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
         The results to be visualised on a plot.
 
     """
-    def _internal(dist_matrix, Z, threshold_arr, idx, nprocs, arr_length,
+    def _internal(dist_matrix, Z, threshold_arr, idx, n_jobs, arr_length,
                   queue_x, queue_y, mode='clusters', method='single'):
-        for i in range(idx, arr_length, nprocs):
+        for i in range(idx, arr_length, n_jobs):
             queue_x[i], queue_y[i] = single_silhouette_dendrogram(
                 dist_matrix, Z, threshold_arr[i], mode, method)
 
-    nprocs = min(mp.cpu_count(), n)
-    # nprocs = 1
+    if n_jobs == -1:
+        n_jobs = min(mp.cpu_count(), n)
     queue_x, queue_y = mp.Array('d', [0.] * n), mp.Array('d', [0.] * n)
     ps = []
     try:
-        for idx in range(nprocs):
+        for idx in range(n_jobs):
             p = mp.Process(target=_internal,
-                           args=(dist_matrix, Z, threshold_arr, idx, nprocs, n,
+                           args=(dist_matrix, Z, threshold_arr, idx, n_jobs, n,
                                  queue_x, queue_y, mode, method))
             p.start()
             ps.append(p)
@@ -1029,7 +1039,8 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
                                        file_format='pdf',
                                        xticks=None,
                                        xlim=None,
-                                       figsize=None):
+                                       figsize=None,
+                                       n_jobs=-1):
     """Plot average silhouette for each tree cutting.
 
     A linkage matrix for each method in method_list is used.
@@ -1082,13 +1093,7 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
             max_i = max(Z[:, 2]) if method != 'ward' else np.percentile(Z[:, 2], 99.5)
             threshold_arr *= max_i
 
-        # print(threshold_arr)
-        # print(Z[:, 2])
-        # if use_joblib:
-        #     x, y = zip(*jl.Parallel(n_jobs=mp.cpu_count())
-        #                (jl.delayed(compute_x_y)(X, Z, i, mode)
-        #                for i in threshold_arr*max_i))
-        x, y = multi_cut_dendrogram(X, Z, threshold_arr, n, mode, method)
+        x, y = multi_cut_dendrogram(X, Z, threshold_arr, n, mode, method, n_jobs)
         ax.plot(x, y, Tango.nextDark(), marker='o', ms=3, ls='-', label=method)
 
     # fig.tight_layout()
@@ -1119,7 +1124,7 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
     return filename
 
 
-def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
+def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1):
     """Perform a spectral clustering with variable cluster sizes.
 
     Parameters
@@ -1139,19 +1144,20 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
 
     """
     def _internal(cluster_list, affinity_matrix, dist_matrix,
-                  idx, nprocs, n, queue_y):
-        for i in range(idx, n, nprocs):
+                  idx, n_jobs, n, queue_y):
+        for i in range(idx, n, n_jobs):
             sp = SpectralClustering(n_clusters=cluster_list[i],
-                                    affinity='precomputed')
+                                    affinity='precomputed',
+                                    norm_laplacian=True)
             sp.fit(affinity_matrix)
             cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
                                     'TM_matrix_ID_SUBSET_light.csv', index_col=0).columns)
-            with open("res_spectral_{:.2f}_clust.csv".format(cluster_list[i]), 'w') as f:
+            with open("res_spectral_{:03d}_clust.csv".format(cluster_list[i]), 'w') as f:
                 for a, b in zip(cols, sp.labels_):
                     f.write("{}, {}\n".format(a, b))
 
             cluster_labels = sp.labels_.copy()
-            nclusts = np.unique(cluster_labels).shape[0]
+            # nclusts = np.unique(cluster_labels).shape[0]
 
             # Go, stability!
             # List of ids
@@ -1162,30 +1168,24 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix):
             for _ in np.unique(cluster_labels):
                 clusters[_] = ids[np.where(cluster_labels == _)]
 
-            stability = 0.
-            clusts = clusters
-            for _ in set_light_chain:
-                res, clusts = best_intersection(_, clusts)
-                print("{1:.2f}".format(_, res), end=' ')
-                stability += res
-
-            print("stability: {:.3f}, {} clusts (light), {} nclusts".format(
-                stability, len(set_light_chain), nclusts))
-
+            # clust2 = clusters.copy()
+            calc_stability(clusters, set_subset)
+            # calc_stability(clust2, set_light_chain)
 
             silhouette_list = silhouette_samples(dist_matrix, sp.labels_,
                                                  metric="precomputed")
             queue_y[i] = np.mean(silhouette_list)
 
     n = len(cluster_list)
-    nprocs = min(mp.cpu_count(), n)
+    if n_jobs == -1:
+        n_jobs = min(mp.cpu_count(), n)
     queue_y = mp.Array('d', [0.] * n)
     ps = []
     try:
-        for idx in range(nprocs):
+        for idx in range(n_jobs):
             p = mp.Process(target=_internal,
                            args=(cluster_list, affinity_matrix, dist_matrix,
-                                 idx, nprocs, n, queue_y))
+                                 idx, n_jobs, n, queue_y))
             p.start()
             ps.append(p)
 
@@ -1205,7 +1205,8 @@ def plot_average_silhouette_spectral(X, n=30,
                                      max_clust=None,
                                      verbose=True,
                                      interactive_mode=False,
-                                     file_format='pdf'):
+                                     file_format='pdf',
+                                     n_jobs=-1):
     """Plot average silhouette for some clusters, using an affinity matrix.
 
     Parameters
@@ -1235,7 +1236,7 @@ def plot_average_silhouette_spectral(X, n=30,
     if max_clust is None:
         max_clust = X.shape[0]
     cluster_list = np.unique(map(int, np.linspace(min_clust, max_clust, n)))
-    y = multi_cut_spectral(cluster_list, A, X)
+    y = multi_cut_spectral(cluster_list, A, X, n_jobs=n_jobs)
     ax.plot(cluster_list, y, Tango.next(), marker='o', linestyle='-', label='')
 
     # leg = ax.legend(loc='lower right')
@@ -1252,16 +1253,18 @@ def plot_average_silhouette_spectral(X, n=30,
     plt.savefig(filename)
     plt.close()
 
-    from adenine.core import plotting
-    reload(plotting)
-    plotting.eigs(
-        '', A,
-        filename=os.path.join(
-            path, "eigs_spectral_{}.{}"
-                  .format(extra.get_time(), file_format)),
-        n_components=50)
-
-    return filename
+    # plot eigenvalues
+    # from adenine.core import plotting
+    # plotting.eigs(
+    #     '', A,
+    #     filename=os.path.join(path, "eigs_spectral_{}.{}"
+    #                                 .format(extra.get_time(), file_format)),
+    #     n_components=50,
+    #     normalised=True,
+    #     rw=True
+    #     )
+    #
+    # return filename
 
 
 if __name__ == '__main__':
@@ -1274,6 +1277,8 @@ if __name__ == '__main__':
     X = df.as_matrix()
     X = ensure_symmetry(X)
 
-    silhouette.plot_average_silhouette_dendrogram(X, min_threshold=.7, max_threshold=1.1, n=200, xticks=range(
-        0, 50, 4), xlim=[0, 50], figsize=(20, 8), method_list=('median', 'ward', 'complete'))
+    silhouette.plot_average_silhouette_dendrogram(
+        X, min_threshold=.7, max_threshold=1.1, n=200, xticks=range(0, 50, 4),
+        xlim=[0, 50], figsize=(20, 8),
+        method_list=('median', 'ward', 'complete'))
     silhouette.plot_average_silhouette_spectral(X, min_clust=2, max_clust=10, n=10)
