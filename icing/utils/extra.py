@@ -49,7 +49,8 @@ def ensure_symmetry(X):
     new_X : numpy.ndarray
         Symmetric distance matrix. Values are averaged.
     """
-    return (X.T + X) / 2. if not (X.T == X).all() else X
+    import numpy as np
+    return (X.T + X) / 2. if not np.array_equal(X, X.T) else X
 
 
 def distance_to_affinity_matrix(X, delta=.2, minimum_value=0):

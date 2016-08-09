@@ -121,7 +121,7 @@ sset8 = ('G_039_8_K', 'G_057_8_K', 'G_114_8_K', 'G_657_8_K', 'G_MS0115_8_K',
          'G_NI099_8_K', 'G_RC25_8_K', 'G_SI89_8_K')
 sset9 = ('AD0221_9_L', 'CLL051_9_L')
 set_subset = sorted([sset1, sset2, sset4, sset6, sset7, sset8,
-                     sset9], key=lambda x: len(x), reverse=True)[:4]
+                     sset9], key=lambda x: len(x), reverse=True)
 
 sset_K = (
     'AC0120__K',
@@ -863,19 +863,62 @@ def best_intersection(id_list, cluster_dict):
 def calc_stability(clusts, other_clusts):
     stability = 0.
     nclusts = len(clusts)
+    # orig_clusts = clusts.copy()
+    orig_clusts = []
     for _ in other_clusts:
         res, clusts, best_set = best_intersection(_, clusts)
         n_unknown = len([xx for xx in best_set if xx.endswith("_")])
-        print("{1:.2f} (K {2:.2f}, L {3:.2f})"
+        print("{1:.2f}"  # (K {2:.2f}, L {3:.2f})"
               .format(_, res,
-                      (len(best_set) == 0 and -1) or (len([xx for xx in best_set if xx.endswith("_K") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown),
-                      (len(best_set) == 0 and -1) or (len([xx for xx in best_set if xx.endswith("_L") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown)
+                      (len(best_set) in (0, n_unknown) and -1) or (len([xx for xx in best_set if xx.endswith("_K") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown),
+                      (len(best_set) in (0, n_unknown) and -1) or (len([xx for xx in best_set if xx.endswith("_L") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown)
                       ), end=' ')
         stability += res
+        orig_clusts.append(best_set)
 
-    print("\nstability: {:.3f}, {} clusts (light), {} nclusts -- [{:.2f}%]"
+    km = []
+    lm = []
+    for c in orig_clusts:
+        if len(c) > 0:
+            n_unknown = len([xx for xx in c if xx.endswith("_")])
+            if n_unknown < len(c):
+                k_res = (len([xx for xx in c if xx.endswith("_K") or
+                         xx.endswith("_")])-n_unknown) * 100. / (len(c)-n_unknown)
+
+                l_res = (len([xx for xx in c if xx.endswith("_L") or
+                         xx.endswith("_")])-n_unknown) * 100. / (len(c)-n_unknown)
+                if k_res > l_res:
+                    km.append(k_res)
+                elif k_res < l_res:
+                    lm.append(l_res)
+                else:
+                    km.append(k_res)
+                    lm.append(l_res)
+
+    # print("Km {:.2f}, Lm {:.2f}".format(np.mean(km), np.mean(lm)), end=' ')
+    print("\nstability: {:.3f}, {} clusts (light), {} nclusts -- [{:.2f}%] k[{:.2f}] l[{:.2f}]"
           .format(stability, len(other_clusts), nclusts,
-                  stability * 100. / len(other_clusts)))
+                  stability * 100. / len(other_clusts), np.mean(km), np.mean(lm)))
+    # km = []
+    # lm = []
+    # for i in orig_clusts:
+    #     c = orig_clusts[i]
+    #     if len(c) > 0:
+    #         n_unknown = len([xx for xx in c if xx.endswith("_")])
+    #         if n_unknown < len(c):
+    #             k_res = (len([xx for xx in c if xx.endswith("_K") or
+    #                      xx.endswith("_")])-n_unknown) * 100. / (len(c)-n_unknown)
+    #
+    #             l_res = (len([xx for xx in c if xx.endswith("_L") or
+    #                      xx.endswith("_")])-n_unknown) * 100. / (len(c)-n_unknown)
+    #             if k_res > l_res:
+    #                 km.append(k_res)
+    #             elif k_res < l_res:
+    #                 lm.append(l_res)
+    #             else:
+    #                 km.append(k_res)
+    #                 lm.append(l_res)
+    # print("Km {:.2f}, Lm {:.2f}".format(np.mean(km), np.mean(lm)))
 
 
 def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
@@ -903,7 +946,7 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     cluster_labels = fcluster(Z, threshold, 'distance')
     nclusts = np.unique(cluster_labels).shape[0]
     cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                            'TM_matrix_ID_SUBSET_light.csv',
+                            'TM_matrix_ID_SUBSET_light_noduplicates.csv',
                             index_col=0).columns)
     with open("res_hierarchical_{:03d}_clust.csv".format(nclusts), 'w') as f:
         for a, b in zip(cols, cluster_labels):
@@ -1151,7 +1194,7 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1):
                                     norm_laplacian=True)
             sp.fit(affinity_matrix)
             cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                                    'TM_matrix_ID_SUBSET_light.csv', index_col=0).columns)
+                                    'TM_matrix_ID_SUBSET_light_noduplicates.csv', index_col=0).columns)
             with open("res_spectral_{:03d}_clust.csv".format(cluster_list[i]), 'w') as f:
                 for a, b in zip(cols, sp.labels_):
                     f.write("{}, {}\n".format(a, b))
@@ -1273,7 +1316,7 @@ if __name__ == '__main__':
     from icing.plotting import silhouette
 
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                     'TM_matrix_ID_SUBSET_light.csv', index_col=0)
+                     'TM_matrix_ID_SUBSET_light_noduplicates.csv', index_col=0)
     X = df.as_matrix()
     X = ensure_symmetry(X)
 
