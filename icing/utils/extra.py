@@ -78,7 +78,7 @@ def distance_to_affinity_matrix(X, delta=.2, minimum_value=0):
 
 
 def affinity_to_laplacian_matrix(A, normalised=False, tol=None,
-                                 get_eigvals=False):
+                                 get_eigvals=False, rw=False):
     """Convert an affinity matrix into a Laplacian of the correspondent graph.
 
     Distances are converted into Gaussian affinities.
@@ -103,9 +103,13 @@ def affinity_to_laplacian_matrix(A, normalised=False, tol=None,
     Deg = np.diag([np.sum(x) for x in W])
     L = Deg - W
 
-    if normalised:
-        aux = np.linalg.inv(np.diag([np.sqrt(np.sum(x)) for x in W]))
+    if normalised and not rw:
+        #aux = np.linalg.inv(np.diag([np.sqrt(np.sum(x)) for x in W]))
+        aux = np.diag(1. / np.array([np.sqrt(np.sum(x)) for x in W]))
         L = np.eye(L.shape[0]) - (np.dot(np.dot(aux, W), aux))
+    elif rw:
+        # normalised is ignored; it is implicit
+        L = np.eye(L.shape[0]) - np.dot(np.diag(1. / np.array([np.sum(x) for x in W])), W)
 
     if tol is not None:
         L[np.abs(L) < tol] = 0.
