@@ -107,51 +107,114 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
     logging.info('Figured saved {}'.format(filename))
 
 # Prior sets to calculate how good are the clusters
-sset1 = ('CLL011_1_K', 'CLL026_1_K', 'CLL154_1_K', 'CLL266_1_K',
-         'CLL270_1_K', 'CLL336_1_K', 'CLL360_1_K', 'CLLG063_1_K',
-         'G063_1_K', 'G086_1_K', 'PA0375_1_K', 'SI186_1_K', 'SI242_1_K',
-         'SI5_1_K', 'TS53_1_K')
-sset2 = ('CD0310_2_L', 'CLL175_2_L', 'CLL282_2_L', 'CLL412_2_L',
-         'CLL668_2_L', 'CLL785_2_L', 'SR0112_2_L')
+sset1 = ('CLL011_1_K', 'CLL026_1_K', 'CLL154_1_K', 'CLL266_1_K', 'CLL270_1_K',
+         'CLL336_1_K', 'CLL360_1_K', 'CLLG063_1_K', 'G063_1_K', 'G086_1_K', 'PA0375_1_K',
+         'SI186_1_K', 'SI242_1_K', 'SI5_1_K', 'TS53_1_K')
+
+sset2 = ('CD0310_2_L', 'CLL175_2_L', 'CLL282_2_L', 'CLL412_2_L', 'CLL668_2_L',
+'CLL785_2_L', 'G_785_2_L', 'SR0112_2_L')
 sset4 = ('G_183_4_K', 'G_342_4_K', 'G_733_4_K', 'G_G031_4_K', 'SI110_4_K')
-sset6 = ('CLL068_6_K', 'CLL258_6_K', 'CLL861_6_K', 'CLL900_6_K', 'G107_6_K',
-         'RC87_6_K', 'SI153_6_K')
+sset6 = ('CLL068_6_K', 'CLL258_6_K', 'CLL861_6_K', 'CLL900_6_K', 'G107_6_K', 'RC87_6_K', 'SI153_6_K')
 sset7 = ('SI15_7_L', 'SI21_7_L')
-sset8 = ('G_039_8_K', 'G_057_8_K', 'G_114_8_K', 'G_657_8_K', 'G_MS0115_8_K',
+sset8 = ('G_39_8_K', 'G_57_8_K', 'G_114_8_K', 'G_657_8_K', 'G_MS0115_8_K',
          'G_NI099_8_K', 'G_RC25_8_K', 'G_SI89_8_K')
 sset9 = ('AD0221_9_L', 'CLL051_9_L')
 set_subset = sorted([sset1, sset2, sset4, sset6, sset7, sset8,
                      sset9], key=lambda x: len(x), reverse=True)
 
 sset_K = (
-    'AC0120__K',
-    'AE119_no_K',
+    'CLL011_1_K',
+    'CLL026_1_K',
+    'CLL154_1_K',
+    'CLL266_1_K',
+    'CLL270_1_K',
+    'CLL336_1_K',
+    'CLL360_1_K',
+    'CLLG063_1_K',
+    'G063_1_K',
+    'G086_1_K',
+    'PA0375_1_K',
+    'SI186_1_K',
+    'SI242_1_K',
+    'SI5_1_K',
+    'TS53_1_K',
+    'G_183_4_K',
+    'G_342_4_K',
+    'G_733_4_K',
+    'G_G031_4_K',
+    'SI110_4_K',
+    'CLL068_6_K',
+    'CLL258_6_K',
+    'CLL861_6_K',
+    'CLL900_6_K',
+    'G107_6_K',
+    'RC87_6_K',
+    'SI153_6_K',
+    'G_39_8_K',
+    'G_57_8_K',
+    'G_114_8_K',
+    'G_657_8_K',
+    'G_MS0115_8_K',
+    'G_NI099_8_K',
+    'G_RC25_8_K',
+    'G_SI89_8_K',
+    'RC12_16_K',
+    'SI117_28_K',
+    'CLL017_59_K',
+    'CA0251_61_K',
     'AM0220_96_K',
+    'G_GE401_ _K',
+    'GV0149_19 NO_K',
+    'LA0393_2 NO_K',
+    'SI22_3??_K',
+    'G_240_4?_K',
+    'CLL402_59?_K',
+    'LS0378_7? Probab NO_K',
+    'G_SI291_8 NO_K',
+    'G_SI196_8???_K',
+    'ML0298_G8_K',
+    'CC0244_N13_K',
+    'SI199_N13_K',
+    'AE119_no_K',
+    'A_OMO201_no_K',
+    'A_TC230_no_K',
+    'G_128_no_K',
+    'G_186_no_K',
+    'G_BB238_no_K',
+    'G_G016_no_K',
+    'G_GE456_no_K',
+    'G_SI102_no_K',
+    'G_SI107_no_K',
+    'G_TF001_no_K',
+    'G_VD0026_no_K',
+    'LG0038_no_K',
+    'LP0255_no_K',
+    'MC0081_no_K',
+    'NB0033_no_K',
+    'OI0282_no_K',
+    'PF0177_no_K',
+    'SG0402_no_K',
+    'G_33_no 16?_K',
+    'AC0120__K',
     'AP0406__K',
     'AR0090__K',
     'AS0407__K',
+    'A_158__K',
     'A_FB0103__K',
-    'A_OMO201_no_K',
-    'A_TC230_no_K',
     'BC0047__K',
     'BL0188__K',
     'BL0445__K',
     'BV0176__K',
-    'CA0251_61_K',
     'CA0331__K',
-    'CC0244_N13_K',
     'CI0005__K',
     'CLL002__K',
     'CLL003__K',
     'CLL007__K',
     'CLL008__K',
-    'CLL011_1_K',
-    'CLL017_59_K',
     'CLL018__K',
     'CLL019__K',
     'CLL021__K',
     'CLL023__K',
-    'CLL026_1_K',
     'CLL035__K',
     'CLL038__K',
     'CLL042__K',
@@ -162,7 +225,6 @@ sset_K = (
     'CLL064__K',
     'CLL066__K',
     'CLL067__K',
-    'CLL068_6_K',
     'CLL071__K',
     'CLL079__K',
     'CLL081__K',
@@ -185,31 +247,24 @@ sset_K = (
     'CLL138__K',
     'CLL141__K',
     'CLL153__K',
-    'CLL154_1_K',
     'CLL156__K',
     'CLL165__K',
     'CLL178__K',
     'CLL215__K',
     'CLL216__K',
     'CLL249__K',
-    'CLL258_6_K',
-    'CLL266_1_K',
-    'CLL270_1_K',
     'CLL288__K',
     'CLL302__K',
     'CLL309__K',
     'CLL321__K',
     'CLL331__K',
     'CLL334__K',
-    'CLL336_1_K',
     'CLL343__K',
     'CLL354__K',
     'CLL358__K',
-    'CLL360_1_K',
     'CLL361__K',
     'CLL364__K',
     'CLL377__K',
-    'CLL402_59?_K',
     'CLL403__K',
     'CLL408__K',
     'CLL415__K',
@@ -218,8 +273,6 @@ sset_K = (
     'CLL569__K',
     'CLL585__K',
     'CLL606__K',
-    'CLL861_6_K',
-    'CLL900_6_K',
     'CLLG006__K',
     'CLLG008__K',
     'CLLG009__K',
@@ -227,7 +280,6 @@ sset_K = (
     'CLLG012__K',
     'CLLG013__K',
     'CLLG014__K',
-    'CLLG015__K',
     'CLLG019__K',
     'CLLG020__K',
     'CLLG021__K',
@@ -244,7 +296,6 @@ sset_K = (
     'CLLG054__K',
     'CLLG057__K',
     'CLLG062__K',
-    'CLLG063_1_K',
     'CLLG065__K',
     'CLLG067__K',
     'CLLG069__K',
@@ -334,16 +385,13 @@ sset_K = (
     'G034__K',
     'G036__K',
     'G062__K',
-    'G063_1_K',
     'G065__K',
     'G067__K',
     'G082__K',
     'G085__K',
-    'G086_1_K',
     'G091__K',
     'G102__K',
     'G106__K',
-    'G107_6_K',
     'G108__K',
     'G109__K',
     'G112__K',
@@ -354,57 +402,30 @@ sset_K = (
     'GE226__K',
     'GL0368__K',
     'GR0033__K',
-    'GV0149_19 NO_K',
     'GV0377__K',
-    'G_030__K',
-    'G_033_no 16?_K',
-    'G_039_8_K',
-    'G_040__K',
-    'G_057_8_K',
-    'G_087__K',
+    'G_30__K',
+    'G_40__K',
+    'G_87__K',
     'G_111__K',
-    'G_114_8_K',
-    'G_128_no_K',
     'G_158__K',
-    'G_183_4_K',
     'G_185__K',
-    'G_186_no_K',
     'G_196__K',
-    'G_240_4?_K',
-    'G_342_4_K',
     'G_368__K',
     'G_416__K',
-    'G_657_8_K',
-    'G_733_4_K',
     'G_936__K',
-    'G_BB238_no_K',
     'G_CA0345__K',
     'G_CZ128__K',
-    'G_G016_no_K',
-    'G_G031_4_K',
     'G_G061__K',
     'G_G066__K',
     'G_G087__K',
     'G_G111__K',
     'G_G115__K',
     'G_GE388__K',
-    'G_GE401_ _K',
-    'G_GE456_no_K',
     'G_GE519__K',
     'G_GN01__K',
     'G_LN06__K',
-    'G_MS0115_8_K',
-    'G_NI099_8_K',
     'G_NY202__K',
-    'G_RC25_8_K',
-    'G_SI102_no_K',
-    'G_SI107_no_K',
-    'G_SI196_8???_K',
-    'G_SI291_8 NO_K',
-    'G_SI89_8_K',
     'G_SI92__K',
-    'G_TF001_no_K',
-    'G_VD0026_no_K',
     'HG0135__K',
     'IG0181__K',
     'II0440__K',
@@ -468,6 +489,7 @@ sset_K = (
     'KP297__K',
     'KP324__K',
     'KP325__K',
+    'KP333__K',
     'KP341__K',
     'KP343__K',
     'KP380__K',
@@ -494,34 +516,19 @@ sset_K = (
     'KP896__K',
     'KP975__K',
     'KPCLL4__K',
-    'LA0393_2 NO_K',
-    'LG0038_no_K',
-    'LP0255_no_K',
-    'LS0378_7? Probab NO_K',
     'MA0432__K',
-    'MC0081_no_K',
-    'ML0298_G8_K',
-    'NB0033_no_K',
-    'OI0282_no_K',
-    'PA0375_1_K',
-    'PF0177_no_K',
     'RC10__K',
-    'RC12_16_K',
     'RC15__K',
     'RC17__K',
     'RC35__K',
     'RC4__K',
-    'RC87_6_K',
     'RC9__K',
     'RG0443__K',
-    'SG0402_no_K',
     'SI101__K',
     'SI104__K',
     'SI105__K',
-    'SI110_4_K',
     'SI112__K',
     'SI114__K',
-    'SI117_28_K',
     'SI120__K',
     'SI125__K',
     'SI126__K',
@@ -531,20 +538,16 @@ sset_K = (
     'SI141__K',
     'SI149__K',
     'SI152__K',
-    'SI153_6_K',
     'SI162__K',
     'SI164__K',
     'SI168__K',
     'SI17__K',
     'SI174__K',
     'SI183__K',
-    'SI186_1_K',
     'SI197__K',
-    'SI199_N13_K',
     'SI2__K',
     'SI200__K',
     'SI211__K',
-    'SI22_3??_K',
     'SI223__K',
     'SI228__K',
     'SI23__K',
@@ -552,7 +555,6 @@ sset_K = (
     'SI234__K',
     'SI237__K',
     'SI241__K',
-    'SI242_1_K',
     'SI243__K',
     'SI278__K',
     'SI29__K',
@@ -562,7 +564,6 @@ sset_K = (
     'SI40__K',
     'SI43__K',
     'SI44__K',
-    'SI5_1_K',
     'SI50__K',
     'SI51__K',
     'SI53__K',
@@ -594,13 +595,36 @@ sset_K = (
     'TS34__K',
     'TS41__K',
     'TS5__K',
-    'TS53_1_K',
     'TS71__K',
     'TS9__K',
-    'VG0442__K')
+    'VG0442__K'
+)
 sset_L = (
+    'CD0310_2_L',
+    'CLL175_2_L',
+    'CLL282_2_L',
+    'CLL412_2_L',
+    'CLL668_2_L',
+    'CLL785_2_L',
+    'G_785_2_L',
+    'SR0112_2_L',
+    'SI15_7_L',
+    'SI21_7_L',
     'AD0221_9_L',
+    'CLL051_9_L',
+    'PS0420_26_L',
+    'CLLG026_35_L',
+    'G026_35_L',
+    'MA0088_56_L',
+    'CLL169_  _L',
     'AG0403_no_L',
+    'G_1_no_L',
+    'G_G089_no_L',
+    'LP0076_no_L',
+    'MF0379_no_L',
+    'MS0321_no_L',
+    'PG0122_no_L',
+    'PG0355_no_L',
     'AM106__L',
     'A_FB0332__L',
     'A_PF07__L',
@@ -608,12 +632,10 @@ sset_L = (
     'BL0277__L',
     'BP0326__L',
     'CA0160__L',
-    'CD0310_2_L',
     'CLL014__L',
     'CLL020__L',
     'CLL027__L',
     'CLL041__L',
-    'CLL051_9_L',
     'CLL058__L',
     'CLL099__L',
     'CLL105__L',
@@ -625,20 +647,14 @@ sset_L = (
     'CLL139__L',
     'CLL147__L',
     'CLL152__L',
-    'CLL169_  _L',
     'CLL172__L',
-    'CLL175_2_L',
     'CLL242__L',
     'CLL255__L',
-    'CLL282_2_L',
     'CLL374__L',
     'CLL400__L',
-    'CLL412_2_L',
     'CLL417__L',
     'CLL561__L',
     'CLL562__L',
-    'CLL668_2_L',
-    'CLL785_2_L',
     'CLL799__L',
     'CLL984__L',
     'CLLG001__L',
@@ -647,9 +663,9 @@ sset_L = (
     'CLLG005__L',
     'CLLG007__L',
     'CLLG010__L',
+    'CLLG015__L',
     'CLLG023__L',
     'CLLG024__L',
-    'CLLG026__L',
     'CLLG029__L',
     'CLLG030__L',
     'CLLG035__L',
@@ -661,6 +677,7 @@ sset_L = (
     'CLLG052__L',
     'CLLG053__L',
     'CLLG055__L',
+    'CLLG056__L',
     'CLLG068__L',
     'CLLG075__L',
     'CLLGE080__L',
@@ -710,7 +727,6 @@ sset_L = (
     'G010__L',
     'G015__L',
     'G024__L',
-    'G026_35_L',
     'G030__L',
     'G035__L',
     'G037__L',
@@ -724,25 +740,18 @@ sset_L = (
     'G114__L',
     'GA0141__L',
     'GE129__L',
-    'G_001_no_L',
-    'G_005__L',
-    'G_075__L',
-    'G_078__L',
-    'G_089__L',
+    'G_5__L',
+    'G_75__L',
+    'G_78__L',
+    'G_89__L',
     'G_1064__L',
     'G_417__L',
     'G_ARG009__L',
     'G_BM0223__L',
     'G_CS109__L',
-    'G_G089_no_L',
     'G_G093__L',
-    'G_GN015__L',
     'IA0079__L',
-    'LP0076_no_L',
     'LR0418__L',
-    'MA0088_56_L',
-    'MF0379_no_L',
-    'MS0321_no_L',
     'MV0334__L',
     'N1319__L',
     'N1408__L',
@@ -794,9 +803,6 @@ sset_L = (
     'P775__L',
     'P788__L',
     'P906__L',
-    'PG0122_no_L',
-    'PG0355_no_L',
-    'PS0420_26_L',
     'RA0023__L',
     'RC107__L',
     'RC3__L',
@@ -810,12 +816,10 @@ sset_L = (
     'SI135__L',
     'SI138__L',
     'SI14__L',
-    'SI15_7_L',
     'SI161__L',
     'SI18__L',
     'SI181__L',
     'SI188__L',
-    'SI21_7_L',
     'SI212__L',
     'SI213__L',
     'SI235__L',
@@ -834,24 +838,26 @@ sset_L = (
     'SI77__L',
     'SI79__L',
     'SI98__L',
-    'SR0112_2_L',
     'TS29__L',
     'TS30__L',
-    'TS74__L')
+    'TS74__L'
+)
 set_light_chain = sorted([sset_K, sset_L], key=lambda x: len(x), reverse=True)
 
 
 def best_intersection(id_list, cluster_dict):
     """Compute score between id_list and each list in dict, take the best."""
     set1 = set(id_list)
-    best_score = 0.
+    best_score = (0., 0., 0.)  # res, numerator, denominator
     best_set = ()
     best_key = -1
     for k in cluster_dict:
         set2 = set(cluster_dict[k])
-        score = len(set1 & set2) / len(set1)
-        if score > best_score or best_key == -1:
-            best_score = score
+        numerator = len(set1 & set2)
+        denominator = len(set1 | set2)
+        score = numerator / denominator
+        if score > best_score[0] or best_key == -1:
+            best_score = (score, numerator, denominator)
             best_set = set2
             best_key = k
     # print(set1, "and best", best_set, best_score)
@@ -861,7 +867,8 @@ def best_intersection(id_list, cluster_dict):
 
 
 def calc_stability(clusts, other_clusts):
-    stability = 0.
+    stability_num = 0.  # numerator
+    stability_den = 0.  # denominator
     nclusts = len(clusts)
     # orig_clusts = clusts.copy()
     orig_clusts = []
@@ -869,11 +876,13 @@ def calc_stability(clusts, other_clusts):
         res, clusts, best_set = best_intersection(_, clusts)
         n_unknown = len([xx for xx in best_set if xx.endswith("_")])
         print("{1:.2f}"  # (K {2:.2f}, L {3:.2f})"
-              .format(_, res,
+              .format(_, res[0],
                       (len(best_set) in (0, n_unknown) and -1) or (len([xx for xx in best_set if xx.endswith("_K") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown),
                       (len(best_set) in (0, n_unknown) and -1) or (len([xx for xx in best_set if xx.endswith("_L") or xx.endswith("_")])-n_unknown) * 100. / (len(best_set)-n_unknown)
                       ), end=' ')
-        stability += res
+        stability_num += res[1]
+        stability_den += res[2]
+        # print(res, end=' ')
         orig_clusts.append(best_set)
 
     km = []
@@ -896,9 +905,10 @@ def calc_stability(clusts, other_clusts):
                     lm.append(l_res)
 
     # print("Km {:.2f}, Lm {:.2f}".format(np.mean(km), np.mean(lm)), end=' ')
+    stability = stability_num / stability_den if stability_den != 0 else 0
     print("\nstability: {:.3f}, {} clusts (light), {} nclusts -- [{:.2f}%] k[{:.2f}] l[{:.2f}]"
           .format(stability, len(other_clusts), nclusts,
-                  stability * 100. / len(other_clusts), np.mean(km), np.mean(lm)))
+                  stability * 100., np.mean(km), np.mean(lm)))
     # km = []
     # lm = []
     # for i in orig_clusts:
@@ -920,9 +930,14 @@ def calc_stability(clusts, other_clusts):
     #                 lm.append(l_res)
     # print("Km {:.2f}, Lm {:.2f}".format(np.mean(km), np.mean(lm)))
 
+def save_results_clusters(filename, sample_names, cluster_labels):
+    with open(filename, 'w') as f:
+        for a, b in zip(sample_names, cluster_labels):
+            f.write("{}, {}\n".format(a, b))
+
 
 def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
-                                 method='single'):
+                                 method='single', sample_names=None):
     """Compute the average silhouette at a given threshold.
 
     Parameters
@@ -945,16 +960,13 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     """
     cluster_labels = fcluster(Z, threshold, 'distance')
     nclusts = np.unique(cluster_labels).shape[0]
-    cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                            'TM_matrix_ID_SUBSET_light_noduplicates.csv',
-                            index_col=0).columns)
-    with open("res_hierarchical_{:03d}_clust.csv".format(nclusts), 'w') as f:
-        for a, b in zip(cols, cluster_labels):
-            f.write("{}, {}\n".format(a, b))
+
+    save_results_clusters("res_hierarchical_{:03d}_clust.csv".format(nclusts),
+                          sample_names, cluster_labels)
 
     # Go, stability!
     # List of ids
-    ids = np.array(cols)
+    ids = np.array(sample_names)
 
     # Create original clusters
     clusters = {}
@@ -1021,7 +1033,7 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
 
 
 def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
-                         method='single', n_jobs=-1):
+                         method='single', n_jobs=-1, sample_names=None):
     """Cut a dendrogram at some heights.
 
     Parameters
@@ -1045,10 +1057,10 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
 
     """
     def _internal(dist_matrix, Z, threshold_arr, idx, n_jobs, arr_length,
-                  queue_x, queue_y, mode='clusters', method='single'):
+                  queue_x, queue_y, mode='clusters', method='single', sample_names=None):
         for i in range(idx, arr_length, n_jobs):
             queue_x[i], queue_y[i] = single_silhouette_dendrogram(
-                dist_matrix, Z, threshold_arr[i], mode, method)
+                dist_matrix, Z, threshold_arr[i], mode, method, sample_names)
 
     if n_jobs == -1:
         n_jobs = min(mp.cpu_count(), n)
@@ -1058,7 +1070,7 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
         for idx in range(n_jobs):
             p = mp.Process(target=_internal,
                            args=(dist_matrix, Z, threshold_arr, idx, n_jobs, n,
-                                 queue_x, queue_y, mode, method))
+                                 queue_x, queue_y, mode, method, sample_names))
             p.start()
             ps.append(p)
 
@@ -1083,7 +1095,8 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
                                        xticks=None,
                                        xlim=None,
                                        figsize=None,
-                                       n_jobs=-1):
+                                       n_jobs=-1,
+                                       sample_names=None):
     """Plot average silhouette for each tree cutting.
 
     A linkage matrix for each method in method_list is used.
@@ -1136,7 +1149,8 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
             max_i = max(Z[:, 2]) if method != 'ward' else np.percentile(Z[:, 2], 99.5)
             threshold_arr *= max_i
 
-        x, y = multi_cut_dendrogram(X, Z, threshold_arr, n, mode, method, n_jobs)
+        x, y = multi_cut_dendrogram(X, Z, threshold_arr, n, mode, method, n_jobs,
+                                    sample_names=sample_names)
         ax.plot(x, y, Tango.nextDark(), marker='o', ms=3, ls='-', label=method)
 
     # fig.tight_layout()
@@ -1167,7 +1181,8 @@ def plot_average_silhouette_dendrogram(X, method_list=None,
     return filename
 
 
-def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1):
+def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1,
+                       sample_names=None):
     """Perform a spectral clustering with variable cluster sizes.
 
     Parameters
@@ -1191,20 +1206,20 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1):
         for i in range(idx, n, n_jobs):
             sp = SpectralClustering(n_clusters=cluster_list[i],
                                     affinity='precomputed',
-                                    norm_laplacian=True)
+                                    norm_laplacian=True,
+                                    n_init=500)
             sp.fit(affinity_matrix)
-            cols = list(pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                                    'TM_matrix_ID_SUBSET_light_noduplicates.csv', index_col=0).columns)
-            with open("res_spectral_{:03d}_clust.csv".format(cluster_list[i]), 'w') as f:
-                for a, b in zip(cols, sp.labels_):
-                    f.write("{}, {}\n".format(a, b))
+
+            save_results_clusters("res_spectral_{:03d}_clust.csv"
+                                  .format(cluster_list[i]),
+                                  sample_names, sp.labels_)
 
             cluster_labels = sp.labels_.copy()
             # nclusts = np.unique(cluster_labels).shape[0]
 
             # Go, stability!
             # List of ids
-            ids = np.array(cols)
+            ids = np.array(sample_names)
 
             # Create original clusters
             clusters = {}
@@ -1212,7 +1227,16 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1):
                 clusters[_] = ids[np.where(cluster_labels == _)]
 
             # clust2 = clusters.copy()
-            calc_stability(clusters, set_subset)
+            # other_clusts = set_subset
+            _aux_i = cluster_list[i]
+            for _aux_i in range(cluster_list[i]-2, cluster_list[i]+2):
+                try:
+                    df = pd.read_csv('res_hierarchical_{:03d}_clust.csv'.format(_aux_i), header=None)
+                except IOError:
+                    continue
+                other_clusts = ([tuple(_df[1][0]) for _df in df.sort_values(1).groupby(1)])
+
+                calc_stability(clusters.copy(), other_clusts)
             # calc_stability(clust2, set_light_chain)
 
             silhouette_list = silhouette_samples(dist_matrix, sp.labels_,
@@ -1249,7 +1273,8 @@ def plot_average_silhouette_spectral(X, n=30,
                                      verbose=True,
                                      interactive_mode=False,
                                      file_format='pdf',
-                                     n_jobs=-1):
+                                     n_jobs=-1,
+                                     sample_names=None):
     """Plot average silhouette for some clusters, using an affinity matrix.
 
     Parameters
@@ -1279,7 +1304,8 @@ def plot_average_silhouette_spectral(X, n=30,
     if max_clust is None:
         max_clust = X.shape[0]
     cluster_list = np.unique(map(int, np.linspace(min_clust, max_clust, n)))
-    y = multi_cut_spectral(cluster_list, A, X, n_jobs=n_jobs)
+    y = multi_cut_spectral(cluster_list, A, X, n_jobs=n_jobs,
+                           sample_names=sample_names)
     ax.plot(cluster_list, y, Tango.next(), marker='o', linestyle='-', label='')
 
     # leg = ax.legend(loc='lower right')
@@ -1316,7 +1342,7 @@ if __name__ == '__main__':
     from icing.plotting import silhouette
 
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                     'TM_matrix_ID_SUBSET_light_noduplicates.csv', index_col=0)
+                     'TM_matrix_id_subset_light_new.csv', index_col=0)
     X = df.as_matrix()
     X = ensure_symmetry(X)
 
