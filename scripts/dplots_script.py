@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import division
+
 import os
 import re
 import numpy as np
@@ -16,17 +18,19 @@ from icing.models import model
 from icing.utils import io
 
 ham_model = model.model_matrix('ham')
+# ham_model['N'] = 1.50  # sara diviso per due
+# ham_model = (ham_model + ham_model.T) / 2
 sym = cl.default_sym
 
 
 def remove_duplicate_junctions(igs_list):
-    igs, juncs = [], set()
+    igs, juncs = [], []
     for ig in igs_list:
         junc = re.sub('[\.-]', 'N', str(ig.junction))
         if junc not in juncs:
             igs.append(ig)
-            juncs.add(junc)
-    return igs, list(juncs)
+            juncs.append(junc)
+    return igs, juncs
 
 
 def _neg_exp(x, a, c, d):
@@ -43,32 +47,44 @@ def alpha_mut(ig1, ig2):
 
 def calcDist(el1, el2):
     # consider ham model
-    dist = distances.string_distance(re.sub('[\.-]', 'N', str(el1.junction)),
-                                     re.sub('[\.-]', 'N', str(el2.junction)),
-                                     ham_model)
-    return dist * alpha_mut(el1, el2)
+    j1, j2 = map(lambda x: re.sub('[\.-]', 'N', str(x.junction)), (el1, el2))
+    dist = distances.string_distance(j1, j2, ham_model, length_constraint=False)
+    # dist = distances.junction_distance(j1, j2, 1, ham_model, 'min', sym, length_constraint=False)
+    # dist2 = distances.single_distance(j1, j2, 1, ham_model, 'min', sym, None, length_constraint=False)
+    # assert dist == dist2
+    # if dist != 1.:
+    #     dist *= alpha_mut(el1, el2)
+    return dist
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
               donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=100,
-              ig1=None, ig2=None):
+              ig1=None, ig2=None, is_intra=True):
     if os.path.exists(fn + '.npy'):
         return fn
     # sample if length is exceeded (for computational costs)
     min_seqs = 100
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
+        print len(juncs1)
         return ''
 
     from sklearn.utils import shuffle
     if len(juncs1) > max_seqs:
         ig1, juncs1 = shuffle(ig1, juncs1)
         ig1 = ig1[:max_seqs]
+        juncs1 = juncs1[:max_seqs]
     if len(juncs2) > max_seqs:
         ig2, juncs2 = shuffle(ig2, juncs2)
         ig2 = ig2[:max_seqs]
+        juncs2 = juncs2[:max_seqs]
 
     print("Computing {}".format(fn))
-    dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, calcDist)
+    if is_intra:
+        dist2nearest = parallel_distance.dnearest_intra_padding(ig1, calcDist)
+        # dist2nearest = parallel_distance.dm_dense_intra_padding(ig1, calcDist)
+
+    else:
+        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, calcDist)
     if not os.path.exists(fn.split('/')[0]):
         os.makedirs(fn.split('/')[0])
     np.save(fn, dist2nearest)
@@ -182,8 +198,9 @@ def all_intra_mut():
              ['/home/fede/Dropbox/projects/davide/new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
               '/home/fede/Dropbox/projects/davide/new_seqs/B5_db-pass.tab_CON-FUN-N.tab']
 
+    inputs = ['/home/fede/Dropbox/projects/davide/simulated_seqs_partis/1580_clones_Davide_db-pass.tab']
     out_files, mut_levels = zip(*jl.Parallel(n_jobs=1)
-                                (jl.delayed(job)(f) for f in inputs))
+                                (jl.delayed(job)(f, max_seqs=4000) for f in inputs))
     out_files = [item for sublist in out_files for item in sublist]
     mut_levels = [item for sublist in mut_levels for item in sublist]
     d = dict()

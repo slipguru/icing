@@ -188,6 +188,8 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
             # shared_arr[i, i:] = [dist_function(l1[i], el2) for el2 in l2]
             for j in range(i+1, n):
                 shared_arr[idx, j] = dist_function(l1[i], l1[j])
+                # if shared_arr[idx, j] == 0:
+                # print l1[i].junction, '\n', l1[j].junction, '\n----------'
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)

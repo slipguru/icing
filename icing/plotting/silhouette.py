@@ -19,7 +19,7 @@ import logging
 import pandas as pd
 
 from scipy.cluster.hierarchy import linkage, fcluster
-from sklearn.cluster import SpectralClustering
+from ..externals.sklearn.cluster import SpectralClustering
 from sklearn.metrics import silhouette_samples  # , silhouette_score
 
 from ..externals import Tango
@@ -239,7 +239,7 @@ def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
     cluster_labels = fcluster(Z, threshold, 'distance')
     nclusts = np.unique(cluster_labels).shape[0]
 
-    save_results_clusters("res_hierarchical_{:03d}_clust.csv".format(nclusts),
+    save_results_clusters("res_{}_{:03d}_clust.csv".format(method, nclusts),
                           sample_names, cluster_labels)
 
     # Go, stability!
@@ -553,7 +553,8 @@ def plot_average_silhouette_spectral(X, n=30,
                                      file_format='pdf',
                                      n_jobs=-1,
                                      sample_names=None,
-                                     affinity_delta=.2):
+                                     affinity_delta=.2,
+                                     is_affinity=False):
     """Plot average silhouette for some clusters, using an affinity matrix.
 
     Parameters
@@ -574,7 +575,7 @@ def plot_average_silhouette_spectral(X, n=30,
         The output filename.
     """
     X = extra.ensure_symmetry(X)
-    A = extra.distance_to_affinity_matrix(X, delta=affinity_delta)
+    A = extra.distance_to_affinity_matrix(X, delta=affinity_delta) if not is_affinity else X
 
     plt.close()
     fig, ax = (plt.gcf(), plt.gca())
@@ -620,8 +621,11 @@ if __name__ == '__main__':
     from icing.utils.extra import ensure_symmetry
     from icing.plotting import silhouette
 
+    # df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
+    #                  'TM_matrix_id_subset_light_new.csv', index_col=0)
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                     'TM_matrix_id_subset_light_new.csv', index_col=0)
+                     'string_kernel/HCDR3_kn2_l0.5.txt', delimiter='\t',
+                     index_col=0)
     X = df.as_matrix()
     X = ensure_symmetry(X)
 

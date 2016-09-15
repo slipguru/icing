@@ -47,7 +47,7 @@ def get_nmers(sequences, n):
     nmers : dictionary
         Dictionary built as: {sequence: [n-mers]}
     """
-    sequences_n = ['N'*((n-1)/2) + seq + 'N'*((n-1)/2) for seq in sequences]
+    sequences_n = ['N'*int((n-1)/2) + seq + 'N'*int((n-1)/2) for seq in sequences]
     nmers = {}
     for seq, seqn in izip(sequences, sequences_n):
         nmers[seq] = [seqn[i:i+n] for i in range(len(seqn)-n+1)]
@@ -233,7 +233,9 @@ def string_distance(seq1, seq2, dist_mat, norm_by=1, tol=3,
 
         if 0 < abs(l1 - l2) <= tol:
             # different lengths, seqs alignment
-            # seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
-            seq1, seq2 = map(extra.junction_re, igalign.alignment(seq1, seq2))
+            seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
+            # print 'befor align:\n', seq1, '\n', seq2, '\n--------------'
+            # seq1, seq2 = map(extra.junction_re, igalign.alignment(seq1, seq2))
+            # print 'after align:\n', seq1, '\n', seq2, '\n--------------'
     norm_by = len(seq1) * np.max(dist_mat.as_matrix())
     return sum([np.mean((float(dist_mat.at[c1, c2]), float(dist_mat.at[c2, c1]))) for c1, c2 in izip(list(seq1), list(seq2))]) / norm_by
