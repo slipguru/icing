@@ -19,9 +19,10 @@ import logging
 import pandas as pd
 
 from scipy.cluster.hierarchy import linkage, fcluster
-from ..externals.sklearn.cluster import SpectralClustering
+# from sklearn.cluster import SpectralClustering
 from sklearn.metrics import silhouette_samples  # , silhouette_score
 
+from ..externals.spectral import SpectralClustering
 from ..externals import Tango
 from ..utils import extra
 
@@ -126,7 +127,7 @@ set_light_chain = sorted([sset_K, sset_L], key=lambda x: len(x), reverse=True)
 
 
 def best_intersection(id_list, cluster_dict):
-    """Compute score between id_list and each list in dict, take the best."""
+    """Compute jaccard index between id_list and each list in dict, take the best."""
     set1 = set(id_list)
     best_score = (0., 0., 0.)  # res, numerator, denominator
     best_set = ()
@@ -363,18 +364,11 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
     return queue_x, queue_y
 
 
-def plot_average_silhouette_dendrogram(X, method_list=None,
-                                       mode='clusters', n=20,
-                                       min_threshold=0.02,
-                                       max_threshold=0.8,
-                                       verbose=True,
-                                       interactive_mode=False,
-                                       file_format='pdf',
-                                       xticks=None,
-                                       xlim=None,
-                                       figsize=None,
-                                       n_jobs=-1,
-                                       sample_names=None):
+def plot_average_silhouette_dendrogram(
+        X, method_list=None, mode='clusters', n=20, min_threshold=0.02,
+        max_threshold=0.8, verbose=True, interactive_mode=False,
+        file_format='pdf', xticks=None, xlim=None, figsize=None, n_jobs=-1,
+        sample_names=None):
     """Plot average silhouette for each tree cutting.
 
     A linkage matrix for each method in method_list is used.
@@ -485,7 +479,7 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1,
             sp = SpectralClustering(n_clusters=cluster_list[i],
                                     affinity='precomputed',
                                     norm_laplacian=True,
-                                    n_init=500)
+                                    n_init=1000)
             sp.fit(affinity_matrix)
 
             save_results_clusters("res_spectral_{:03d}_clust.csv"
@@ -545,16 +539,10 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1,
     return queue_y
 
 
-def plot_average_silhouette_spectral(X, n=30,
-                                     min_clust=10,
-                                     max_clust=None,
-                                     verbose=True,
-                                     interactive_mode=False,
-                                     file_format='pdf',
-                                     n_jobs=-1,
-                                     sample_names=None,
-                                     affinity_delta=.2,
-                                     is_affinity=False):
+def plot_average_silhouette_spectral(
+        X, n=30, min_clust=10, max_clust=None, verbose=True,
+        interactive_mode=False, file_format='pdf', n_jobs=-1,
+        sample_names=None, affinity_delta=.2, is_affinity=False):
     """Plot average silhouette for some clusters, using an affinity matrix.
 
     Parameters
@@ -603,17 +591,17 @@ def plot_average_silhouette_spectral(X, n=30,
     plt.close()
 
     # plot eigenvalues
-    # from adenine.core import plotting
-    # plotting.eigs(
-    #     '', A,
-    #     filename=os.path.join(path, "eigs_spectral_{}.{}"
-    #                                 .format(extra.get_time(), file_format)),
-    #     n_components=50,
-    #     normalised=True,
-    #     rw=True
-    #     )
-    #
-    # return filename
+    from adenine.core import plotting
+    plotting.eigs(
+        '', A,
+        filename=os.path.join(path, "eigs_spectral_{}.{}"
+                                    .format(extra.get_time(), file_format)),
+        n_components=50,
+        normalised=True,
+        rw=True
+        )
+
+    return filename
 
 
 if __name__ == '__main__':
