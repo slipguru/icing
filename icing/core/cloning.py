@@ -21,6 +21,7 @@ from scipy.spatial.distance import squareform
 from sklearn.utils.sparsetools import connected_components
 
 from .distances import string_distance
+from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 from .similarity_scores import similarity_score_tripartite as mwi
 from ..models.model import model_matrix
 from ..utils import extra
@@ -84,11 +85,21 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         # print V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2
         junc1 = extra.junction_re(ig1.junction)
         junc2 = extra.junction_re(ig2.junction)
-        norm_by = min(len(junc1), len(junc2))
-        if model == 'hs1f':
-            norm_by *= 2.08
-        dist = string_distance(junc1, junc2, dist_mat, norm_by, tol=tol)
-        ss *= (1 - dist)
+        # norm_by = min(len(junc1), len(junc2))
+        # if model == 'hs1f':
+        #     norm_by *= 2.08
+        # dist = string_distance(junc1, junc2, dist_mat, norm_by, tol=tol)
+        # ss *= (1 - dist)
+
+        min_kn = 1
+        max_kn = 5
+        lamda = .75
+        normalize = 1
+        ss *= sum_string_kernel(
+                [junc1, junc2],
+                min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
+                normalize=normalize)[0, 1]
+
     # if ss > 0:
     #     ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
     return ss
