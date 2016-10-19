@@ -20,6 +20,7 @@ import pandas as pd
 
 from scipy.cluster.hierarchy import linkage, fcluster
 # from sklearn.cluster import SpectralClustering
+from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_samples  # , silhouette_score
 
 from ..externals.spectral import SpectralClustering
@@ -501,7 +502,7 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1,
             # clust2 = clusters.copy()
             # other_clusts = set_subset
             _aux_i = cluster_list[i]
-            for _aux_i in range(cluster_list[i]-2, cluster_list[i]+2):
+            for _aux_i in range(cluster_list[i] - 2, cluster_list[i] + 2):
                 try:
                     df = pd.read_csv('res_hierarchical_{:03d}_clust.csv'.format(_aux_i), header=None)
                 except IOError:
@@ -599,9 +600,124 @@ def plot_average_silhouette_spectral(
         n_components=50,
         normalised=True,
         rw=True
-        )
+    )
 
     return filename
+
+def multi_cut_ap(preferences, affinity_matrix, dist_matrix, n_jobs=-1,
+                 sample_names=None):
+    """Perform a AP clustering with variable cluster sizes.
+
+    Parameters
+    ----------
+    cluster_list : array-like
+        Contains the list of the number of clusters to use at each step.
+    affinity_matrix : array-like
+        Precomputed affinity matrix.
+    dist_matrix : array-like
+        Precomputed distance matrix between points.
+
+    Returns
+    -------
+    queue_y : array-like
+        Array to be visualised on the y-axis. Contains the list of average
+        silhouette for each number of clusters present in cluster_list.
+
+    """
+    def _internal(preferences, affinity_matrix, dist_matrix,
+                  idx, n_jobs, n, queue_y):
+        for i in range(idx, n, n_jobs):
+            ap = AffinityPropagation(preference=preferences[i],
+                                     affinity='precomputed',
+                                     max_iter=500)
+            ap.fit(affinity_matrix)
+
+            cluster_labels = ap.labels_.copy()
+            nclusts = np.unique(cluster_labels).shape[0]
+            save_results_clusters("res_ap_{:03d}_clust.csv"
+                                  .format(nclusts),
+                                  sample_names, ap.labels_)
+
+            if nclusts > 1:
+                try:
+                    silhouette_list = silhouette_samples(dist_matrix, ap.labels_,
+                                                     metric="precomputed")
+                    queue_y[i] = np.mean(silhouette_list)
+                except:
+                    print(dist_matrix.shape, ap.labels_.shape)
+
+    n = len(preferences)
+    if n_jobs == -1:
+        n_jobs = min(mp.cpu_count(), n)
+    queue_y = mp.Array('d', [0.] * n)
+    ps = []
+    try:
+        for idx in range(n_jobs):
+            p = mp.Process(target=_internal,
+                           args=(preferences, affinity_matrix, dist_matrix,
+                                 idx, n_jobs, n, queue_y))
+            p.start()
+            ps.append(p)
+
+        for p in ps:
+            p.join()
+    except (KeyboardInterrupt, SystemExit):
+        extra._terminate(ps, 'Exit signal received\n')
+    except Exception as e:
+        extra._terminate(ps, 'ERROR: %s\n' % e)
+    except:
+        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+    return queue_y
+
+
+def plot_average_silhouette_ap(
+        X, n=30, verbose=True,
+        interactive_mode=False, file_format='pdf', n_jobs=-1,
+        sample_names=None, affinity_delta=.2, is_affinity=False):
+    """Plot average silhouette for some clusters, using an affinity matrix.
+
+    Parameters
+    ----------
+    X : array-like
+        Symmetric 2-dimensional distance matrix.
+    verbose : boolean, optional
+        How many output messages visualise.
+    interactive_mode : boolean, optional
+        True: final plot will be visualised and saved.
+        False: final plot will be only saved.
+    file_format : ('pdf', 'png')
+        Choose the extension for output images.
+
+    Returns
+    -------
+    filename : str
+        The output filename.
+    """
+    X = extra.ensure_symmetry(X)
+    A = extra.distance_to_affinity_matrix(X, delta=affinity_delta) if not is_affinity else X
+
+    plt.close()
+    fig, ax = (plt.gcf(), plt.gca())
+    fig.suptitle("Average silhouette for each number of clusters")
+
+    # dampings = np.linspace(.5, 1, n+1)[:-1]
+    from sklearn.metrics.pairwise import pairwise_distances
+    S = -pairwise_distances(X, metric='precomputed', squared=True)
+    preferences = np.linspace(np.min(S), np.median(S), n)
+    y = multi_cut_ap(preferences, A, X, n_jobs=n_jobs,
+                     sample_names=sample_names)
+    ax.plot(preferences, y, Tango.next(), marker='o', linestyle='-', label='')
+
+    # leg = ax.legend(loc='lower right')
+    # leg.get_frame().set_linewidth(0.0)
+    ax.set_xlabel("Clusters")
+    ax.set_ylabel("Silhouette")
+    fig.tight_layout()
+    if interactive_mode:
+        plt.show()
+    plt.close()
+
+    return None
 
 
 if __name__ == '__main__':
