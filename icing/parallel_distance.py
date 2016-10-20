@@ -39,7 +39,11 @@ def dnearest_inter_padding(l1, l2, dist_function):
         for i in range(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
-            shared_arr[i] = min((dist_function(l1[i], el2) for el2 in l2))
+            # shared_arr[i] = min((dist_function(l1[i], el2) for el2 in l2))
+            # temp TODO XXX, select only the distances greater than 0
+            shared_arr[i] = min(ii for ii in
+                                (dist_function(l1[i], el2) for el2 in l2)
+                                if ii > 0)
 
     n, m = len(l1), len(l2)
     nprocs = min(mp.cpu_count(), n)

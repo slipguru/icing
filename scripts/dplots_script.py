@@ -15,7 +15,9 @@ from changeo import newDefineClones as cl
 from icing import parallel_distance
 from icing.core import distances
 from icing.models import model
-from icing.utils import io
+from icing.utils import io, extra
+
+from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 
 ham_model = model.model_matrix('ham')
 # ham_model['N'] = 1.50  # sara diviso per due
@@ -46,15 +48,21 @@ def alpha_mut(ig1, ig2):
 
 
 def calcDist(el1, el2):
+    j1 = extra.junction_re(el1.junction)
+    j2 = extra.junction_re(el2.junction)
+
+    return 1. - sum_string_kernel(
+        [j1, j2], min_kn=1, max_kn=5, lamda=.75,
+        verbose=False, normalize=1)[0, 1]
+
     # consider ham model
-    j1, j2 = map(lambda x: re.sub('[\.-]', 'N', str(x.junction)), (el1, el2))
-    dist = distances.string_distance(j1, j2, ham_model, length_constraint=False)
+    # dist = distances.string_distance(j1, j2, ham_model, length_constraint=False)
     # dist = distances.junction_distance(j1, j2, 1, ham_model, 'min', sym, length_constraint=False)
     # dist2 = distances.single_distance(j1, j2, 1, ham_model, 'min', sym, None, length_constraint=False)
     # assert dist == dist2
     # if dist != 1.:
     #     dist *= alpha_mut(el1, el2)
-    return dist
+    # return dist
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
@@ -80,7 +88,9 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
 
     print("Computing {}".format(fn))
     if is_intra:
-        dist2nearest = parallel_distance.dnearest_intra_padding(ig1, calcDist)
+        # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, calcDist)
+        # temp TODO XXX
+        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig1, calcDist)
         # dist2nearest = parallel_distance.dm_dense_intra_padding(ig1, calcDist)
 
     else:
@@ -103,7 +113,7 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     except:
         pass
     plt.ylabel('Count')
-    plt.xticks(np.linspace(0, 1, 21))
+    plt.xticks(np.linspace(0, .5, 21))
     plt.xlabel('Ham distance (normalised)')
     plt.savefig(fn + ".png")
     plt.close()
@@ -178,8 +188,8 @@ def job(f, bins=50, max_seqs=4000):
     out_fles, mut_lvls = [], []
     try:
         max_mut = int(io.get_max_mut(f))
-        sets = [(0, 0)] + [(i - 1, i) for i in range(1, 24)] + \
-               [(23, max_mut + 1)]
+        sets = [(0, 0)]  # + [(i - 1, i) for i in range(1, 24)] + \
+               # [(23, max_mut + 1)]
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(f, i, j, donor=f.split('/')[-1],
                                           bins=bins, max_seqs=max_seqs)
@@ -192,15 +202,20 @@ def job(f, bins=50, max_seqs=4000):
 
 def all_intra_mut():
     """Create histograms and relative mutation levels."""
-    mypath = '/home/fede/Dropbox/projects/davide/new_seqs/new_samples'
-    inputs = [os.path.join(mypath, f) for f in os.listdir(mypath)
-              if os.path.isfile(os.path.join(mypath, f)) and f[0] != '.'] + \
-             ['/home/fede/Dropbox/projects/davide/new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
-              '/home/fede/Dropbox/projects/davide/new_seqs/B5_db-pass.tab_CON-FUN-N.tab']
+    davide = '/home/fede/Dropbox/projects/davide/'
+    samples = davide + 'new_seqs/new_samples'
+    inputs = [os.path.join(samples, f) for f in os.listdir(samples)
+              if os.path.isfile(os.path.join(samples, f)) and f[0] != '.'] + \
+             [davide + 'new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
+              davide + 'new_seqs/B5_db-pass.tab_CON-FUN-N.tab']
 
-    inputs = ['/home/fede/Dropbox/projects/davide/simulated_seqs_partis/1580_clones_Davide_db-pass.tab']
+    # use simulated
+    # inputs = [davide + 'simulated_seqs_partis/1580_clones_Davide_db-pass.tab']
+    inputs = [davide + 'new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
+              davide + 'new_seqs/B5_db-pass.tab_CON-FUN-N.tab'] # XXX
     out_files, mut_levels = zip(*jl.Parallel(n_jobs=1)
-                                (jl.delayed(job)(f, max_seqs=4000) for f in inputs))
+                                (jl.delayed(job)(f, max_seqs=4000)
+                                 for f in inputs))
     out_files = [item for sublist in out_files for item in sublist]
     mut_levels = [item for sublist in mut_levels for item in sublist]
     d = dict()
