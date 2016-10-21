@@ -237,7 +237,7 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
     d_dict = dict()
     for k, v in __my_dict__.iteritems():
         for o in v:
-            print(o)
+            print(o)  # filename
             if not o:
                 continue
             dist2nearest = np.array(np.load("{}.npy".format(o))).reshape(-1, 1)
@@ -248,11 +248,22 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
             dist2nearest_2 = -(np.array(sorted(dist2nearest)).reshape(-1, 1))
             dist2nearest = np.array(list(dist2nearest_2) +
                                     list(dist2nearest)).reshape(-1, 1)
-            gmm = mixture.GMM(n_components=3)
-            gmm.fit(dist2nearest)
 
-            mean = np.max(gmm.means_)
-            sigma = gmm.covars_[np.argmax(gmm.means_)]
+            try:
+                # new sklearn GMM
+                gmm = mixture.GaussianMixture(n_components=3,
+                                              covariance_type='diag')
+                gmm.fit(dist2nearest)
+                mean = np.max(gmm.means_)
+                sigma = gmm.covariances_[np.argmax(gmm.means_)]
+            except AttributeError:
+                # use old sklearn method
+                gmm = mixture.GMM(n_components=3)
+                gmm.fit(dist2nearest)
+
+                mean = np.max(gmm.means_)
+                sigma = gmm.covars_[np.argmax(gmm.means_)]
+
             mut_means.setdefault(k, []).append(mean)
             mut_sigmas.setdefault(k, []).append(sigma)
 
