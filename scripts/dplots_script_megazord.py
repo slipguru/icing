@@ -4,6 +4,7 @@ from __future__ import division
 import os
 import re
 import numpy as np
+import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns; sns.set_context('poster')
 import joblib as jl
@@ -11,7 +12,7 @@ import joblib as jl
 from scipy.optimize import curve_fit
 from sklearn import mixture
 
-from changeo import newDefineClones as cl
+#from changeo import newDefineClones as cl
 from icing import parallel_distance
 from icing.core import distances
 from icing.models import model
@@ -22,7 +23,7 @@ from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 ham_model = model.model_matrix('ham')
 # ham_model['N'] = 1.50  # sara diviso per due
 # ham_model = (ham_model + ham_model.T) / 2
-sym = cl.default_sym
+#sym = cl.default_sym
 
 
 def remove_duplicate_junctions(igs_list):
@@ -50,10 +51,9 @@ def alpha_mut(ig1, ig2):
 def calcDist(el1, el2):
     j1 = extra.junction_re(el1.junction)
     j2 = extra.junction_re(el2.junction)
-
     return 1. - sum_string_kernel(
         [j1, j2], min_kn=1, max_kn=5, lamda=.75,
-        verbose=False, normalize=1)[0, 1]
+        verbose=0, normalize=1)[0, 1]
 
     # consider ham model
     # dist = distances.string_distance(j1, j2, ham_model, length_constraint=False)
@@ -202,17 +202,17 @@ def job(f, bins=50, max_seqs=4000):
 
 def all_intra_mut():
     """Create histograms and relative mutation levels."""
-    davide = '/home/fede/Dropbox/projects/davide/'
-    samples = davide + 'new_seqs/new_samples'
-    inputs = [os.path.join(samples, f) for f in os.listdir(samples)
-              if os.path.isfile(os.path.join(samples, f)) and f[0] != '.'] + \
-             [davide + 'new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
-              davide + 'new_seqs/B5_db-pass.tab_CON-FUN-N.tab']
+    #davide = '/home/fede/Dropbox/projects/davide/'
+    #samples = davide + 'new_seqs/new_samples'
+    #inputs = [os.path.join(samples, f) for f in os.listdir(samples)
+    #          if os.path.isfile(os.path.join(samples, f)) and f[0] != '.'] + \
+    #         [davide + 'new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
+    #          davide + 'new_seqs/B5_db-pass.tab_CON-FUN-N.tab']
 
     # use simulated
     # inputs = [davide + 'simulated_seqs_partis/1580_clones_Davide_db-pass.tab']
-    inputs = [davide + 'new_seqs/B4_db-pass.tab_CON-FUN-N.tab',
-              davide + 'new_seqs/B5_db-pass.tab_CON-FUN-N.tab'] # XXX
+    inputs = ['/home/fede/src/data/B4_db-pass.tab_CON-FUN-N.tab',
+              '/home/fede/src/data/B5_db-pass.tab_CON-FUN-N.tab'] # XXX
     out_files, mut_levels = zip(*jl.Parallel(n_jobs=1)
                                 (jl.delayed(job)(f, max_seqs=4000)
                                  for f in inputs))
