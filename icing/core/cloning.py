@@ -29,20 +29,22 @@ from ..utils import extra
 
 def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
     """Coefficient to balance distance according to mutation levels."""
-    def _neg_exp(x, a, c, d):
-        return a * np.exp(-c * x) + d
-
     try:
-        params_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+        params_folder = os.path.abspath(os.path.join(os.path.dirname(
+            os.path.realpath(__file__)), os.pardir))
         popt = np.load(os.path.join(params_folder, fn))
-        return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
+        # return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
+        return popt
     except:
-        sys.stderr.write("Coefficient file not found. Loading negative exponential...")
-        return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
+        logging.error("Correction coefficient file not found. "
+                      "No correction can be applied for mutation.")
+        # return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
+        return (1, 0, 0)
 
 
 def sim_function(ig1, ig2, method='jaccard', model='ham',
-                 dist_mat=None, tol=3, v_weight=1., j_weight=1.):
+                 dist_mat=None, tol=3, v_weight=1., j_weight=1.,
+                 correction_function=(lambda _: 1)):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
@@ -96,12 +98,13 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         lamda = .75
         normalize = 1
         ss *= sum_string_kernel(
-                [junc1, junc2],
-                min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
-                normalize=normalize)[0, 1]
+            [junc1, junc2],
+            min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
+            normalize=normalize)[0, 1]
 
-    # if ss > 0:
-    #     ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
+    if ss > 0:
+        correction = correction_function(max(ig1.mut, ig2.mut))
+        ss = 1 - ((1 - ss) * max(correction, 0))
     return ss
 
 
@@ -370,8 +373,6 @@ def parallel_sim_matrix(rows, cols, records, n, similarity_function):
         extra._terminate(ps, 'Exit signal received\n')
     except Exception as e:
         extra._terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
 
     return data
 
@@ -404,10 +405,10 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
 
     The reverse index with one core, instead, looks like::
 
-        r_index = dict()
-        for i, ig in enumerate(igs):
-            for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
-            for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
+      r_index = dict()
+      for i, ig in enumerate(igs):
+          for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
+          for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
 
     """
     igs = list(db_iter)

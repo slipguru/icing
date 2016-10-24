@@ -6,14 +6,15 @@ Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
-import sys
 import csv
-import itertools
+import sys
 
-from ..externals.DbCore import IgRecord
+from itertools import ifilter, islice
+from icing.externals.DbCore import IgRecord
 
 
-def read_db(db_file, filt=None, ig=True, dialect='excel-tab'):
+def read_db(db_file, filt=None, ig=True, dialect='excel-tab',
+            max_records=None):
     """Read a database file.
 
     Parameters
@@ -35,8 +36,12 @@ def read_db(db_file, filt=None, ig=True, dialect='excel-tab'):
     try:
         f = open(db_file, 'rb')
         db_reader = csv.DictReader(f, dialect=dialect)
-        db_reader.fieldnames = [n.strip().upper() for n in db_reader.fieldnames]
-        db_iter = itertools.ifilter(filt, (IgRecord({k.upper(): v.upper() for k, v in r.iteritems()}) for r in db_reader)) if ig else db_reader
+        db_reader.fieldnames = \
+            [n.strip().upper() for n in db_reader.fieldnames]
+        db_iter = islice(ifilter(filt, (IgRecord({k.upper(): v.upper()
+                                                  for k, v in r.iteritems()})
+                                        for r in db_reader)),
+                         None, max_records) if ig else db_reader
     except IOError:
         sys.exit('ERROR: File %s cannot be read' % db_file)
     except Exception as e:
@@ -65,7 +70,7 @@ def get_max_mut(db_file, dialect='excel-tab'):
         return max(float(row['MUT']) for row in db_reader)
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % db_file)
-    except:
+    except Exception:
         sys.exit('ERROR:  File %s is invalid' % db_file)
 
 
@@ -92,7 +97,7 @@ def get_num_records(db_file, dialect='excel-tab'):
             db_count = i
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % db_file)
-    except:
+    except Exception:
         sys.exit('ERROR:  File %s is invalid' % db_file)
     return db_count
 
@@ -147,7 +152,7 @@ def load_dm_from_file(filename, index_col=0, header='infer',
             dm = pkl.load(f)
 
     if ensure_symmetry:
-        from .extra import ensure_symmetry
+        from icing.utils.extra import ensure_symmetry
         dm = ensure_symmetry(dm)
 
     return dm

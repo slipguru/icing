@@ -6,15 +6,15 @@ Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
-import sys
-import time
 import datetime
 import fcntl
-import termios
-import struct
-import re
-import os
 import numpy as np
+import os
+import re
+import struct
+import sys
+import termios
+import time
 
 # class Counter(object):
 #     """Counter which contains the lock. Atomic update"""
@@ -34,6 +34,11 @@ import numpy as np
 #     """Yield successive n-sized chunks from l."""
 #     for i in range(0, len(l), n):
 #         yield l[i:i+n]
+
+
+def negative_exponential(x, a, c, d):
+    """Return the value of a negative exponential function."""
+    return a * np.exp(-c * x) + d
 
 
 def ensure_symmetry(X):

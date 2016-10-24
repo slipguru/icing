@@ -13,6 +13,7 @@ import argparse
 import logging
 
 from icing.core.cloning import define_clones
+from icing.core.learning_function import generate_correction_function
 from icing.utils import extra
 from icing.utils import io
 
@@ -29,16 +30,15 @@ def main(config_file):
     extra.set_module_defaults(config, {'subsets': (),
                                        'mutation': (0, 0),
                                        'apply_filter': None,
+                                       'max_records': None,
                                        'dialect': 'excel-tab',
                                        'exp_tag': 'debug',
                                        'output_root_folder': 'results',
                                        'force_silhouette': False,
                                        'sim_func_args': {},
-                                       'threshold': 0.0536})
-
-    db_iter = list(io.read_db(config.db_file, filt=config.apply_filter,
-                              dialect=config.dialect))
-
+                                       'threshold': 0.0536,
+                                       'verbose': False,
+                                       'learning_function_quantity': 0.15})
     # Define logging file
     root = config.output_root_folder
     if not os.path.exists(root):
@@ -50,14 +50,31 @@ def main(config_file):
                         format='%(levelname)s (%(name)s): %(message)s')
     root_logger = logging.getLogger()
     ch = logging.StreamHandler()
-    ch.setLevel(logging.CRITICAL)
+    if config.verbose:
+        ch.setLevel(logging.INFO)
+    else:
+        ch.setLevel(logging.ERROR)
     ch.setFormatter(logging.Formatter('%(levelname)s (%(name)s): %(message)s'))
     root_logger.addHandler(ch)
 
-    outfolder, clone_dict = define_clones(db_iter, exp_tag=filename, root=root,
-                                          force_silhouette=config.force_silhouette,
-                                          sim_func_args=config.sim_func_args,
-                                          threshold=config.threshold)
+    logging.info("Start analysis ...")
+    db_iter = list(io.read_db(config.db_file,
+                              filt=config.apply_filter,
+                              dialect=config.dialect,
+                              max_records=config.max_records))
+    logging.info("Database loaded ({} records)".format(len(db_iter)))
+
+    if config.sim_func_args.pop("correction_function", None) is None:
+        (config.sim_func_args['correction_function'],
+         config.threshold) = \
+            generate_correction_function(
+                config.db_file, config.learning_function_quantity)
+
+    outfolder, clone_dict = define_clones(
+        db_iter, exp_tag=filename, root=root,
+        force_silhouette=config.force_silhouette,
+        sim_func_args=config.sim_func_args,
+        threshold=config.threshold)
 
     # Copy the ade_config just used into the outFolder
     shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
@@ -69,6 +86,8 @@ def main(config_file):
     # shutil.copy(config.db_file, result_db)
 
     io.write_clusters_db(config.db_file, result_db, clone_dict, config.dialect)
+    logging.info("Clusters correctly created and written on file. "
+                 "Now run ici_analysis.py on the results folder.")
 
 
 if __name__ == '__main__':
