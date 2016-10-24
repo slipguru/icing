@@ -65,6 +65,8 @@ def main(config_file):
     logging.info("Database loaded ({} records)".format(len(db_iter)))
 
     if config.sim_func_args.pop("correction_function", None) is None:
+        logging.info("Generate correction function with {}% of records"
+                     .format(config.learning_function_quantity))
         (config.sim_func_args['correction_function'],
          config.threshold) = \
             generate_correction_function(
