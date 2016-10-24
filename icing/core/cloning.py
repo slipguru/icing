@@ -7,14 +7,13 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 """
 from __future__ import print_function
 
-import os
-import sys
-import numpy as np
-import scipy
-import logging
-import multiprocessing as mp
 import cPickle as pkl
 import gzip
+import logging
+import multiprocessing as mp
+import numpy as np
+import os
+import scipy
 
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
@@ -520,8 +519,8 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
 
     cl_filename = output_filename + '_clusters.pkl.tz'
     with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:
-        pkl.dump(clusters, f)
-    logging.info("Dumped clusters: {}"
+        pkl.dump([clusters, threshold], f)
+    logging.info("Dumped clusters and threshold: {}"
                  .format(os.path.join(output_folder, cl_filename)))
 
     clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
