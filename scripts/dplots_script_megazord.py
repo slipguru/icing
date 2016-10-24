@@ -52,7 +52,7 @@ def calcDist(el1, el2):
     j1 = extra.junction_re(el1.junction)
     j2 = extra.junction_re(el2.junction)
     return 1. - sum_string_kernel(
-        [j1, j2], min_kn=1, max_kn=5, lamda=.75,
+        [j1, j2], min_kn=1, max_kn=5, lamda=.9,
         verbose=0, normalize=1)[0, 1]
 
     # consider ham model
