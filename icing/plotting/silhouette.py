@@ -7,17 +7,16 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 """
 from __future__ import print_function, division
 
-import os
-import numpy as np
-import scipy
-import matplotlib; matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import multiprocessing as mp
-import sys; sys.setrecursionlimit(10000)
-import seaborn as sns; sns.set_context('notebook')
 import logging
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import multiprocessing as mp
+import numpy as np
+import os
 import pandas as pd
+import scipy
+import seaborn as sns; sns.set_context('notebook')
+import sys; sys.setrecursionlimit(10000)
 
 from scipy.cluster.hierarchy import linkage, fcluster
 # from sklearn.cluster import SpectralClustering
