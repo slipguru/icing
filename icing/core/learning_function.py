@@ -8,6 +8,8 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 from __future__ import division
 
 import logging
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import os
