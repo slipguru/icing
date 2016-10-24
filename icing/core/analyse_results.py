@@ -5,15 +5,17 @@ Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
-import os
 import logging
+import os
 import seaborn as sns
+import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from scipy.cluster import hierarchy
 
-from ..plotting import silhouette
-from ..utils import extra
+from icing.plotting import silhouette
+from icing.utils import extra
+
 
 def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
             force_silhouette=False, threshold=None):

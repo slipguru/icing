@@ -10,6 +10,7 @@ from __future__ import print_function, division
 import os
 import numpy as np
 import scipy
+import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import multiprocessing as mp
@@ -23,9 +24,9 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_samples  # , silhouette_score
 
-from ..externals.spectral import SpectralClustering
-from ..externals import Tango
-from ..utils import extra
+from icing.externals.spectral import SpectralClustering
+from icing.externals import Tango
+from icing.utils import extra
 
 
 def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
