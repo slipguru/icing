@@ -109,22 +109,22 @@ def plot_clusters_silhouette(X, cluster_labels, n_clusters, root='',
     logging.info('Figured saved {}'.format(filename))
 
 # Prior sets to calculate how good are the clusters
-df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
-                 'TM_matrix_id_subset_light_new_mutation.csv', index_col=0)
-
-sset1 = set([x for x in list(df.columns) if '_1_' in x])
-sset2 = set([x for x in list(df.columns) if '_2_' in x])
-sset4 = set([x for x in list(df.columns) if '_4_' in x])
-sset6 = set([x for x in list(df.columns) if '_6_' in x])
-sset7 = set([x for x in list(df.columns) if '_7_' in x])
-sset8 = set([x for x in list(df.columns) if '_8_' in x])
-sset9 = set([x for x in list(df.columns) if '_9_' in x])
-set_subset = sorted([sset1, sset2, sset4, sset6, sset7, sset8,
-                     sset9], key=lambda x: len(x), reverse=True)
-
-sset_K = set([x for x in list(df.columns) if x.endswith('_K')])
-sset_L = set([x for x in list(df.columns) if x.endswith('_L')])
-set_light_chain = sorted([sset_K, sset_L], key=lambda x: len(x), reverse=True)
+# df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
+#                  'TM_matrix_id_subset_light_new_mutation.csv', index_col=0)
+#
+# sset1 = set([x for x in list(df.columns) if '_1_' in x])
+# sset2 = set([x for x in list(df.columns) if '_2_' in x])
+# sset4 = set([x for x in list(df.columns) if '_4_' in x])
+# sset6 = set([x for x in list(df.columns) if '_6_' in x])
+# sset7 = set([x for x in list(df.columns) if '_7_' in x])
+# sset8 = set([x for x in list(df.columns) if '_8_' in x])
+# sset9 = set([x for x in list(df.columns) if '_9_' in x])
+# set_subset = sorted([sset1, sset2, sset4, sset6, sset7, sset8,
+#                      sset9], key=lambda x: len(x), reverse=True)
+#
+# sset_K = set([x for x in list(df.columns) if x.endswith('_K')])
+# sset_L = set([x for x in list(df.columns) if x.endswith('_L')])
+# set_light_chain = sorted([sset_K, sset_L], key=lambda x: len(x), reverse=True)
 
 
 def best_intersection(id_list, cluster_dict):
