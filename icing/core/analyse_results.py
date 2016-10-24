@@ -43,7 +43,7 @@ def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
                      "matrix dimensions. With a matrix {0}x{0}, you would "
                      "need to allocate {1:.2f}MB in memory. If you know what "
                      "you are doing, specify 'force_silhouette = True' in the "
-                     "config file in {}, then re-execute the analysis.\n"
+                     "config file in {2}, then re-execute the analysis.\n"
                      .format(sm.shape[0], sm.shape[0]**2 * 8 / (2.**20), root))
 
     # Generate dendrogram
