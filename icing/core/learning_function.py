@@ -230,7 +230,7 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
                 # considering naive. Extract optimal threshold
                 plt.hist(dist2nearest, bins=50, normed=True)  # debug, print
                 linspace = np.linspace(-.5, .5, 1000)[:, np.newaxis]
-                plt.plot(linspace, np.exp(gmm.score_samples(linspace)[0]), 'r')
+                #plt.plot(linspace, np.exp(gmm.score_samples(linspace)[0]), 'r')
 
                 lin = np.linspace(0, .5, 10000)[:, np.newaxis]
                 pred = gmm.predict(linspace)
