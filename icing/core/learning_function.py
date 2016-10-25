@@ -8,8 +8,7 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 from __future__ import division
 
 import logging
-import matplotlib
-matplotlib.use("Agg")
+import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -21,7 +20,7 @@ from scipy.optimize import curve_fit
 from sklearn import mixture
 
 from icing import parallel_distance
-# from icing.core import distances
+from icing.core import cloning
 # from icing.models import model
 from icing.utils import io, extra
 
@@ -39,12 +38,13 @@ def remove_duplicate_junctions(igs_list):
 
 
 def calcDist(el1, el2):
-    j1 = extra.junction_re(el1.junction)
-    j2 = extra.junction_re(el2.junction)
-
-    return 1. - sum_string_kernel(
-        [j1, j2], min_kn=1, max_kn=5, lamda=.75,
-        verbose=False, normalize=1)[0, 1]
+    # j1 = extra.junction_re(el1.junction)
+    # j2 = extra.junction_re(el2.junction)
+    #
+    # return 1. - sum_string_kernel(
+    #     [j1, j2], min_kn=1, max_kn=5, lamda=.75,
+    #     verbose=False, normalize=1)[0, 1]
+    return cloning.sim_function(el1, el2, correct=False)
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',

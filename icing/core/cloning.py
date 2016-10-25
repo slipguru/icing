@@ -43,7 +43,7 @@ def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
 
 def sim_function(ig1, ig2, method='jaccard', model='ham',
                  dist_mat=None, tol=3, v_weight=1., j_weight=1.,
-                 correction_function=(lambda _: 1)):
+                 correction_function=(lambda _: 1), correct=True):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
@@ -101,7 +101,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
             min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
             normalize=normalize)[0, 1]
 
-    if ss > 0:
+    if ss > 0 and correct:
         correction = correction_function(max(ig1.mut, ig2.mut))
         ss = 1 - ((1 - ss) * max(correction, 0))
     return ss
