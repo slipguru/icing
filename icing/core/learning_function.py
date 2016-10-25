@@ -20,9 +20,7 @@ from sklearn import mixture
 
 from icing import parallel_distance
 from icing.core import cloning
-# from icing.models import model
 from icing.utils import io, extra
-
 from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 
 
@@ -71,7 +69,7 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     df = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing {}".format(fn))
     if is_intra:
-        # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, calcDist)
+        # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, df)
         # temp TODO XXX
         dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig1, df)
     else:
@@ -242,7 +240,7 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
                 # considering naive. Extract optimal threshold
                 plt.hist(dist2nearest, bins=50, normed=True)  # debug, print
                 linspace = np.linspace(-.5, .5, 1000)[:, np.newaxis]
-                #plt.plot(linspace, np.exp(gmm.score_samples(linspace)[0]), 'r')
+                # plt.plot(linspace, np.exp(gmm.score_samples(linspace)[0]), 'r')
 
                 lin = np.linspace(0, .5, 10000)[:, np.newaxis]
                 pred = gmm.predict(linspace)
