@@ -12,10 +12,9 @@ import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-# import re
 import seaborn as sns; sns.set_context('poster')
-# import joblib as jl
 
+from functools import partial
 from scipy.optimize import curve_fit
 from sklearn import mixture
 
@@ -27,7 +26,7 @@ from icing.utils import io, extra
 from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 
 
-def remove_duplicate_junctions(igs_list):
+def _remove_duplicate_junctions(igs_list):
     igs, juncs = [], []
     for ig in igs_list:
         junc = extra.junction_re(ig.junction)
@@ -37,7 +36,7 @@ def remove_duplicate_junctions(igs_list):
     return igs, juncs
 
 
-def calcDist(el1, el2):
+def _distance(el1, el2):
     # j1 = extra.junction_re(el1.junction)
     # j2 = extra.junction_re(el2.junction)
     #
@@ -49,14 +48,14 @@ def calcDist(el1, el2):
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
               donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=100,
-              ig1=None, ig2=None, is_intra=True):
+              ig1=None, ig2=None, is_intra=True, sim_func_args={}):
     if os.path.exists(fn + '.npy'):
         logging.info(fn + '.npy esists.')
         return fn
-    # sample if length is exceeded (for computational costs)
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
         return ''
 
+    # sample if length is exceeded (for computational costs)
     from sklearn.utils import shuffle
     if len(juncs1) > max_seqs:
         ig1, juncs1 = shuffle(ig1, juncs1)
@@ -67,13 +66,16 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
         ig2 = ig2[:max_seqs]
         juncs2 = juncs2[:max_seqs]
 
+    sim_func_args.setdefault('correct', False)
+    sim_func_args.setdefault('tol', 1000)
+    df = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing {}".format(fn))
     if is_intra:
         # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, calcDist)
         # temp TODO XXX
-        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig1, calcDist)
+        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig1, df)
     else:
-        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, calcDist)
+        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, df)
     if not os.path.exists(fn.split('/')[0]):
         os.makedirs(fn.split('/')[0])
     np.save(fn, dist2nearest)
@@ -101,7 +103,8 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
 
 
 def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
-                         quantity=.15, donor='B4', bins=100, max_seqs=1000):
+                         quantity=.15, donor='B4', bins=100, max_seqs=1000,
+                         sim_func_args={}):
     """Nearest distances intra donor.
 
     Subsets of Igs can be selected choosing two ranges of mutations.
@@ -115,23 +118,30 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
 
     n_tot = io.get_num_records(f)
     if max(lim_mut1[1], lim_mut2[1]) == 0:
-        igs = io.read_db(f, filt=(lambda x: x.mut == 0), max_records=quantity*n_tot)
-        igs1, juncs1 = remove_duplicate_junctions(igs)
+        igs = io.read_db(f, filt=(lambda x: x.mut == 0),
+                         max_records=quantity * n_tot)
+        igs1, juncs1 = _remove_duplicate_junctions(igs)
         juncs2 = juncs1
         igs2 = igs1
     else:
-        igs = io.read_db(f, filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]), max_records=quantity*n_tot)
-        igs1, juncs1 = remove_duplicate_junctions(igs)
-        igs = io.read_db(f, filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]), max_records=quantity*n_tot)
-        igs2, juncs2 = remove_duplicate_junctions(igs)
+        igs = io.read_db(f,
+                         filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]),
+                         max_records=quantity * n_tot)
+        igs1, juncs1 = _remove_duplicate_junctions(igs)
+        igs = io.read_db(f,
+                         filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]),
+                         max_records=quantity * n_tot)
+        igs2, juncs2 = _remove_duplicate_junctions(igs)
 
     return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor,
-                     None, bins, max_seqs, ig1=igs1, ig2=igs2), max(lim_mut1[1], lim_mut2[1])
+                     None, bins, max_seqs, ig1=igs1, ig2=igs2,
+                     sim_func_args=sim_func_args), \
+        max(lim_mut1[1], lim_mut2[1])
 
 
 def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
                          type_ig='Mem', donor1='B4', donor2='B5', bins=100,
-                         max_seqs=1000, quantity=.15):
+                         max_seqs=1000, quantity=.15, sim_func_args={}):
     """Nearest distances inter donors.
 
     Igs involved can be selected by choosing two possibly different ranges
@@ -145,28 +155,29 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
 
     if max(lim_mut1[1], lim_mut2[1]) == 0:
         igs = io.read_db(f1, filt=(lambda x: x.mut == 0))
-        _, juncs1 = remove_duplicate_junctions(igs)
+        _, juncs1 = _remove_duplicate_junctions(igs)
         igs = io.read_db(f2, filt=(lambda x: x.mut == 0))
-        _, juncs2 = remove_duplicate_junctions(igs)
+        _, juncs2 = _remove_duplicate_junctions(igs)
     elif max(lim_mut1[1], lim_mut2[1]) < 0:
         # not specified: get at random
         igs = io.read_db(f1)
-        _, juncs1 = remove_duplicate_junctions(igs)
+        _, juncs1 = _remove_duplicate_junctions(igs)
         igs = io.read_db(f2)
-        _, juncs2 = remove_duplicate_junctions(igs)
+        _, juncs2 = _remove_duplicate_junctions(igs)
     else:
         igs = io.read_db(f1, filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
-        _, juncs1 = remove_duplicate_junctions(igs)
+        _, juncs1 = _remove_duplicate_junctions(igs)
         igs = io.read_db(f2, filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]))
-        _, juncs2 = remove_duplicate_junctions(igs)
+        _, juncs2 = _remove_duplicate_junctions(igs)
 
-    juncs1 = juncs1[:int(quantity*len(juncs1))]
-    juncs2 = juncs2[:int(quantity*len(juncs2))]
+    juncs1 = juncs1[:int(quantity * len(juncs1))]
+    juncs2 = juncs2[:int(quantity * len(juncs2))]
     return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor1,
-                     donor2, bins, max_seqs), max(lim_mut1[1], lim_mut2[1])
+                     donor2, bins, max_seqs, sim_func_args=sim_func_args), \
+        max(lim_mut1[1], lim_mut2[1])
 
 
-def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000):
+def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, sim_func_args={}):
     """Create histograms and relative mutation levels."""
     logging.info("Analysing {} ...".format(db))
     out_fles, mut_lvls = [], []
@@ -176,7 +187,8 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000):
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(db, i, j, quantity=quantity,
                                           donor=db.split('/')[-1],
-                                          bins=bins, max_seqs=max_seqs)
+                                          bins=bins, max_seqs=max_seqs,
+                                          sim_func_args=sim_func_args)
             out_fles.append(o)
             mut_lvls.append(mut)
     except Exception as e:
@@ -284,7 +296,8 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
     return popt, threshold_naive
 
 
-def generate_correction_function(db, quantity):
+def generate_correction_function(db, quantity, sim_func_args={}):
+    """Generate correction function on the databse analysed."""
     db_no_ext = ".".join(db.split(".")[:-1])
     filename = db_no_ext + "_correction_function"
 
@@ -296,8 +309,9 @@ def generate_correction_function(db, quantity):
 
     # case 2: file not exists
     else:
-        out_files, mut_levels, __my_dict__ = all_intra_mut(db, quantity=quantity)
-        popt, threshold_naive = create_alpha_plot(out_files, mut_levels, __my_dict__)
+        files, muts, my_dict = all_intra_mut(db, quantity=quantity,
+                                             sim_func_args=sim_func_args)
+        popt, threshold_naive = create_alpha_plot(files, muts, my_dict)
 
         # save for later, in case of analysis on the same db
         np.save(filename, popt)
