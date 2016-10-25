@@ -45,7 +45,7 @@ def main(config_file):
         os.makedirs(root)
 
     filename = '_'.join(('icing', config.exp_tag, extra.get_time()))
-    logfile = os.path.join(root, filename+'.log')
+    logfile = os.path.join(root, filename + '.log')
     logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w',
                         format='%(levelname)s (%(name)s): %(message)s')
     root_logger = logging.getLogger()
@@ -70,7 +70,8 @@ def main(config_file):
         (config.sim_func_args['correction_function'],
          config.threshold) = \
             generate_correction_function(
-                config.db_file, config.learning_function_quantity)
+                config.db_file, quantity=config.learning_function_quantity,
+                sim_func_args=config.sim_func_args)
 
     outfolder, clone_dict = define_clones(
         db_iter, exp_tag=filename, root=root,

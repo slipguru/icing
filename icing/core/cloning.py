@@ -495,7 +495,7 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
     """Run the pipeline of icing."""
     if not os.path.exists(root):
         if root is None:
-            root = 'results_'+exp_tag+extra.get_time()
+            root = 'results_' + exp_tag + extra.get_time()
         os.makedirs(root)
         logging.warn("No root folder supplied, folder {} "
                      "created".format(os.path.abspath(root)))
