@@ -44,7 +44,7 @@ def calcDist(el1, el2):
     # return 1. - sum_string_kernel(
     #     [j1, j2], min_kn=1, max_kn=5, lamda=.75,
     #     verbose=False, normalize=1)[0, 1]
-    return cloning.sim_function(el1, el2, correct=False)
+    return cloning.sim_function(el1, el2, correct=False, tol=1000)
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
