@@ -46,7 +46,7 @@ def _distance(el1, el2):
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
               donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=100,
-              ig1=None, ig2=None, is_intra=True, sim_func_args={}):
+              ig1=None, ig2=None, is_intra=True, sim_func_args=None):
     if os.path.exists(fn + '.npy'):
         logging.info(fn + '.npy esists.')
         return fn
@@ -67,7 +67,7 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     sim_func_args.setdefault('correct', False)
     sim_func_args.setdefault('tol', 1000)
     df = partial(cloning.sim_function, **sim_func_args)
-    logging.info("Computing {}".format(fn))
+    logging.info("Computing %s", fn)
     if is_intra:
         # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, df)
         # temp TODO XXX
@@ -92,7 +92,8 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     except Exception:
         pass
     plt.ylabel('Count')
-    plt.xticks(np.linspace(0, .5, 21))
+    plt.xlim([0, .5])
+    plt.xticks(np.linspace(0, .5, 11))
     plt.xlabel('Ham distance (normalised)')
     plt.savefig(fn + ".png")
     plt.close()
@@ -102,16 +103,16 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
 
 def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
                          quantity=.15, donor='B4', bins=100, max_seqs=1000,
-                         sim_func_args={}):
+                         min_seqs=100, sim_func_args=None):
     """Nearest distances intra donor.
 
     Subsets of Igs can be selected choosing two ranges of mutations.
     """
-    fn = "{0}/dist2nearest_{0}_{2}-{3}_vs_{4}-{5}_{6}bins_norm_{7}maxseqs" \
-         .format(donor, type_ig.lower(), lim_mut1[0], lim_mut1[1], lim_mut2[0],
+    fn = "{0}/dist2nearest_{0}_{1}-{2}_vs_{3}-{4}_{5}bins_norm_{6}maxseqs" \
+         .format(donor, lim_mut1[0], lim_mut1[1], lim_mut2[0],
                  lim_mut2[1], bins, max_seqs)
     if os.path.exists(fn + '.npy'):
-        logging.info("File {} exists.".format(fn + '.npy'))
+        logging.info("File %s exists.", fn + '.npy')
         return fn, max(lim_mut1[1], lim_mut2[1])
 
     n_tot = io.get_num_records(f)
@@ -132,14 +133,14 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
         igs2, juncs2 = _remove_duplicate_junctions(igs)
 
     return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor,
-                     None, bins, max_seqs, ig1=igs1, ig2=igs2,
+                     None, bins, max_seqs, min_seqs, ig1=igs1, ig2=igs2,
                      sim_func_args=sim_func_args), \
         max(lim_mut1[1], lim_mut2[1])
 
 
 def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
                          type_ig='Mem', donor1='B4', donor2='B5', bins=100,
-                         max_seqs=1000, quantity=.15, sim_func_args={}):
+                         max_seqs=1000, quantity=.15, sim_func_args=None):
     """Nearest distances inter donors.
 
     Igs involved can be selected by choosing two possibly different ranges
@@ -175,17 +176,22 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
         max(lim_mut1[1], lim_mut2[1])
 
 
-def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, sim_func_args={}):
+def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
+                  sim_func_args=None):
     """Create histograms and relative mutation levels."""
-    logging.info("Analysing {} ...".format(db))
+    logging.info("Analysing %s ...", db)
     out_fles, mut_lvls = [], []
     try:
         max_mut = int(io.get_max_mut(db))
-        sets = [(0, 0)] + [(i - 1, i) for i in range(1, max_mut + 1)]
+        # sets = [(0, 0)] + [(i - 1, i) for i in range(1, max_mut + 1)]
+        step = .4
+        sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
+                              np.arange(step, max_mut + step, step))
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(db, i, j, quantity=quantity,
                                           donor=db.split('/')[-1],
                                           bins=bins, max_seqs=max_seqs,
+                                          min_seqs=min_seqs,
                                           sim_func_args=sim_func_args)
             out_fles.append(o)
             mut_lvls.append(mut)
@@ -271,10 +277,10 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
         e.append(np.var(v))
 
     if x[0] != 0:
-        logging.warn("{} should be 0. Normalising factor is not given by "
-                     "mu naive".format(x[0]))
+        logging.warn("%i should be 0. Normalising factor is not given by "
+                     "mu naive", x[0])
     x, y = np.array(x), np.array(y)
-    popt, pcov = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
+    popt, _ = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
 
     xp = np.linspace(0, 50, 1000)
     # plt.plot(x, y, linestyle=' ', marker='o', label='data')
@@ -285,22 +291,23 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
                  label=r'$\alpha$ (neg exp)', lw=2.5)
         plt.ylabel(r'$\mu$ Naive / $\mu$ Mem')
         plt.xlabel(r'Igs mutation level')
-        plt.ylim([0., 1.])
+        plt.ylim([0., 2.])
         plt.xlim([0, 50])
         plt.legend(loc='lower left')
-        plt.savefig("alpha_mut_plot_poster_notitle_dpi.pdf", transparent=True)
+        plt.savefig("alpha_mut_plot.pdf", transparent=True)
         plt.close()
 
     return popt, threshold_naive
 
 
-def generate_correction_function(db, quantity, sim_func_args={}):
+def generate_correction_function(db, quantity, sim_func_args=None):
     """Generate correction function on the databse analysed."""
     db_no_ext = ".".join(db.split(".")[:-1])
     filename = db_no_ext + "_correction_function"
 
     # case 1: file exists
-    if os.path.exists(filename + ".npy") and os.path.exists("threshold_naive.npy"):
+    if os.path.exists(filename + ".npy") and os.path.exists(
+            "threshold_naive.npy"):
         logging.info("Best parameters exists. Loading them ...")
         popt = np.load(filename + ".npy")
         threshold_naive = np.load("threshold_naive.npy")
@@ -308,13 +315,13 @@ def generate_correction_function(db, quantity, sim_func_args={}):
     # case 2: file not exists
     else:
         files, muts, my_dict = all_intra_mut(db, quantity=quantity,
+                                             min_seqs=4,
                                              sim_func_args=sim_func_args)
         popt, threshold_naive = create_alpha_plot(files, muts, my_dict)
 
         # save for later, in case of analysis on the same db
         np.save(filename, popt)
 
-    from functools import partial
     return (
         partial(extra.negative_exponential, a=popt[0], c=popt[1], d=popt[2]),
         threshold_naive)
