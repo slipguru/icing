@@ -15,6 +15,7 @@ import numpy as np
 import os
 import scipy
 
+from functools import partial
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
@@ -417,7 +418,6 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
 
     dd = inverse_index(igs)
 
-    from functools import partial
     default_model = 'ham'
     default_method = 'jaccard'
     sim_func_args.setdefault('model', default_model)
@@ -433,7 +433,10 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
 
     # tic = time.time()
     # data, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
+
+    logging.info("Start similar_elements_parallel function ...")
     _, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
+    logging.info("Start parallel_sim_matrix function ...")
     data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
     # print(time.time()-tic)
 
@@ -535,6 +538,7 @@ def define_clones(db_iter, exp_tag='debug', root=None,
     logging.info("Dumped similarity matrix: %s",
                  os.path.join(output_folder, sm_filename))
 
+    logging.info("Start define_clusts function ...")
     clusters = define_clusts(similarity_matrix, threshold=threshold)
     logging.critical("Number of clones: %i, threshold %.3f",
                      np.max(clusters), threshold)
