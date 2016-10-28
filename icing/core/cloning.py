@@ -17,6 +17,7 @@ import scipy
 
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
+from sklearn.cluster import DBSCAN
 from sklearn.utils.sparsetools import connected_components
 
 from .distances import string_distance
@@ -34,7 +35,7 @@ def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
         popt = np.load(os.path.join(params_folder, fn))
         # return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
         return popt
-    except:
+    except Exception:
         logging.error("Correction coefficient file not found. "
                       "No correction can be applied for mutation.")
         # return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
@@ -99,12 +100,13 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         ss *= sum_string_kernel(
             [junc1, junc2],
             min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
-            normalize=normalize)[0, 1]
+            normalize=normalize, return_float=1)
 
     if ss > 0 and correct:
         correction = correction_function(max(ig1.mut, ig2.mut))
-        ss = 1 - ((1 - ss) * max(correction, 0))
-    return ss
+        # ss = 1 - ((1 - ss) * max(correction, 0))
+        ss = 1 - ((1 - ss) * correction)
+    return min(max(ss, 0), 1)
 
 
 def inverse_index(records):
@@ -472,33 +474,51 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
 
 def define_clusts(similarity_matrix, threshold):
     """Define clusters given the similarity matrix and the threshold."""
-    n, labels = connected_components(similarity_matrix)
+    n, labels = connected_components(similarity_matrix, directed=False)
     prev_max_clust = 0
     clusters = labels.copy()
     for i in range(n):
-        idxs = np.where(labels == i)
-        if idxs[0].shape[0] > 1:
-            dm = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
-            links = linkage(squareform(dm), method='single')
-            clusters_ = fcluster(links, threshold,
-                                 criterion='distance') + prev_max_clust
-            clusters[idxs[0]] = clusters_
+        idxs = np.where(labels == i)[0]
+        if idxs.shape[0] > 1:
+            dm = 1. - similarity_matrix[idxs][:,  idxs].toarray()
+
+            # # Hierarchical clustering
+            # links = linkage((dm), method='ward')
+            # clusters_ = fcluster(links, threshold, 'distance')
+
+            # DBSCAN
+            db = DBSCAN(eps=.3, min_samples=1).fit(dm)
+            clusters_ = db.labels_ + 1
+
+            # # Number of clusters in labels, ignoring noise if present.
+            # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
+            # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
+
+            clusters_ += prev_max_clust
+            clusters[idxs] = clusters_
             prev_max_clust = max(clusters_)
         else:  # connected component contains just 1 element
             prev_max_clust += 1
-            clusters[idxs[0]] = prev_max_clust
+            clusters[idxs] = prev_max_clust
     return np.array(extra.flatten(clusters))
 
+# def define_clusts_(similarity_matrix, threshold):
+#     """Define clusters given the similarity matrix and the threshold."""
+#     dm = 1. - similarity_matrix.toarray()
+#     links = linkage((dm), method='ward')
+#     clusters = fcluster(links, threshold,   'distance')
+#     return np.array(extra.flatten(clusters))
 
-def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
-                  sim_func_args={}, threshold=0.05):
+
+def define_clones(db_iter, exp_tag='debug', root=None,
+                  sim_func_args=None, threshold=0.05):
     """Run the pipeline of icing."""
     if not os.path.exists(root):
         if root is None:
             root = 'results_' + exp_tag + extra.get_time()
         os.makedirs(root)
-        logging.warn("No root folder supplied, folder {} "
-                     "created".format(os.path.abspath(root)))
+        logging.warn("No root folder supplied, folder %s "
+                     "created", os.path.abspath(root))
 
     similarity_matrix = compute_similarity_matrix(db_iter, sparse_mode=True,
                                                   **sim_func_args)
@@ -512,16 +532,18 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
     sm_filename = output_filename + '_similarity_matrix.pkl.tz'
     with gzip.open(os.path.join(output_folder, sm_filename), 'w+') as f:
         pkl.dump(similarity_matrix, f)
-    logging.info("Dumped similarity matrix: {}"
-                 .format(os.path.join(output_folder, sm_filename)))
+    logging.info("Dumped similarity matrix: %s",
+                 os.path.join(output_folder, sm_filename))
 
     clusters = define_clusts(similarity_matrix, threshold=threshold)
+    logging.critical("Number of clones: %i, threshold %.3f",
+                     np.max(clusters), threshold)
 
     cl_filename = output_filename + '_clusters.pkl.tz'
     with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:
         pkl.dump([clusters, threshold], f)
-    logging.info("Dumped clusters and threshold: {}"
-                 .format(os.path.join(output_folder, cl_filename)))
+    logging.info("Dumped clusters and threshold: %s",
+                 os.path.join(output_folder, cl_filename))
 
     clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
     return output_folder, clone_dict
