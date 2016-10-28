@@ -41,12 +41,13 @@ def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
                                             max(labels), root=root,
                                             file_format=file_format)
     else:
-        logging.warn("Silhouette analysis is not performed due to the "
-                     "matrix dimensions. With a matrix {0}x{0}, you would "
-                     "need to allocate {1:.2f}MB in memory. If you know what "
-                     "you are doing, specify 'force_silhouette = True' in the "
-                     "config file in {2}, then re-execute the analysis.\n"
-                     .format(sm.shape[0], sm.shape[0]**2 * 8 / (2.**20), root))
+        logging.warn(
+            "Silhouette analysis is not performed due to the "
+            "matrix dimensions. With a matrix %ix%i, you would need to "
+            "allocate %.2fMB in memory. If you know what you are doing, "
+            "specify 'force_silhouette = True' in the config file in %s, "
+            "then re-execute the analysis.\n", sm.shape[0], sm.shape[0],
+            sm.shape[0]**2 * 8 / (2.**20), root)
 
     # Generate dendrogram
     import scipy.spatial.distance as ssd
@@ -62,4 +63,11 @@ def analyse(sm, labels, root='', plotting_context=None, file_format='pdf',
     filename = os.path.join(root, 'dendrogram_{}.{}'
                                   .format(extra.get_time(), file_format))
     fig.savefig(filename)
-    logging.info('Figured saved {}'.format(filename))
+    logging.info('Figured saved %s', filename)
+
+    plt.close()
+    fig, (ax) = plt.subplots(1, 1)
+    fig.set_size_inches(20, 15)
+    plt.hist(1. - sm.toarray(), bins=50, normed=False)
+    plt.ylim([0, 10])
+    fig.savefig(filename + "_histogram_distances.pdf")
