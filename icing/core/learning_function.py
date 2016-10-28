@@ -5,7 +5,7 @@ Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
-from __future__ import division
+from __future__ import division, print_function
 
 import logging
 import matplotlib; matplotlib.use("Agg")
@@ -51,6 +51,8 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
         logging.info(fn + '.npy esists.')
         return fn
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
+        # print("only {} few seqs for {} mut"
+        #       .format(len(juncs1), max(lim_mut1[1], lim_mut2[1])))
         return ''
 
     # sample if length is exceeded (for computational costs)
@@ -184,9 +186,11 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
     try:
         max_mut = int(io.get_max_mut(db))
         # sets = [(0, 0)] + [(i - 1, i) for i in range(1, max_mut + 1)]
-        step = .4
-        sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
-                              np.arange(step, max_mut + step, step))
+        # sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
+        #                       np.arange(step, max_mut + step, step))
+        lin = np.linspace(0, max_mut, 11)
+        sets = [(0, 0)] + zip(lin[:-1], lin[1:])
+
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(db, i, j, quantity=quantity,
                                           donor=db.split('/')[-1],
@@ -204,17 +208,19 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
     return out_fles, mut_lvls, d
 
 
-def create_alpha_plot(out_files, mut_levels, __my_dict__):
-    sigmas = []
-    muts = []
-    mut_means = dict()
-    mut_sigmas = dict()
+def create_alpha_plot(files, mut_levels, my_dict):
     d_dict = dict()
-    for k, v in __my_dict__.iteritems():
+    print("mydict:", my_dict)
+
+    means, samples, mutations, thresholds, medians = [], [], [], [], []
+    for k, v in my_dict.iteritems():
         for o in v:
             if not o:
                 continue
             dist2nearest = np.array(np.load("{}.npy".format(o))).reshape(-1, 1)
+            medians.append(np.median(dist2nearest))
+            mean = np.median(dist2nearest)
+
             if dist2nearest.shape[0] < 2:
                 logging.error("Cannot fit a Gaussian with two distances.")
                 continue
@@ -228,76 +234,75 @@ def create_alpha_plot(out_files, mut_levels, __my_dict__):
                 gmm = mixture.GaussianMixture(n_components=3,
                                               covariance_type='diag')
                 gmm.fit(dist2nearest)
-                mean = np.max(gmm.means_)
-                sigma = gmm.covariances_[np.argmax(gmm.means_)]
+                # gmmmean = np.max(gmm.means_)
+                # gmmsigma = gmm.covariances_[np.argmax(gmm.means_)]
             except AttributeError:
                 # use old sklearn method
                 gmm = mixture.GMM(n_components=3)
                 gmm.fit(dist2nearest)
+                # gmmmean = np.max(gmm.means_)
+                # gmmsigma = gmm.covars_[np.argmax(gmm.means_)]
 
-                mean = np.max(gmm.means_)
-                sigma = gmm.covars_[np.argmax(gmm.means_)]
+            # Extract optimal threshold
+            plt.hist(dist2nearest, bins=50, normed=True)  # debug, print
 
-            mut_means.setdefault(k, []).append(mean)
-            mut_sigmas.setdefault(k, []).append(sigma)
+            lin = np.linspace(0, 1, 10000)[:, np.newaxis]
+            # plt.plot(lin, np.exp(gmm.score_samples(lin)[0]), 'r')
+            pred = gmm.predict(lin)
+            try:
+                idx = np.min(np.where(pred == np.argmax(gmm.means_))[0])
+            except ValueError:
+                print("Error", np.unique(pred))
 
-            # mut = mut_levels[i]
-            if '0-0' in o:
-                # considering naive. Extract optimal threshold
-                plt.hist(dist2nearest, bins=50, normed=True)  # debug, print
-                linspace = np.linspace(-.5, .5, 1000)[:, np.newaxis]
-                # plt.plot(linspace, np.exp(gmm.score_samples(linspace)[0]), 'r')
+            plt.axvline(x=lin[idx], linestyle='--', color='r')
+            plt.gcf().savefig("threshold_naive{}.png".format(k))
+            plt.close()
+            threshold = lin[idx][0]  # threshold
+            np.save("threshold_naive", threshold)
 
-                lin = np.linspace(0, .5, 10000)[:, np.newaxis]
-                pred = gmm.predict(linspace)
-                argmax = np.argmax(gmm.means_)
-                idx = np.min(np.where(pred == argmax)[0])
-                plt.axvline(x=lin[idx], linestyle='--', color='r')
-                plt.gcf().savefig("threshold_naive.pdf")
-                threshold_naive = lin[idx]  # threshold
-                np.save("threshold_naive", threshold_naive)
-
-            # mut_level_mem.append(mut)
-            sigmas.append(sigma)
-            muts.append(k)
+            means.append(mean)
+            samples.append(dist2nearest.shape[0])
+            mutations.append(k)
+            thresholds.append(threshold)
             d_dict.setdefault(o.split('/')[0], dict()).setdefault(k, mean)
 
-    norm_dict = dict()
-    for k, v in d_dict.iteritems():
-        mu_mut_0 = float(v.get(0, -1))
-        if mu_mut_0 > -1:
-            for l, z in v.iteritems():
-                z = mu_mut_0 / z
-                norm_dict.setdefault(l, []).append(z)
+    print(d_dict)
+    for k, v in d_dict.iteritems():  # there is only one
+        keys = np.array(sorted([x for x in v]))
+        print(type(keys[0]))
+        mean_values = np.array([np.mean(v[x]) for x in keys])
+        errors = np.array([np.var(v[x]) for x in keys])
 
-    x, y, e = [], [], []
-    for k, v in norm_dict.iteritems():
-        x.append(k)
-        y.append(np.mean(v))
-        e.append(np.var(v))
+    means, samples, mutations, thresholds = \
+        map(np.array, (means, samples, mutations, thresholds))
 
-    if x[0] != 0:
-        logging.warn("%i should be 0. Normalising factor is not given by "
-                     "mu naive", x[0])
-    x, y = np.array(x), np.array(y)
-    popt, _ = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
+    idxs = np.array(samples).argsort()[-3:][::-1]
+    idx = idxs[0]
+    if thresholds[idx] == 0:
+        idx = idxs[1]
+    x, y = keys, means[idx] - mean_values
+    # popt, _ = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
 
-    xp = np.linspace(0, 50, 1000)
-    # plt.plot(x, y, linestyle=' ', marker='o', label='data')
+    xp = np.linspace(np.min(x), np.max(x), 1000)
+    order = 3
+    p4 = np.poly1d(np.polyfit(x, y, order))
     with sns.axes_style('whitegrid'):
         plt.figure()
-        plt.errorbar(x, y, e, label='data')
-        plt.plot(xp, extra.negative_exponential(xp, *popt), '-',
-                 label=r'$\alpha$ (neg exp)', lw=2.5)
-        plt.ylabel(r'$\mu$ Naive / $\mu$ Mem')
+        plt.errorbar(x, y, errors, label='data')
+        plt.plot(xp, p4(xp), '-', label='order '+str(order))
+        # plt.plot(xp, extra.negative_exponential(xp, *popt), '-',
+        #          label=r'$\alpha$ (neg exp)', lw=2.5)
+        # # plt.ylabel(r'$\mu$ Naive / $\mu$ Mem')
         plt.xlabel(r'Igs mutation level')
-        plt.ylim([0., 2.])
-        plt.xlim([0, 50])
+        # plt.ylim([0., 2.])
+        # plt.xlim([0, 50])
         plt.legend(loc='lower left')
         plt.savefig("alpha_mut_plot.pdf", transparent=True)
         plt.close()
 
-    return popt, threshold_naive
+    # return popt, threshold_naive
+    # return [0, 0, 0], 0
+    return p4, thresholds[idx]
 
 
 def generate_correction_function(db, quantity, sim_func_args=None):
@@ -318,10 +323,10 @@ def generate_correction_function(db, quantity, sim_func_args=None):
                                              min_seqs=4,
                                              sim_func_args=sim_func_args)
         popt, threshold_naive = create_alpha_plot(files, muts, my_dict)
-
         # save for later, in case of analysis on the same db
-        np.save(filename, popt)
+        # np.save(filename, popt)  # TODO
 
     return (
-        partial(extra.negative_exponential, a=popt[0], c=popt[1], d=popt[2]),
+        # partial(extra.negative_exponential, a=popt[0], c=popt[1], d=popt[2]),
+        popt,
         threshold_naive)
