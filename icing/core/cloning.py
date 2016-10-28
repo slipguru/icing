@@ -19,6 +19,7 @@ from functools import partial
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
+from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
 
 from .distances import string_distance
@@ -490,7 +491,10 @@ def define_clusts(similarity_matrix, threshold):
             # clusters_ = fcluster(links, threshold, 'distance')
 
             # DBSCAN
-            db = DBSCAN(eps=.3, min_samples=1).fit(dm)
+            # db = DBSCAN(eps=threshold, min_samples=1,
+            #             metric='precomputed').fit(dm)
+            db = AffinityPropagation(affinity='precomputed') \
+                .fit(similarity_matrix[idxs][:,  idxs].toarray())
             clusters_ = db.labels_ + 1
 
             # # Number of clusters in labels, ignoring noise if present.
