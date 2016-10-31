@@ -109,7 +109,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         correction = correction_function(max(ig1.mut, ig2.mut))
         # ss = 1 - ((1 - ss) * max(correction, 0))
         # ss = 1 - ((1 - ss) * correction)
-        ss += (1. - correction)
+        ss *= (1. - correction)
     # return min(max(ss, 0), 1)
     return max(ss, 0)
 
