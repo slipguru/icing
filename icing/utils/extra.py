@@ -15,7 +15,7 @@ import sys
 import termios
 import time
 
-from datetime.datetime import fromtimestamp
+from datetime import datetime
 
 # class Counter(object):
 #     """Counter which contains the lock. Atomic update"""
@@ -174,7 +174,7 @@ def get_time_from_seconds(seconds):
 
 def get_time():
     """Get current seconds and return them as a formatted string."""
-    return fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
+    return datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
 
 
 def mkpath(path):

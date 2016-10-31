@@ -66,8 +66,8 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
         ig2 = ig2[:max_seqs]
         juncs2 = juncs2[:max_seqs]
 
-    sim_func_args.setdefault('correct', False)
-    sim_func_args.setdefault('tol', 1000)
+    sim_func_args['correct'] = False
+    sim_func_args['tol'] = 1000
     df = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing %s", fn)
     if is_intra:
@@ -185,11 +185,11 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
     out_fles, mut_lvls = [], []
     try:
         max_mut = int(io.get_max_mut(db))
-        # sets = [(0, 0)] + [(i - 1, i) for i in range(1, max_mut + 1)]
+        sets = [(0, 0)] + [(i - 1, i) for i in range(1, max_mut + 1)]
         # sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
         #                       np.arange(step, max_mut + step, step))
-        lin = np.linspace(0, max_mut, 11)
-        sets = [(0, 0)] + zip(lin[:-1], lin[1:])
+        # lin = np.linspace(0, max_mut, 11)
+        # sets = [(0, 0)] + zip(lin[:-1], lin[1:])
 
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(db, i, j, quantity=quantity,
@@ -312,13 +312,12 @@ def create_alpha_plot(files, mut_levels, my_dict):
 def generate_correction_function(db, quantity, sim_func_args=None):
     """Generate correction function on the databse analysed."""
     db_no_ext = ".".join(db.split(".")[:-1])
-    filename = db_no_ext + "_correction_function"
+    filename = db_no_ext + "_correction_function.npy"
 
     # case 1: file exists
-    if os.path.exists(filename + ".npy") and os.path.exists(
-            "threshold_naive.npy"):
+    if os.path.exists(filename) and os.path.exists("threshold_naive.npy"):
         logging.info("Best parameters exists. Loading them ...")
-        popt = np.load(filename + ".npy")
+        popt = np.load(filename)
         threshold_naive = np.load("threshold_naive.npy")
 
     # case 2: file not exists
@@ -329,7 +328,5 @@ def generate_correction_function(db, quantity, sim_func_args=None):
         # save for later, in case of analysis on the same db
         # np.save(filename, popt)  # TODO
 
-    return (
-        # partial(extra.negative_exponential, a=popt[0], c=popt[1], d=popt[2]),
-        popt,
-        threshold_naive)
+    # partial(extra.negative_exponential, a=popt[0], c=popt[1], d=popt[2]),
+    return (popt, threshold_naive)
