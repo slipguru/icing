@@ -288,12 +288,12 @@ def create_alpha_plot(files, mut_levels, my_dict):
 
     order = 3
     p3 = np.poly1d(np.polyfit(x, y, order))
-    p2 = np.poly1d(np.polyfit(x, y, 1))
+    p2 = np.poly1d(np.polyfit(x, y, 2))
     with sns.axes_style('whitegrid'):
         plt.figure()
         plt.errorbar(x, y, errors, label='data')
         plt.plot(xp, p3(xp), '-', label='order ' + str(order))
-        plt.plot(xp, p2(xp), '-', label='order 1')
+        plt.plot(xp, p2(xp), '-', label='order 2')
         # plt.plot(xp, extra.negative_exponential(xp, *popt), '-',
         #          label=r'$\alpha$ (neg exp)', lw=2.5)
         # # plt.ylabel(r'$\mu$ Naive / $\mu$ Mem')
