@@ -97,14 +97,14 @@ def main(config_file):
     logging.info("Clusters correctly created and written on file. "
                  "Now run ici_analysis.py on the results folder.")
     logging.info("Run completed in %s",
-                 extra.get_time_from_seconds(time.time()-tic))
+                 extra.get_time_from_seconds(time.time() - tic))
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='icing script for running '
                                                  'analysis.')
     parser.add_argument('--version', action='version',
-                        version='%(prog)s v'+__version__)
+                        version='%(prog)s v' + __version__)
     parser.add_argument("-c", "--create", dest="create", action="store_true",
                         help="create config file", default=False)
     parser.add_argument("configuration_file", help="specify config file",

@@ -15,6 +15,7 @@ import numpy as np
 import os
 import scipy
 
+from collections import defaultdict
 from functools import partial
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
@@ -22,11 +23,11 @@ from sklearn.cluster import DBSCAN
 from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
 
-from .distances import string_distance
+from icing.core.distances import string_distance
+from icing.core.similarity_scores import similarity_score_tripartite as mwi
+from icing.models.model import model_matrix
+from icing.utils import extra
 from string_kernel.core.src.sum_string_kernel import sum_string_kernel
-from .similarity_scores import similarity_score_tripartite as mwi
-from ..models.model import model_matrix
-from ..utils import extra
 
 
 def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
@@ -127,13 +128,12 @@ def inverse_index(records):
         the list of indices of records which contains that gene.
         Example: reverse_index = {'IGHV3' : [0,3,5] ...}
     """
-    from collections import defaultdict
     r_index = defaultdict(list)
     for i, ig in enumerate(list(records)):
-        for _ in ig.getVGene('set'):
-            r_index[_].append(i)
-        for _ in ig.getJGene('set'):
-            r_index[_].append(i)
+        for v in ig.getVGene('set'):
+            r_index[v].append(i)
+        for j in ig.getJGene('set'):
+            r_index[j].append(i)
 
     return r_index
 
@@ -155,87 +155,42 @@ def inverse_index_parallel(records):
         the list of indices of records which contains that gene.
         Example: reverse_index = {'IGHV3' : [0,3,5] ...}
     """
-    def _get_v_j(d, i_igs):
-        for i, ig in i_igs:
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d[v] = d.get(v, []) + [(i, )]
-            for j in ig.getJGene('set'):
-                # d.setdefault(j,[]).append((i,ig))
-                d[j] = d.get(j, []) + [(i, )]
-
-    def _get_v_j_queue(d, i_igs):
-        for i, ig in i_igs:
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d.put((v, (i,)))
-            for j in ig.getJGene('set'):
-                d.put((j, (i,)))
-
-    from collections import defaultdict
-
-    def _get_v_j_queue2(lock, q, i_igs):
+    def _get_v_j_padding(lock, queue, idx, nprocs, igs_arr, n):
         local_dict = defaultdict(list)
-        for i, ig in i_igs:
+        for i in range(idx, n, nprocs):
+            ig = igs_arr[i]
             for _ in ig.getVGene('set'):
                 local_dict[_].append((i,))
-                # if _ == 'IGHV6-1':
-                #     print("ciao", i)
             for _ in ig.getJGene('set'):
                 local_dict[_].append((i,))
         with lock:
-            # q.put(dict(local_dict))
-            q.append(local_dict)
-
-    def _get_v_j_padding(d, idx, nprocs, igs_arr, n):
-        for i in range(idx, n, nprocs):
-            ig = igs_arr[i]
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d[v] = d.get(v, []) + [(i, )]
-            for j in ig.getJGene('set'):
-                # d.setdefault(j,[]).append((i,ig))
-                d[j] = d.get(j, []) + [(i, )]
-
-    def _get_v_j_padding2(lock, q, idx, nprocs, igs_arr, n):
-        local_dict = defaultdict(list)
-        for i in range(idx, n, nprocs):
-            ig = igs_arr[i]
-            for _ in ig.getVGene('set'):
-                local_dict[_].append((i,))
-                # if _ == 'IGHV6-1':
-                #     print("ciao", i)
-            for _ in ig.getJGene('set'): local_dict[_].append((i,))
-        with lock:
-            q.append(dict(local_dict))
-
-    def combine_dicts(a, b):
-        return dict(a.items() + b.items() + [(k, list(set(a[k] + b[k]))) for k in set(b) & set(a)])
+            queue.append(dict(local_dict))
 
     n = len(records)
-    logging.info("{} Igs read.".format(n))
-
     manager = mp.Manager()
-    # r_index = manager.dict()
     lock = mp.Lock()
-
     nprocs = min(n, mp.cpu_count())
     ps = []
 
-    queue = manager.list()
-    for idx in range(nprocs):
-        p = mp.Process(target=_get_v_j_padding2,
-                       args=(lock, queue, idx, nprocs, records, n))
-        p.start()
-        ps.append(p)
-    for i, p in enumerate(ps):
-        p.join()
-        print("collected", i)
+    try:
+        queue = manager.list()
+        for idx in range(nprocs):
+            p = mp.Process(target=_get_v_j_padding,
+                           args=(lock, queue, idx, nprocs, records, n))
+            p.start()
+            ps.append(p)
+        for p in ps:
+            p.join()
+    except:
+        extra.term_processes(ps)
 
-    dd = {}
-    for d__ in queue:
-        dd = combine_dicts(dd, d__)
-    return dd
+    reverse_index = {}
+    for dictionary in queue:
+        reverse_index = dict(reverse_index.items() + dictionary.items() +
+                             [(k, list(set(reverse_index[k] + dictionary[k])))
+                              for k in set(dictionary) & set(reverse_index)])
+
+    return reverse_index
 
 
 def similar_elements(reverse_index, records, n, distance_function):
@@ -325,10 +280,10 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
                     data[c_idx] = 1#similarity_function(records[i], records[j])
 
     nprocs = min(mp.cpu_count(), n)
-    c_length = int(n*(n-1)/2)
-    data = mp.Array('d', [0]*c_length)
-    rows = mp.Array('d', [0]*c_length)
-    cols = mp.Array('d', [0]*c_length)
+    c_length = int(n * (n - 1) / 2)
+    data = mp.Array('d', [0] * c_length)
+    rows = mp.Array('d', [0] * c_length)
+    cols = mp.Array('d', [0] * c_length)
     ps = []
     try:
         for idx in range(nprocs):
@@ -340,11 +295,9 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra._terminate(ps, 'Exit signal received\n')
+        extra.term_processes(ps, 'Exit signal received\n')
     except Exception as e:
-        extra._terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra.term_processes(ps, 'ERROR: %s\n' % e)
 
     data = np.array(data, dtype=float)
     idx = data > 0
@@ -374,9 +327,9 @@ def parallel_sim_matrix(rows, cols, records, n, similarity_function):
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra._terminate(ps, 'Exit signal received\n')
+        extra.term_processes(ps, 'Exit signal received\n')
     except Exception as e:
-        extra._terminate(ps, 'ERROR: %s\n' % e)
+        extra.term_processes(ps, 'ERROR: %s\n' % e)
 
     return data
 
@@ -418,8 +371,6 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     igs = list(db_iter)
     n = len(igs)
 
-    dd = inverse_index(igs)
-
     default_model = 'ham'
     default_method = 'jaccard'
     sim_func_args.setdefault('model', default_model)
@@ -430,17 +381,14 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
         dist_mat = sim_func_args.setdefault('dist_mat',
                                             model_matrix(default_model))
 
-    # print("Similarity function parameters: ", sim_func_args)
+    logging.info("Similarity function parameters: {}".format(sim_func_args))
     similarity_function = partial(sim_function, **sim_func_args)
 
-    # tic = time.time()
-    # data, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
-
+    dd = inverse_index(igs)
     logging.info("Start similar_elements_parallel function ...")
     _, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
     logging.info("Start parallel_sim_matrix function ...")
     data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
-    # print(time.time()-tic)
 
     data = np.array(data, dtype=float)
     idx = data > 0
@@ -455,24 +403,12 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     # data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
     #                               (igs[i], igs[j]) for i, j in s2)
 
-    # inefficient:
-    # S = set()
-    # for k,v in r_index.iteritems():
-    #     length = len(v)
-    #     if length > 1:
-    #         S.update([(v[i], v[j]) for i in range(length) for j in range(i+1, length)])
-
-    # d_func = lambda x, y: dist_function(x, y, 'jaccard', 'ham')
-    # d_wrapper = lambda x, y: (d_func(x[1], y[1]), (x[0], y[0]))
-
     sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)),
                                          shape=(n, n))
     similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
         sparse_mat.shape[0])
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
-
-    # np.savetxt("simmat4.csv", similarity_matrix.toarray(), fmt='%.3f')
 
     return similarity_matrix
 

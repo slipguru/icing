@@ -6,7 +6,6 @@ Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
-import datetime
 import fcntl
 import numpy as np
 import os
@@ -15,6 +14,8 @@ import struct
 import sys
 import termios
 import time
+
+from datetime.datetime import fromtimestamp
 
 # class Counter(object):
 #     """Counter which contains the lock. Atomic update"""
@@ -143,6 +144,16 @@ def flatten(x):
     return [y for l in x for y in flatten(l)] if type(x) in (list, np.ndarray) else [x]
 
 
+def term_processes(ps, e=''):
+    """Terminate processes in ps and exit the program."""
+    sys.stderr.write(e + '\nTerminating processes ...')
+    for p in ps:
+        p.terminate()
+        p.join()
+    sys.stderr.write('... done.\n')
+    sys.exit()
+
+
 def _terminate(ps, e=''):
     """Terminate processes in ps and exit the program."""
     sys.stderr.write(e)
@@ -162,10 +173,12 @@ def get_time_from_seconds(seconds):
 
 
 def get_time():
-    return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
+    """Get current seconds and return them as a formatted string."""
+    return fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
 
 
 def mkpath(path):
+    """If not exists, make the specified path."""
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -177,6 +190,12 @@ def items_iterator(dictionary):
     except:
         gen = dictionary.items()  # python 3
     return gen
+
+
+def combine_dicts(a, b):
+    """Combine dictionaries a and b."""
+    return dict(a.items() + b.items() +
+                [(k, list(set(a[k] + b[k]))) for k in set(b) & set(a)])
 
 
 def set_module_defaults(module, dictionary):

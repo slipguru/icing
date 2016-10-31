@@ -14,7 +14,7 @@ import multiprocessing as mp
 
 from itertools import chain
 
-from .utils.extra import _terminate, progressbar
+from icing.utils.extra import _terminate, progressbar
 
 
 def dnearest_inter_padding(l1, l2, dist_function):

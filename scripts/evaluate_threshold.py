@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from icing.core import distances
 from icing.models import model
 from icing.utils import extra, io
-from icing.parallel_distance import dnearest_inter_padding
+from icing.core.parallel_distance import dnearest_inter_padding
 
 ham_model = model.model_matrix('ham')
 ham_model['-'] = .75

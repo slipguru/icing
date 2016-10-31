@@ -18,8 +18,8 @@ from functools import partial
 from scipy.optimize import curve_fit
 from sklearn import mixture
 
-from icing import parallel_distance
 from icing.core import cloning
+from icing.core import parallel_distance
 from icing.utils import io, extra
 from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 
@@ -292,7 +292,7 @@ def create_alpha_plot(files, mut_levels, my_dict):
     with sns.axes_style('whitegrid'):
         plt.figure()
         plt.errorbar(x, y, errors, label='data')
-        plt.plot(xp, p3(xp), '-', label='order '+str(order))
+        plt.plot(xp, p3(xp), '-', label='order ' + str(order))
         plt.plot(xp, p2(xp), '-', label='order 2')
         # plt.plot(xp, extra.negative_exponential(xp, *popt), '-',
         #          label=r'$\alpha$ (neg exp)', lw=2.5)
@@ -323,9 +323,8 @@ def generate_correction_function(db, quantity, sim_func_args=None):
 
     # case 2: file not exists
     else:
-        files, muts, my_dict = all_intra_mut(db, quantity=quantity,
-                                             min_seqs=4,
-                                             sim_func_args=sim_func_args)
+        files, muts, my_dict = all_intra_mut(
+            db, quantity=quantity, min_seqs=4, sim_func_args=sim_func_args)
         popt, threshold_naive = create_alpha_plot(files, muts, my_dict)
         # save for later, in case of analysis on the same db
         # np.save(filename, popt)  # TODO
