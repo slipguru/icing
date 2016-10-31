@@ -11,7 +11,7 @@ import imp
 import shutil
 import argparse
 import logging
-
+import time
 
 import icing
 from icing import __version__
@@ -61,6 +61,7 @@ def main(config_file):
     root_logger.addHandler(ch)
 
     logging.info("Start analysis ...")
+    tic = time.time()
     db_iter = list(io.read_db(config.db_file,
                               filt=config.apply_filter,
                               dialect=config.dialect,
@@ -95,6 +96,8 @@ def main(config_file):
     io.write_clusters_db(config.db_file, result_db, clone_dict, config.dialect)
     logging.info("Clusters correctly created and written on file. "
                  "Now run ici_analysis.py on the results folder.")
+    logging.info("Run completed in %s",
+                 extra.get_time_from_seconds(time.time()-tic))
 
 
 if __name__ == '__main__':
