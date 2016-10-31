@@ -280,16 +280,20 @@ def create_alpha_plot(files, mut_levels, my_dict):
     idx = idxs[0]
     if thresholds[idx] == 0:
         idx = idxs[1]
-    x, y = keys, means[idx] - mean_values
+    # x, y = keys, means[idx] - mean_values
+    x, y = keys, mean_values - np.min(mean_values) + 1.
     # popt, _ = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
 
     xp = np.linspace(np.min(x), np.max(x), 1000)
+
     order = 3
-    p4 = np.poly1d(np.polyfit(x, y, order))
+    p3 = np.poly1d(np.polyfit(x, y, order))
+    p2 = np.poly1d(np.polyfit(x, y, 2))
     with sns.axes_style('whitegrid'):
         plt.figure()
         plt.errorbar(x, y, errors, label='data')
-        plt.plot(xp, p4(xp), '-', label='order '+str(order))
+        plt.plot(xp, p3(xp), '-', label='order '+str(order))
+        plt.plot(xp, p2(xp), '-', label='order 2')
         # plt.plot(xp, extra.negative_exponential(xp, *popt), '-',
         #          label=r'$\alpha$ (neg exp)', lw=2.5)
         # # plt.ylabel(r'$\mu$ Naive / $\mu$ Mem')
@@ -302,7 +306,7 @@ def create_alpha_plot(files, mut_levels, my_dict):
 
     # return popt, threshold_naive
     # return [0, 0, 0], 0
-    return p4, thresholds[idx]
+    return p2, thresholds[idx]
 
 
 def generate_correction_function(db, quantity, sim_func_args=None):

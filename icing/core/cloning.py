@@ -108,7 +108,8 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         correction = correction_function(max(ig1.mut, ig2.mut))
         # ss = 1 - ((1 - ss) * max(correction, 0))
         ss = 1 - ((1 - ss) * correction)
-    return min(max(ss, 0), 1)
+    # return min(max(ss, 0), 1)
+    return max(ss, 0)
 
 
 def inverse_index(records):
@@ -484,7 +485,7 @@ def define_clusts(similarity_matrix, threshold):
     for i in range(n):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
-            dm = 1. - similarity_matrix[idxs][:,  idxs].toarray()
+            dm = 1. - similarity_matrix[idxs][:, idxs].toarray()
 
             # # Hierarchical clustering
             # links = linkage((dm), method='ward')
