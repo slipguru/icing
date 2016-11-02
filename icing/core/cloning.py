@@ -431,14 +431,14 @@ def define_clusts(similarity_matrix, threshold):
             # DBSCAN
             # db = DBSCAN(eps=threshold, min_samples=1,
             #             metric='precomputed').fit(dm)
-            db = AffinityPropagation(affinity='precomputed') \
-                .fit(similarity_matrix[idxs][:,  idxs].toarray())
+            db = AffinityPropagation(damping=.9, affinity='precomputed',
+                                     max_iter=1000) \
+                .fit(similarity_matrix[idxs][:, idxs].toarray())
             clusters_ = db.labels_ + 1
 
             # # Number of clusters in labels, ignoring noise if present.
             # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
-
             clusters_ += prev_max_clust
             clusters[idxs] = clusters_
             prev_max_clust = max(clusters_)
@@ -483,7 +483,7 @@ def define_clones(db_iter, exp_tag='debug', root=None,
     logging.info("Start define_clusts function ...")
     clusters = define_clusts(similarity_matrix, threshold=threshold)
     logging.critical("Number of clones: %i, threshold %.3f",
-                     np.max(clusters), threshold)
+                     np.max(clusters) - np.min(clusters) + 1, threshold)
 
     cl_filename = output_filename + '_clusters.pkl.tz'
     with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:
