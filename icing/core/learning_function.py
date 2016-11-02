@@ -281,7 +281,8 @@ def create_alpha_plot(files, mut_levels, my_dict):
     if thresholds[idx] == 0:
         idx = idxs[1]
     # x, y = keys, means[idx] - mean_values
-    x, y = keys, mean_values  # - np.min(mean_values) + 1.
+    # x, y = keys, mean_values - np.min(mean_values) + 1.
+    x, y = keys, np.max(mean_values) / mean_values
     # popt, _ = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
 
     xp = np.linspace(np.min(x), np.max(x), 1000)
