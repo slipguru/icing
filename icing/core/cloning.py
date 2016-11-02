@@ -431,7 +431,7 @@ def define_clusts(similarity_matrix, threshold):
             # DBSCAN
             # db = DBSCAN(eps=threshold, min_samples=1,
             #             metric='precomputed').fit(dm)
-            db = AffinityPropagation(damping=.9, affinity='precomputed',
+            db = AffinityPropagation(affinity='precomputed',
                                      max_iter=1000) \
                 .fit(similarity_matrix[idxs][:, idxs].toarray())
             clusters_ = db.labels_ + 1

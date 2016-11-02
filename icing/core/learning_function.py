@@ -311,7 +311,7 @@ def create_alpha_plot(files, mut_levels, my_dict):
 
 
 def generate_correction_function(db, quantity, sim_func_args=None):
-    """Generate correction function on the databse analysed."""
+    """Generate correction function on the database analysed."""
     db_no_ext = ".".join(db.split(".")[:-1])
     filename = db_no_ext + "_correction_function.npy"
 
