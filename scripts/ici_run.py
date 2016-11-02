@@ -54,11 +54,9 @@ def main(config_file):
                         format='%(levelname)s (%(asctime)-15s): %(message)s')
     root_logger = logging.getLogger()
     ch = logging.StreamHandler()
-    if config.verbose:
-        ch.setLevel(logging.INFO)
-    else:
-        ch.setLevel(logging.ERROR)
-    ch.setFormatter(logging.Formatter('%(levelname)s (%(asctime)-15s): %(message)s'))
+    ch.setLevel(logging.INFO if config.verbose else logging.ERROR)
+    ch.setFormatter(
+        logging.Formatter('%(levelname)s (%(asctime)-15s): %(message)s'))
     root_logger.addHandler(ch)
 
     logging.info("Start analysis ...")

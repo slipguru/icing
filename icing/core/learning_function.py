@@ -266,10 +266,9 @@ def create_alpha_plot(files, mut_levels, my_dict, order=3):
             thresholds.append(threshold)
             d_dict.setdefault(o.split('/')[0], dict()).setdefault(k, mean)
 
-    print(d_dict)
+    # print(d_dict)
     for k, v in d_dict.iteritems():  # there is only one
         keys = np.array(sorted([x for x in v]))
-        print(type(keys[0]))
         mean_values = np.array([np.mean(v[x]) for x in keys])
         errors = np.array([np.var(v[x]) for x in keys])
 

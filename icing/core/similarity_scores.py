@@ -127,8 +127,8 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
         tot_V = len(V_genes_A | V_genes_B)
         tot_J = len(J_genes_A | J_genes_B)
         if r1 != 1. or r2 != 1.:
-            sys.stdout.write("Recalculating w1 and w2, based on "
-                             "r1 = {.2f} and r2 = {.2f}\n".format(r1, r2))
+            # sys.stdout.write("Recalculating w1 and w2, based on "
+            #                  "r1 = {.2f} and r2 = {.2f}\n".format(r1, r2))
             w1 = r1 * (tot_V + tot_J) / (r1 * tot_V + r2 * tot_J)
             # w2 = (tot_V + tot_J) / tot_J - w1 * tot_V / tot_J
             w2 = 1. + tot_V / tot_J * (1. - w1)
@@ -139,13 +139,12 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
         min_V = min(len(V_genes_A), len(V_genes_B))
         min_J = min(len(J_genes_A), len(J_genes_B))
         if r1 != 1. or r2 != 1.:
-            sys.stdout.write("Recalculating w1 and w2, based on "
-                             "r1 = {.2f} and r2 = {.2f}\n".format(r1, r2))
+            # sys.stdout.write("Recalculating w1 and w2, based on "
+            #                  "r1 = {.2f} and r2 = {.2f}\n".format(r1, r2))
             w1 = r1 * (min_V + min_J) / (r1 * min_V + r2 * min_J)
             # w2 = (min_V + min_J) / min_J - w1 * min_V / min_J
             w2 = 1. + min_V / min_J * (1. - w1)
         return (w1 * len(V_genes_A & V_genes_B) +
                 w2 * len(J_genes_A & J_genes_B)) / (min_V + min_J)
     else:
-        sys.stderr.write("Method {} not supported\n".format(method))
-        return -1
+        raise NotImplementedError("Method {} not supported\n".format(method))
