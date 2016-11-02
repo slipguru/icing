@@ -414,7 +414,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     return similarity_matrix
 
 
-def define_clusts(similarity_matrix, threshold):
+def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
     """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix, directed=False)
     prev_max_clust = 0
@@ -431,11 +431,11 @@ def define_clusts(similarity_matrix, threshold):
             # DBSCAN
             # db = DBSCAN(eps=threshold, min_samples=1,
             #             metric='precomputed').fit(dm)
+
             db = AffinityPropagation(affinity='precomputed',
-                                     max_iter=1000) \
+                                     max_iter=max_iter) \
                 .fit(similarity_matrix[idxs][:, idxs].toarray())
             clusters_ = db.labels_ + 1
-
             # # Number of clusters in labels, ignoring noise if present.
             # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
