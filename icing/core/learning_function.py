@@ -208,7 +208,7 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
     return out_fles, mut_lvls, d
 
 
-def create_alpha_plot(files, mut_levels, my_dict):
+def create_alpha_plot(files, mut_levels, my_dict, order=3):
     d_dict = dict()
     print("mydict:", my_dict)
 
@@ -287,13 +287,12 @@ def create_alpha_plot(files, mut_levels, my_dict):
 
     xp = np.linspace(np.min(x), np.max(x), 1000)
 
-    order = 5
-    p3 = np.poly1d(np.polyfit(x, y, order))
+    poly = np.poly1d(np.polyfit(x, y, order))
     p2 = np.poly1d(np.polyfit(x, y, 2))
     with sns.axes_style('whitegrid'):
         plt.figure()
         plt.errorbar(x, y, errors, label='data')
-        plt.plot(xp, p3(xp), '-', label='order ' + str(order))
+        plt.plot(xp, poly(xp), '-', label='order ' + str(order))
         plt.plot(xp, p2(xp), '-', label='order 2')
         # plt.plot(xp, extra.negative_exponential(xp, *popt), '-',
         #          label=r'$\alpha$ (neg exp)', lw=2.5)
@@ -307,10 +306,10 @@ def create_alpha_plot(files, mut_levels, my_dict):
 
     # return popt, threshold_naive
     # return [0, 0, 0], 0
-    return p3, thresholds[idx]
+    return poly, thresholds[idx]
 
 
-def generate_correction_function(db, quantity, sim_func_args=None):
+def generate_correction_function(db, quantity, sim_func_args=None, order=3):
     """Generate correction function on the database analysed."""
     db_no_ext = ".".join(db.split(".")[:-1])
     filename = db_no_ext + "_correction_function.npy"
@@ -325,7 +324,7 @@ def generate_correction_function(db, quantity, sim_func_args=None):
     else:
         files, muts, my_dict = all_intra_mut(
             db, quantity=quantity, min_seqs=4, sim_func_args=sim_func_args)
-        popt, threshold_naive = create_alpha_plot(files, muts, my_dict)
+        popt, threshold_naive = create_alpha_plot(files, muts, my_dict, order)
         # save for later, in case of analysis on the same db
         # np.save(filename, popt)  # TODO
 

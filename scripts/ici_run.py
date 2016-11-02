@@ -41,7 +41,8 @@ def main(config_file):
                                        'sim_func_args': {},
                                        'threshold': 0.0536,
                                        'verbose': False,
-                                       'learning_function_quantity': 0.15})
+                                       'learning_function_quantity': 0.15,
+                                       'learning_function_order': 3})
     # Define logging file
     root = config.output_root_folder
     if not os.path.exists(root):
@@ -75,7 +76,8 @@ def main(config_file):
          config.threshold) = \
             generate_correction_function(
                 config.db_file, quantity=config.learning_function_quantity,
-                sim_func_args=config.sim_func_args)
+                sim_func_args=config.sim_func_args,
+                order=config.learning_function_order)
 
     logging.info("Start define_clones function ...")
     outfolder, clone_dict = define_clones(
