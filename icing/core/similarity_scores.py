@@ -7,8 +7,6 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 """
 from __future__ import division, print_function
 
-import sys
-
 
 def jaccard_index(nodes_A, nodes_B):
     """Jaccard index of a bipartite graph."""
@@ -114,7 +112,6 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
         #                  "Computing similarity between V genes ..."
         #                  "J1 = {}, J2 = {}\n".format(J_genes_A, J_genes_B))
         return similarity_score_bipartite(V_genes_A, V_genes_B, method)
-
 
     # enforce sets
     V_genes_A = set(V_genes_A)

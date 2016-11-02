@@ -53,11 +53,11 @@ def main(config_file):
     logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w',
                         format='%(levelname)s (%(asctime)-15s): %(message)s')
     root_logger = logging.getLogger()
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.INFO if config.verbose else logging.ERROR)
-    ch.setFormatter(
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO if config.verbose else logging.ERROR)
+    stream_handler.setFormatter(
         logging.Formatter('%(levelname)s (%(asctime)-15s): %(message)s'))
-    root_logger.addHandler(ch)
+    root_logger.addHandler(stream_handler)
 
     logging.info("Start analysis ...")
     tic = time.time()
@@ -100,7 +100,8 @@ def main(config_file):
                  extra.get_time_from_seconds(time.time() - tic))
 
 
-if __name__ == '__main__':
+def init_run():
+    """Parse commands and start icing core."""
     parser = argparse.ArgumentParser(description='icing script for running '
                                                  'analysis.')
     parser.add_argument('--version', action='version',
@@ -123,3 +124,7 @@ if __name__ == '__main__':
         shutil.copy(std_config_path, args.configuration_file)
     else:
         main(args.configuration_file)
+
+
+if __name__ == '__main__':
+    init_run()

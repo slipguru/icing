@@ -498,4 +498,4 @@ def define_clones(db_iter, exp_tag='debug', root=None,
 if __name__ == '__main__':
     print("This file cannot be launched directly. "
           "Please run the script located in `icing/scripts/ici_run.py` "
-          "with an argument, that is the location of the configuration file. ")
+          "with its configuration file. ")
