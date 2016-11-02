@@ -287,7 +287,7 @@ def create_alpha_plot(files, mut_levels, my_dict):
 
     xp = np.linspace(np.min(x), np.max(x), 1000)
 
-    order = 3
+    order = 5
     p3 = np.poly1d(np.polyfit(x, y, order))
     p2 = np.poly1d(np.polyfit(x, y, 2))
     with sns.axes_style('whitegrid'):
@@ -307,7 +307,7 @@ def create_alpha_plot(files, mut_levels, my_dict):
 
     # return popt, threshold_naive
     # return [0, 0, 0], 0
-    return p2, thresholds[idx]
+    return p3, thresholds[idx]
 
 
 def generate_correction_function(db, quantity, sim_func_args=None):
