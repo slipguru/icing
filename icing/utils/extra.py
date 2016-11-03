@@ -6,15 +6,16 @@ Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
-import sys
-import time
-import datetime
 import fcntl
-import termios
-import struct
-import re
-import os
 import numpy as np
+import os
+import re
+import struct
+import sys
+import termios
+import time
+
+from datetime import datetime
 
 # class Counter(object):
 #     """Counter which contains the lock. Atomic update"""
@@ -34,6 +35,11 @@ import numpy as np
 #     """Yield successive n-sized chunks from l."""
 #     for i in range(0, len(l), n):
 #         yield l[i:i+n]
+
+
+def negative_exponential(x, a, c, d):
+    """Return the value of a negative exponential function."""
+    return a * np.exp(-c * x) + d
 
 
 def ensure_symmetry(X):
@@ -138,6 +144,16 @@ def flatten(x):
     return [y for l in x for y in flatten(l)] if type(x) in (list, np.ndarray) else [x]
 
 
+def term_processes(ps, e=''):
+    """Terminate processes in ps and exit the program."""
+    sys.stderr.write(e + '\nTerminating processes ...')
+    for p in ps:
+        p.terminate()
+        p.join()
+    sys.stderr.write('... done.\n')
+    sys.exit()
+
+
 def _terminate(ps, e=''):
     """Terminate processes in ps and exit the program."""
     sys.stderr.write(e)
@@ -157,10 +173,12 @@ def get_time_from_seconds(seconds):
 
 
 def get_time():
-    return datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
+    """Get current seconds and return them as a formatted string."""
+    return datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
 
 
 def mkpath(path):
+    """If not exists, make the specified path."""
     if not os.path.exists(path):
         os.makedirs(path)
 
@@ -172,6 +190,12 @@ def items_iterator(dictionary):
     except:
         gen = dictionary.items()  # python 3
     return gen
+
+
+def combine_dicts(a, b):
+    """Combine dictionaries a and b."""
+    return dict(a.items() + b.items() +
+                [(k, list(set(a[k] + b[k]))) for k in set(b) & set(a)])
 
 
 def set_module_defaults(module, dictionary):

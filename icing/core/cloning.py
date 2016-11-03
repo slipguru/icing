@@ -7,42 +7,47 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 """
 from __future__ import print_function
 
-import os
-import sys
-import numpy as np
-import scipy
-import logging
-import multiprocessing as mp
 import cPickle as pkl
 import gzip
+import logging
+import multiprocessing as mp
+import numpy as np
+import os
+import scipy
 
+from collections import defaultdict
+from functools import partial
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
+from sklearn.cluster import DBSCAN
+from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
 
-from .distances import string_distance
+from icing.core.distances import string_distance
+from icing.core.similarity_scores import similarity_score_tripartite as mwi
+from icing.models.model import model_matrix
+from icing.utils import extra
 from string_kernel.core.src.sum_string_kernel import sum_string_kernel
-from .similarity_scores import similarity_score_tripartite as mwi
-from ..models.model import model_matrix
-from ..utils import extra
 
 
 def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
     """Coefficient to balance distance according to mutation levels."""
-    def _neg_exp(x, a, c, d):
-        return a * np.exp(-c * x) + d
-
     try:
-        params_folder = os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir))
+        params_folder = os.path.abspath(os.path.join(os.path.dirname(
+            os.path.realpath(__file__)), os.pardir))
         popt = np.load(os.path.join(params_folder, fn))
-        return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
-    except:
-        sys.stderr.write("Coefficient file not found. Loading negative exponential...")
-        return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
+        # return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
+        return popt
+    except Exception:
+        logging.error("Correction coefficient file not found. "
+                      "No correction can be applied for mutation.")
+        # return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
+        return (1, 0, 0)
 
 
 def sim_function(ig1, ig2, method='jaccard', model='ham',
-                 dist_mat=None, tol=3, v_weight=1., j_weight=1.):
+                 dist_mat=None, tol=3, v_weight=1., j_weight=1.,
+                 correction_function=(lambda _: 1), correct=True):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
@@ -96,13 +101,17 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         lamda = .75
         normalize = 1
         ss *= sum_string_kernel(
-                [junc1, junc2],
-                min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
-                normalize=normalize)[0, 1]
+            [junc1, junc2],
+            min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
+            normalize=normalize, return_float=1)
 
-    # if ss > 0:
-    #     ss = 1 - ((1 - ss) * alpha_mut(ig1, ig2))
-    return ss
+    if ss > 0 and correct:
+        correction = correction_function(np.mean((ig1.mut, ig2.mut)))
+        # ss = 1 - ((1 - ss) * max(correction, 0))
+        # ss = 1 - ((1 - ss) * correction)
+        ss *= correction
+    # return min(max(ss, 0), 1)
+    return max(ss, 0)
 
 
 def inverse_index(records):
@@ -120,13 +129,12 @@ def inverse_index(records):
         the list of indices of records which contains that gene.
         Example: reverse_index = {'IGHV3' : [0,3,5] ...}
     """
-    from collections import defaultdict
     r_index = defaultdict(list)
     for i, ig in enumerate(list(records)):
-        for _ in ig.getVGene('set'):
-            r_index[_].append(i)
-        for _ in ig.getJGene('set'):
-            r_index[_].append(i)
+        for v in ig.getVGene('set'):
+            r_index[v].append(i)
+        for j in ig.getJGene('set'):
+            r_index[j].append(i)
 
     return r_index
 
@@ -148,87 +156,42 @@ def inverse_index_parallel(records):
         the list of indices of records which contains that gene.
         Example: reverse_index = {'IGHV3' : [0,3,5] ...}
     """
-    def _get_v_j(d, i_igs):
-        for i, ig in i_igs:
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d[v] = d.get(v, []) + [(i, )]
-            for j in ig.getJGene('set'):
-                # d.setdefault(j,[]).append((i,ig))
-                d[j] = d.get(j, []) + [(i, )]
-
-    def _get_v_j_queue(d, i_igs):
-        for i, ig in i_igs:
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d.put((v, (i,)))
-            for j in ig.getJGene('set'):
-                d.put((j, (i,)))
-
-    from collections import defaultdict
-
-    def _get_v_j_queue2(lock, q, i_igs):
+    def _get_v_j_padding(lock, queue, idx, nprocs, igs_arr, n):
         local_dict = defaultdict(list)
-        for i, ig in i_igs:
+        for i in range(idx, n, nprocs):
+            ig = igs_arr[i]
             for _ in ig.getVGene('set'):
                 local_dict[_].append((i,))
-                # if _ == 'IGHV6-1':
-                #     print("ciao", i)
             for _ in ig.getJGene('set'):
                 local_dict[_].append((i,))
         with lock:
-            # q.put(dict(local_dict))
-            q.append(local_dict)
-
-    def _get_v_j_padding(d, idx, nprocs, igs_arr, n):
-        for i in range(idx, n, nprocs):
-            ig = igs_arr[i]
-            for v in ig.getVGene('set'):
-                # d.setdefault(v,[]).append((i,ig))
-                d[v] = d.get(v, []) + [(i, )]
-            for j in ig.getJGene('set'):
-                # d.setdefault(j,[]).append((i,ig))
-                d[j] = d.get(j, []) + [(i, )]
-
-    def _get_v_j_padding2(lock, q, idx, nprocs, igs_arr, n):
-        local_dict = defaultdict(list)
-        for i in range(idx, n, nprocs):
-            ig = igs_arr[i]
-            for _ in ig.getVGene('set'):
-                local_dict[_].append((i,))
-                # if _ == 'IGHV6-1':
-                #     print("ciao", i)
-            for _ in ig.getJGene('set'): local_dict[_].append((i,))
-        with lock:
-            q.append(dict(local_dict))
-
-    def combine_dicts(a, b):
-        return dict(a.items() + b.items() + [(k, list(set(a[k] + b[k]))) for k in set(b) & set(a)])
+            queue.append(dict(local_dict))
 
     n = len(records)
-    logging.info("{} Igs read.".format(n))
-
     manager = mp.Manager()
-    # r_index = manager.dict()
     lock = mp.Lock()
-
     nprocs = min(n, mp.cpu_count())
     ps = []
 
-    queue = manager.list()
-    for idx in range(nprocs):
-        p = mp.Process(target=_get_v_j_padding2,
-                       args=(lock, queue, idx, nprocs, records, n))
-        p.start()
-        ps.append(p)
-    for i, p in enumerate(ps):
-        p.join()
-        print("collected", i)
+    try:
+        queue = manager.list()
+        for idx in range(nprocs):
+            p = mp.Process(target=_get_v_j_padding,
+                           args=(lock, queue, idx, nprocs, records, n))
+            p.start()
+            ps.append(p)
+        for p in ps:
+            p.join()
+    except:
+        extra.term_processes(ps)
 
-    dd = {}
-    for d__ in queue:
-        dd = combine_dicts(dd, d__)
-    return dd
+    reverse_index = {}
+    for dictionary in queue:
+        reverse_index = dict(reverse_index.items() + dictionary.items() +
+                             [(k, list(set(reverse_index[k] + dictionary[k])))
+                              for k in set(dictionary) & set(reverse_index)])
+
+    return reverse_index
 
 
 def similar_elements(reverse_index, records, n, distance_function):
@@ -318,10 +281,10 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
                     data[c_idx] = 1#similarity_function(records[i], records[j])
 
     nprocs = min(mp.cpu_count(), n)
-    c_length = int(n*(n-1)/2)
-    data = mp.Array('d', [0]*c_length)
-    rows = mp.Array('d', [0]*c_length)
-    cols = mp.Array('d', [0]*c_length)
+    c_length = int(n * (n - 1) / 2)
+    data = mp.Array('d', [0] * c_length)
+    rows = mp.Array('d', [0] * c_length)
+    cols = mp.Array('d', [0] * c_length)
     ps = []
     try:
         for idx in range(nprocs):
@@ -333,11 +296,9 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra._terminate(ps, 'Exit signal received\n')
+        extra.term_processes(ps, 'Exit signal received\n')
     except Exception as e:
-        extra._terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra.term_processes(ps, 'ERROR: %s\n' % e)
 
     data = np.array(data, dtype=float)
     idx = data > 0
@@ -367,11 +328,9 @@ def parallel_sim_matrix(rows, cols, records, n, similarity_function):
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra._terminate(ps, 'Exit signal received\n')
+        extra.term_processes(ps, 'Exit signal received\n')
     except Exception as e:
-        extra._terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra.term_processes(ps, 'ERROR: %s\n' % e)
 
     return data
 
@@ -404,18 +363,15 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
 
     The reverse index with one core, instead, looks like::
 
-        r_index = dict()
-        for i, ig in enumerate(igs):
-            for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
-            for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
+      r_index = dict()
+      for i, ig in enumerate(igs):
+          for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
+          for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
 
     """
     igs = list(db_iter)
     n = len(igs)
 
-    dd = inverse_index(igs)
-
-    from functools import partial
     default_model = 'ham'
     default_method = 'jaccard'
     sim_func_args.setdefault('model', default_model)
@@ -426,14 +382,14 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
         dist_mat = sim_func_args.setdefault('dist_mat',
                                             model_matrix(default_model))
 
-    # print("Similarity function parameters: ", sim_func_args)
+    logging.info("Similarity function parameters: {}".format(sim_func_args))
     similarity_function = partial(sim_function, **sim_func_args)
 
-    # tic = time.time()
-    # data, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
+    dd = inverse_index(igs)
+    logging.info("Start similar_elements_parallel function ...")
     _, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
+    logging.info("Start parallel_sim_matrix function ...")
     data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
-    # print(time.time()-tic)
 
     data = np.array(data, dtype=float)
     idx = data > 0
@@ -448,16 +404,6 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     # data = jl.Parallel(n_jobs=-1)(jl.delayed(d_func)
     #                               (igs[i], igs[j]) for i, j in s2)
 
-    # inefficient:
-    # S = set()
-    # for k,v in r_index.iteritems():
-    #     length = len(v)
-    #     if length > 1:
-    #         S.update([(v[i], v[j]) for i in range(length) for j in range(i+1, length)])
-
-    # d_func = lambda x, y: dist_function(x, y, 'jaccard', 'ham')
-    # d_wrapper = lambda x, y: (d_func(x[1], y[1]), (x[0], y[0]))
-
     sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)),
                                          shape=(n, n))
     similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
@@ -465,40 +411,59 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
 
-    # np.savetxt("simmat4.csv", similarity_matrix.toarray(), fmt='%.3f')
-
     return similarity_matrix
 
 
-def define_clusts(similarity_matrix, threshold):
+def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
     """Define clusters given the similarity matrix and the threshold."""
-    n, labels = connected_components(similarity_matrix)
+    n, labels = connected_components(similarity_matrix, directed=False)
     prev_max_clust = 0
     clusters = labels.copy()
     for i in range(n):
-        idxs = np.where(labels == i)
-        if idxs[0].shape[0] > 1:
-            dm = 1. - similarity_matrix[idxs[0]][:, idxs[0]].toarray()
-            links = linkage(squareform(dm), method='single')
-            clusters_ = fcluster(links, threshold,
-                                 criterion='distance') + prev_max_clust
-            clusters[idxs[0]] = clusters_
+        idxs = np.where(labels == i)[0]
+        if idxs.shape[0] > 1:
+            dm = 1. - similarity_matrix[idxs][:, idxs].toarray()
+
+            # # Hierarchical clustering
+            # links = linkage((dm), method='ward')
+            # clusters_ = fcluster(links, threshold, 'distance')
+
+            # DBSCAN
+            # db = DBSCAN(eps=threshold, min_samples=1,
+            #             metric='precomputed').fit(dm)
+
+            db = AffinityPropagation(affinity='precomputed',
+                                     max_iter=max_iter) \
+                .fit(similarity_matrix[idxs][:, idxs].toarray())
+            clusters_ = np.array(db.labels_, dtype=int) + 1
+            # # Number of clusters in labels, ignoring noise if present.
+            # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
+            # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
+            clusters_ += prev_max_clust
+            clusters[idxs] = clusters_
             prev_max_clust = max(clusters_)
         else:  # connected component contains just 1 element
             prev_max_clust += 1
-            clusters[idxs[0]] = prev_max_clust
+            clusters[idxs] = prev_max_clust
     return np.array(extra.flatten(clusters))
 
+# def define_clusts_(similarity_matrix, threshold):
+#     """Define clusters given the similarity matrix and the threshold."""
+#     dm = 1. - similarity_matrix.toarray()
+#     links = linkage((dm), method='ward')
+#     clusters = fcluster(links, threshold,   'distance')
+#     return np.array(extra.flatten(clusters))
 
-def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
-                  sim_func_args={}, threshold=0.05):
+
+def define_clones(db_iter, exp_tag='debug', root=None,
+                  sim_func_args=None, threshold=0.05):
     """Run the pipeline of icing."""
     if not os.path.exists(root):
         if root is None:
-            root = 'results_'+exp_tag+extra.get_time()
+            root = 'results_' + exp_tag + extra.get_time()
         os.makedirs(root)
-        logging.warn("No root folder supplied, folder {} "
-                     "created".format(os.path.abspath(root)))
+        logging.warn("No root folder supplied, folder %s "
+                     "created", os.path.abspath(root))
 
     similarity_matrix = compute_similarity_matrix(db_iter, sparse_mode=True,
                                                   **sim_func_args)
@@ -512,16 +477,19 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
     sm_filename = output_filename + '_similarity_matrix.pkl.tz'
     with gzip.open(os.path.join(output_folder, sm_filename), 'w+') as f:
         pkl.dump(similarity_matrix, f)
-    logging.info("Dumped similarity matrix: {}"
-                 .format(os.path.join(output_folder, sm_filename)))
+    logging.info("Dumped similarity matrix: %s",
+                 os.path.join(output_folder, sm_filename))
 
+    logging.info("Start define_clusts function ...")
     clusters = define_clusts(similarity_matrix, threshold=threshold)
+    logging.critical("Number of clones: %i, threshold %.3f",
+                     np.max(clusters) - np.min(clusters) + 1, threshold)
 
     cl_filename = output_filename + '_clusters.pkl.tz'
     with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:
-        pkl.dump(clusters, f)
-    logging.info("Dumped clusters: {}"
-                 .format(os.path.join(output_folder, cl_filename)))
+        pkl.dump([clusters, threshold], f)
+    logging.info("Dumped clusters and threshold: %s",
+                 os.path.join(output_folder, cl_filename))
 
     clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
     return output_folder, clone_dict
@@ -530,4 +498,4 @@ def define_clones(db_iter, exp_tag='debug', root=None, force_silhouette=False,
 if __name__ == '__main__':
     print("This file cannot be launched directly. "
           "Please run the script located in `icing/scripts/ici_run.py` "
-          "with an argument, that is the location of the configuration file. ")
+          "with its configuration file. ")

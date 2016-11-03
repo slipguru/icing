@@ -11,8 +11,12 @@ import imp
 import shutil
 import argparse
 import logging
+import time
 
+import icing
+from icing import __version__
 from icing.core.cloning import define_clones
+from icing.core.learning_function import generate_correction_function
 from icing.utils import extra
 from icing.utils import io
 
@@ -29,35 +33,55 @@ def main(config_file):
     extra.set_module_defaults(config, {'subsets': (),
                                        'mutation': (0, 0),
                                        'apply_filter': None,
+                                       'max_records': None,
                                        'dialect': 'excel-tab',
                                        'exp_tag': 'debug',
                                        'output_root_folder': 'results',
                                        'force_silhouette': False,
                                        'sim_func_args': {},
-                                       'threshold': 0.0536})
-
-    db_iter = list(io.read_db(config.db_file, filt=config.apply_filter,
-                              dialect=config.dialect))
-
+                                       'threshold': 0.0536,
+                                       'verbose': False,
+                                       'learning_function_quantity': 0.15,
+                                       'learning_function_order': 3})
     # Define logging file
     root = config.output_root_folder
     if not os.path.exists(root):
         os.makedirs(root)
 
     filename = '_'.join(('icing', config.exp_tag, extra.get_time()))
-    logfile = os.path.join(root, filename+'.log')
+    logfile = os.path.join(root, filename + '.log')
     logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w',
-                        format='%(levelname)s (%(name)s): %(message)s')
+                        format='%(levelname)s (%(asctime)-15s): %(message)s')
     root_logger = logging.getLogger()
-    ch = logging.StreamHandler()
-    ch.setLevel(logging.CRITICAL)
-    ch.setFormatter(logging.Formatter('%(levelname)s (%(name)s): %(message)s'))
-    root_logger.addHandler(ch)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO if config.verbose else logging.ERROR)
+    stream_handler.setFormatter(
+        logging.Formatter('%(levelname)s (%(asctime)-15s): %(message)s'))
+    root_logger.addHandler(stream_handler)
 
-    outfolder, clone_dict = define_clones(db_iter, exp_tag=filename, root=root,
-                                          force_silhouette=config.force_silhouette,
-                                          sim_func_args=config.sim_func_args,
-                                          threshold=config.threshold)
+    logging.info("Start analysis ...")
+    tic = time.time()
+    db_iter = list(io.read_db(config.db_file,
+                              filt=config.apply_filter,
+                              dialect=config.dialect,
+                              max_records=config.max_records))
+    logging.info("Database loaded (%i records)", len(db_iter))
+
+    if config.sim_func_args.pop("correction_function", None) is None:
+        logging.info("Generate correction function with %.2f%% of records",
+                     config.learning_function_quantity * 100)
+        (config.sim_func_args['correction_function'],
+         config.threshold) = \
+            generate_correction_function(
+                config.db_file, quantity=config.learning_function_quantity,
+                sim_func_args=config.sim_func_args,
+                order=config.learning_function_order)
+
+    logging.info("Start define_clones function ...")
+    outfolder, clone_dict = define_clones(
+        db_iter, exp_tag=filename, root=root,
+        sim_func_args=config.sim_func_args,
+        threshold=config.threshold)
 
     # Copy the ade_config just used into the outFolder
     shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
@@ -65,18 +89,23 @@ def main(config_file):
     shutil.move(logfile, outfolder)
 
     # Save clusters in a copy of the original database with a new column
-    result_db = os.path.join(outfolder, 'db_file_clusters' + config.db_file[-4:])
+    ext_db = config.db_file.split(".")[-1]
+    result_db = os.path.join(outfolder, 'db_file_clusters.' + ext_db)
     # shutil.copy(config.db_file, result_db)
 
     io.write_clusters_db(config.db_file, result_db, clone_dict, config.dialect)
+    logging.info("Clusters correctly created and written on file. "
+                 "Now run ici_analysis.py on the results folder.")
+    logging.info("Run completed in %s",
+                 extra.get_time_from_seconds(time.time() - tic))
 
 
-if __name__ == '__main__':
-    from icing import __version__
+def init_run():
+    """Parse commands and start icing core."""
     parser = argparse.ArgumentParser(description='icing script for running '
                                                  'analysis.')
     parser.add_argument('--version', action='version',
-                        version='%(prog)s v'+__version__)
+                        version='%(prog)s v' + __version__)
     parser.add_argument("-c", "--create", dest="create", action="store_true",
                         help="create config file", default=False)
     parser.add_argument("configuration_file", help="specify config file",
@@ -84,7 +113,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.create:
-        import icing
         std_config_path = os.path.join(icing.__path__[0], 'config.py')
         # Check for .pyc
         if std_config_path.endswith('.pyc'):
@@ -96,3 +124,7 @@ if __name__ == '__main__':
         shutil.copy(std_config_path, args.configuration_file)
     else:
         main(args.configuration_file)
+
+
+if __name__ == '__main__':
+    init_run()

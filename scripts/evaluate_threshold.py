@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from icing.core import distances
 from icing.models import model
 from icing.utils import extra, io
-from icing.parallel_distance import dnearest_inter_padding
+from icing.core.parallel_distance import dnearest_inter_padding
 
 ham_model = model.model_matrix('ham')
 ham_model['-'] = .75
@@ -23,7 +23,8 @@ def show_fit(filename, ax=None):
     X = np.load("{}".format(filename))
     dist2nearest = np.array(X).reshape(-1, 1)
     if dist2nearest.shape[0] < 2:
-        print("Cannot fit a Gaussian with two distances."); return
+        print("Cannot fit a Gaussian with two distances.")
+        return
 
     dist2nearest_2 = -(np.array(sorted(dist2nearest)).reshape(-1, 1))
     dist2nearest = np.array(list(dist2nearest_2) +

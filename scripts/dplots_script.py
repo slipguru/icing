@@ -12,7 +12,7 @@ from scipy.optimize import curve_fit
 from sklearn import mixture
 
 from changeo import newDefineClones as cl
-from icing import parallel_distance
+from icing.core import parallel_distance
 from icing.core import distances
 from icing.models import model
 from icing.utils import io, extra
