@@ -435,7 +435,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             db = AffinityPropagation(affinity='precomputed',
                                      max_iter=max_iter) \
                 .fit(similarity_matrix[idxs][:, idxs].toarray())
-            clusters_ = db.labels_ + 1
+            clusters_ = np.array(db.labels_, dtype=int) + 1
             # # Number of clusters in labels, ignoring noise if present.
             # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
