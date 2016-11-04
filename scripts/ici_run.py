@@ -74,9 +74,10 @@ def main(config_file):
          config.threshold) = \
             generate_correction_function(
                 config.db_file, quantity=config.learning_function_quantity,
-                sim_func_args=config.sim_func_args,
+                sim_func_args=config.sim_func_args.copy(),
                 order=config.learning_function_order)
 
+    print(config.sim_func_args)
     logging.info("Start define_clones function ...")
     outfolder, clone_dict = define_clones(
         db_iter, exp_tag=filename, root=root,
