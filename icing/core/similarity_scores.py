@@ -9,6 +9,7 @@ from __future__ import division, print_function
 
 from math import sqrt
 
+
 def jaccard_index(nodes_A, nodes_B):
     """Jaccard index of a bipartite graph."""
     return len(nodes_A & nodes_B) / len(nodes_A | nodes_B)
@@ -29,9 +30,16 @@ def cosine_index(nodes_A, nodes_B):
     return len(nodes_A & nodes_B) / sqrt(len(nodes_A) * len(nodes_B))
 
 
-def pcc_index(nodes_A, nodes_B):
-    """Pearson correlation coeafficient."""
-    raise NotImplementedError("PCC index not implemented")
+def pcc_index(nodes_A, nodes_B, ny):
+    """Pearson correlation coeafficient.
+
+    The result has been shifted to ensure a codomain of [0,1] instead
+    of [-1,1].
+    """
+    len_a = len(nodes_A)
+    len_b = len(nodes_B)
+    return (((len(nodes_A & nodes_B) * ny - len_a * len_b) /
+            sqrt(len_a * len_b * (ny - len_a) * (ny - len_b))) + 1) / 2.
 
 
 def hypergeometric_index(nodes_A, nodes_B):
@@ -78,7 +86,8 @@ def similarity_score_bipartite(nodes_connected_to_A, nodes_connected_to_B,
 
 
 def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
-                                r1=1., r2=1., method='jaccard'):
+                                r1=1., r2=1., method='jaccard',
+                                sim_score_params=None):
     """Similarity score for tripartite graphs.
 
     Parameters
@@ -196,5 +205,14 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
         common_J = len(J_genes_A & J_genes_B)
         return (w1 * common_V / tot_V +
                 w2 * common_J / tot_J)
+
+    elif method.lower() == 'pcc':
+        w1 = r1 / r1 + r2
+        w2 = 1 - w1
+        nv = sim_score_params.get('nV')
+        nj = sim_score_params.get('nJ')
+
+        return (w1 * pcc_index(V_genes_A, V_genes_B, nv) +
+                w2 * pcc_index(J_genes_A, J_genes_B, nj))
     else:
         raise NotImplementedError("Method {} not supported\n".format(method))

@@ -68,6 +68,11 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
 
     sim_func_args['correct'] = False
     sim_func_args['tol'] = 1000
+    dd = cloning.inverse_index(ig1 if is_intra else ig1 + ig2)
+    if sim_func_args.get('method', None) in ('pcc', 'hypergeometric'):
+        sim_func_args['sim_score_params'] = {
+            'nV': len([x for x in dd if 'V' in x]),
+            'nJ': len([x for x in dd if 'J' in x])}
     df = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing %s", fn)
     if is_intra:
@@ -205,12 +210,12 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
     d = dict()
     for i, f in enumerate(out_fles):
         d.setdefault(mut_lvls[i], []).append(f)
-    return out_fles, mut_lvls, d
+    return d
 
 
-def create_alpha_plot(files, mut_levels, my_dict, order=3):
+def create_alpha_plot(my_dict, order=3):
     d_dict = dict()
-    print("mydict:", my_dict)
+    # print("mydict:", my_dict)
 
     means, samples, mutations, thresholds, medians = [], [], [], [], []
     for k, v in my_dict.iteritems():
@@ -255,7 +260,7 @@ def create_alpha_plot(files, mut_levels, my_dict, order=3):
                 print("Error", np.unique(pred))
 
             plt.axvline(x=lin[idx], linestyle='--', color='r')
-            plt.gcf().savefig("threshold_naive{}.png".format(k))
+            # plt.gcf().savefig("threshold_naive{}.png".format(k))
             plt.close()
             threshold = lin[idx][0]  # threshold
             # np.save("threshold_naive", threshold)
@@ -321,9 +326,9 @@ def generate_correction_function(db, quantity, sim_func_args=None, order=3):
 
     # case 2: file not exists
     else:
-        files, muts, my_dict = all_intra_mut(
+        my_dict = all_intra_mut(
             db, quantity=quantity, min_seqs=4, sim_func_args=sim_func_args)
-        popt, threshold_naive = create_alpha_plot(files, muts, my_dict, order)
+        popt, threshold_naive = create_alpha_plot(my_dict, order)
         # save for later, in case of analysis on the same db
         # np.save(filename, popt)  # TODO
 

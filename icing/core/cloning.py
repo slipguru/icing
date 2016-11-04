@@ -47,7 +47,8 @@ def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
 
 def sim_function(ig1, ig2, method='jaccard', model='ham',
                  dist_mat=None, tol=3, v_weight=1., j_weight=1.,
-                 correction_function=(lambda _: 1), correct=True):
+                 correction_function=(lambda _: 1), correct=True,
+                 sim_score_params=None):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
@@ -85,7 +86,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
     J_genes_ig2 = ig2.getJGene('set')
 
     ss = mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method,
-             r1=v_weight, r2=j_weight)
+             r1=v_weight, r2=j_weight, sim_score_params=sim_score_params)
     if ss > 0.:
         # print V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2
         junc1 = extra.junction_re(ig1.junction)
@@ -382,10 +383,15 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
         dist_mat = sim_func_args.setdefault('dist_mat',
                                             model_matrix(default_model))
 
+    dd = inverse_index(igs)
+    if sim_func_args.get('method', None) in ('pcc', 'hypergeometric'):
+        sim_func_args['sim_score_params'] = {
+            'nV': len([x for x in dd if 'V' in x]),
+            'nJ': len([x for x in dd if 'J' in x])
+        }
     logging.info("Similarity function parameters: {}".format(sim_func_args))
     similarity_function = partial(sim_function, **sim_func_args)
 
-    dd = inverse_index(igs)
     logging.info("Start similar_elements_parallel function ...")
     _, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
     logging.info("Start parallel_sim_matrix function ...")
