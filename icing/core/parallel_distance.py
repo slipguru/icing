@@ -17,6 +17,13 @@ from itertools import chain
 from icing.utils.extra import _terminate, progressbar
 
 
+def _min(generator):
+    try:
+        return min(generator)
+    except ValueError:
+        return 0
+
+
 def dnearest_inter_padding(l1, l2, dist_function):
     """Compute in a parallel way a dist2nearest for two 1-d arrays.
 
@@ -35,24 +42,24 @@ def dnearest_inter_padding(l1, l2, dist_function):
     dist2nearest : array_like
         1-D array
     """
-    def _internal(l1, l2, n, m, idx, nprocs, shared_arr, dist_function):
+    def _internal(l1, l2, n, idx, nprocs, shared_arr, dist_function):
         for i in range(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
             # shared_arr[i] = min((dist_function(l1[i], el2) for el2 in l2))
             # temp TODO XXX, select only the distances greater than 0
-            shared_arr[i] = min(ii for ii in
-                                (dist_function(l1[i], el2) for el2 in l2)
-                                if ii > 0)
+            shared_arr[i] = _min(ii for ii in
+                                 (dist_function(l1[i], el2) for el2 in l2)
+                                 if ii > 0)
 
-    n, m = len(l1), len(l2)
+    n = len(l1)
     nprocs = min(mp.cpu_count(), n)
-    shared_array = mp.Array('d', [0.]*n)
+    shared_array = mp.Array('d', [0.] * n)
     ps = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
-                           args=(l1, l2, n, m, idx, nprocs, shared_array,
+                           args=(l1, l2, n, idx, nprocs, shared_array,
                                  dist_function))
             p.start()
             ps.append(p)
@@ -91,9 +98,10 @@ def dnearest_intra_padding(l1, dist_function):
         for i in range(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
-            shared_arr[i] = min(chain(
-                (dist_function(l1[i], l1[j]) for j in range(0, i)),
-                (dist_function(l1[i], l1[j]) for j in range(i + 1, n))))
+            shared_arr[i] = _min(
+                chain((dist_function(l1[i], l1[j]) for j in range(0, i)),
+                      (dist_function(l1[i], l1[j]) for j in range(i + 1, n)
+                       )))
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
@@ -190,7 +198,7 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
             if i % 100 == 0:
                 progressbar(i, n)
             # shared_arr[i, i:] = [dist_function(l1[i], el2) for el2 in l2]
-            for j in range(i+1, n):
+            for j in range(i + 1, n):
                 shared_arr[idx, j] = dist_function(l1[i], l1[j])
                 # if shared_arr[idx, j] == 0:
                 # print l1[i].junction, '\n', l1[j].junction, '\n----------'
@@ -243,7 +251,7 @@ def dm_sparse_intra_padding(l1, dist_function, condensed=False):
             if i % 100 == 0:
                 progressbar(i, n)
             # shared_arr[i, i:] = [dist_function(l1[i], el2) for el2 in l2]
-            for j in range(i+1, n):
+            for j in range(i + 1, n):
                 # shared_arr[idx, j] = dist_function(l1[i], l1[j])
                 _res = dist_function(l1[i], l1[j])
                 if _res > 0:
@@ -254,10 +262,10 @@ def dm_sparse_intra_padding(l1, dist_function, condensed=False):
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
-    c_length = int(n*(n-1)/2)
-    data = mp.Array('d', [0.]*c_length)
-    rows = mp.Array('d', [0.]*c_length)
-    cols = mp.Array('d', [0.]*c_length)
+    c_length = int(n * (n - 1) / 2)
+    data = mp.Array('d', [0.] * c_length)
+    rows = mp.Array('d', [0.] * c_length)
+    cols = mp.Array('d', [0.] * c_length)
     ps = []
     try:
         for idx in range(nprocs):

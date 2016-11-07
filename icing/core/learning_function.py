@@ -45,14 +45,12 @@ def _remove_duplicate_junctions(igs_list):
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
-              donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=100,
+              donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=0,
               ig1=None, ig2=None, is_intra=True, sim_func_args=None):
     if os.path.exists(fn + '.npy'):
         logging.info(fn + '.npy esists.')
         return fn
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
-        # print("only {} few seqs for {} mut"
-        #       .format(len(juncs1), max(lim_mut1[1], lim_mut2[1])))
         return ''
 
     # sample if length is exceeded (for computational costs)
