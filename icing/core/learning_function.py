@@ -24,14 +24,23 @@ from icing.utils import io, extra
 from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 
 
-def _remove_duplicate_junctions(igs_list):
-    igs, juncs = [], []
-    for ig in igs_list:
-        junc = extra.junction_re(ig.junction)
-        if junc not in juncs:
-            igs.append(ig)
-            juncs.append(junc)
-    return igs, juncs
+# def _remove_duplicate_junctions(igs_list):
+#     igs, juncs = [], []
+#     for ig in igs_list:
+#         junc = extra.junction_re(ig.junction)
+#         if junc not in juncs:
+#             igs.append(ig)
+#             juncs.append(junc)
+#     return igs, juncs
+def _remove_duplicate_junctions(igs):
+    # igs, juncs = [], []
+    # for ig in igs_list:
+    #     junc = extra.junction_re(ig.junction)
+    #     if junc not in juncs:
+    #         igs.append(ig)
+    #         juncs.append(junc)
+    igs = list(igs)
+    return igs, map(lambda x: extra.junction_re(x.junction), igs)
 
 
 # def _distance(el1, el2):
@@ -76,7 +85,8 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     if is_intra:
         # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, df)
         # temp TODO XXX
-        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig1, df)
+        dist2nearest = parallel_distance.dnearest_inter_padding(
+            ig1, ig1, df, func=max)
     else:
         dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, df)
     if not os.path.exists(fn.split('/')[0]):
@@ -258,7 +268,7 @@ def create_alpha_plot(my_dict, order=3):
                 print("Error", np.unique(pred))
 
             plt.axvline(x=lin[idx], linestyle='--', color='r')
-            # plt.gcf().savefig("threshold_naive{}.png".format(k))
+            plt.gcf().savefig("threshold_naive{}.png".format(k))
             plt.close()
             threshold = lin[idx][0]  # threshold
             # np.save("threshold_naive", threshold)

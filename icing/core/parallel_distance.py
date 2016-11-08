@@ -12,19 +12,19 @@ import scipy
 import scipy.spatial
 import multiprocessing as mp
 
-from itertools import chain
+from itertools import chain, ifilter
 
 from icing.utils.extra import _terminate, progressbar
 
 
-def _min(generator):
+def _min(generator, func):
     try:
-        return min(generator)
+        return func(generator)
     except ValueError:
         return 0
 
 
-def dnearest_inter_padding(l1, l2, dist_function):
+def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
     """Compute in a parallel way a dist2nearest for two 1-d arrays.
 
     Use this function with different arrays; if l1 == l2, then the
@@ -36,6 +36,11 @@ def dnearest_inter_padding(l1, l2, dist_function):
         1-dimensional arrays. Compute the nearest element of l2 to l1.
     dist_function : function
         Function to use for the distance computation.
+    filt : function or None, optional
+        Filter based on the result of the distance function.
+    func : function, optional, default: min (built-in function)
+        Function to apply for selecting the best. Use min for distances,
+        max for similarities (consider numpy variants for speed).
 
     Returns
     -------
@@ -46,11 +51,9 @@ def dnearest_inter_padding(l1, l2, dist_function):
         for i in range(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
-            # shared_arr[i] = min((dist_function(l1[i], el2) for el2 in l2))
-            # temp TODO XXX, select only the distances greater than 0
-            shared_arr[i] = _min(ii for ii in
-                                 (dist_function(l1[i], el2) for el2 in l2)
-                                 if ii > 0)
+            shared_arr[i] = _min(ifilter(filt,
+                                 (dist_function(l1[i], el2) for el2 in l2)),
+                                 func)
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)

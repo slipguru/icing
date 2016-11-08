@@ -38,8 +38,8 @@ def pcc_index(nodes_A, nodes_B, ny):
     """
     len_a = len(nodes_A)
     len_b = len(nodes_B)
-    return (((len(nodes_A & nodes_B) * ny - len_a * len_b) /
-            sqrt(len_a * len_b * (ny - len_a) * (ny - len_b))) + 1) / 2.
+    return abs((len(nodes_A & nodes_B) * ny - len_a * len_b) /
+               sqrt(len_a * len_b * (ny - len_a) * (ny - len_b)))
 
 
 def hypergeometric_index(nodes_A, nodes_B):
