@@ -32,25 +32,10 @@ from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 #             igs.append(ig)
 #             juncs.append(junc)
 #     return igs, juncs
+
 def _remove_duplicate_junctions(igs):
-    # igs, juncs = [], []
-    # for ig in igs_list:
-    #     junc = extra.junction_re(ig.junction)
-    #     if junc not in juncs:
-    #         igs.append(ig)
-    #         juncs.append(junc)
     igs = list(igs)
     return igs, map(lambda x: extra.junction_re(x.junction), igs)
-
-
-# def _distance(el1, el2):
-#     # j1 = extra.junction_re(el1.junction)
-#     # j2 = extra.junction_re(el2.junction)
-#     #
-#     # return 1. - sum_string_kernel(
-#     #     [j1, j2], min_kn=1, max_kn=5, lamda=.75,
-#     #     verbose=False, normalize=1)[0, 1]
-#     return cloning.sim_function(el1, el2, correct=False, tol=1000)
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
@@ -80,15 +65,14 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
         sim_func_args['sim_score_params'] = {
             'nV': len([x for x in dd if 'V' in x]),
             'nJ': len([x for x in dd if 'J' in x])}
-    df = partial(cloning.sim_function, **sim_func_args)
+    sim_func = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing %s", fn)
     if is_intra:
-        # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, df)
-        # temp TODO XXX
         dist2nearest = parallel_distance.dnearest_inter_padding(
-            ig1, ig1, df, filt=lambda x: 0 < x < 1, func=max)
+            ig1, ig1, sim_func, filt=lambda x: 0 < x < 1, func=max)
     else:
-        dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, df)
+        dist2nearest = parallel_distance.dnearest_inter_padding(
+            ig1, ig2, sim_func, filt=lambda x: 0 < x < 1, func=max)
     if not os.path.exists(fn.split('/')[0]):
         os.makedirs(fn.split('/')[0])
     np.save(fn, dist2nearest)
@@ -107,8 +91,8 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     except Exception:
         pass
     plt.ylabel('Count')
-    plt.xlim([0, .5])
-    plt.xticks(np.linspace(0, .5, 11))
+    plt.xlim([0, 1])
+    plt.xticks(np.linspace(0, 1, 21))
     plt.xlabel('Ham distance (normalised)')
     plt.savefig(fn + ".png")
     plt.close()

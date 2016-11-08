@@ -316,7 +316,7 @@ def parallel_sim_matrix(rows, cols, records, n, similarity_function):
 
     n = len(rows)
     nprocs = min(mp.cpu_count(), n)
-    data = mp.Array('d', [0.]*n)
+    data = mp.Array('d', [0.] * n)
     ps = []
     try:
         for idx in range(nprocs):
@@ -389,7 +389,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
             'nV': len([x for x in dd if 'V' in x]),
             'nJ': len([x for x in dd if 'J' in x])
         }
-    logging.info("Similarity function parameters: {}".format(sim_func_args))
+    logging.info("Similarity function parameters: %s", sim_func_args)
     similarity_function = partial(sim_function, **sim_func_args)
 
     logging.info("Start similar_elements_parallel function ...")
