@@ -86,7 +86,7 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
         # dist2nearest = parallel_distance.dnearest_intra_padding(ig1, df)
         # temp TODO XXX
         dist2nearest = parallel_distance.dnearest_inter_padding(
-            ig1, ig1, df, func=max)
+            ig1, ig1, df, filt=lambda x: 0 < x < 1, func=max)
     else:
         dist2nearest = parallel_distance.dnearest_inter_padding(ig1, ig2, df)
     if not os.path.exists(fn.split('/')[0]):
@@ -294,6 +294,9 @@ def create_alpha_plot(my_dict, order=3):
         idx = idxs[1]
     # x, y = keys, means[idx] - mean_values
     # x, y = keys, mean_values - np.min(mean_values) + 1.
+    idx2 = mean_values > 0
+    keys, mean_values = keys[idx2], mean_values[idx2]
+    errors = errors[idx2]
     x, y = keys, np.min(mean_values) / mean_values
     # popt, _ = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
 
