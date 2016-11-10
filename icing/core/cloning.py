@@ -262,25 +262,25 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
         Set of pairs of elements on which further calculate the similarity.
     """
     def _internal(reverse_index, records, n, idx, nprocs, data, rows, cols,
-                  distance_function):
+                  sim_func):
         key_list = list(reverse_index)
         m = len(key_list)
         for ii in range(idx, m, nprocs):
             v = reverse_index[key_list[ii]]
             length = len(v)
             if length > 1:
-                for k in (range(int(length*(length-1)/2))):
-                    j = k % (length-1)+1
-                    i = int(k/(length-1))
+                for k in (range(int(length * (length - 1) / 2))):
+                    j = k % (length - 1) + 1
+                    i = int(k / (length - 1))
                     if i >= j:
-                        i = length-i-1
-                        j = length-j
+                        i = length - i - 1
+                        j = length - j
                     i = v[i]
                     j = v[j]
-                    c_idx = n*(n-1)/2 - (n-i)*(n-i-1)/2 + j - i - 1
+                    c_idx = n*(n-1)/2 - (n - i) * (n - i - 1) / 2 + j - i - 1
                     rows[c_idx] = int(i)
                     cols[c_idx] = int(j)
-                    data[c_idx] = 1#similarity_function(records[i], records[j])
+                    data[c_idx] = sim_func(records[i], records[j])
 
     nprocs = min(mp.cpu_count(), n)
     c_length = int(n * (n - 1) / 2)
@@ -394,15 +394,16 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     similarity_function = partial(sim_function, **sim_func_args)
 
     logging.info("Start similar_elements_parallel function ...")
-    _, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
-    logging.info("Start parallel_sim_matrix function ...")
-    data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
+    data, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
 
-    data = np.array(data, dtype=float)
-    idx = data > 0
-    data = data[idx]
-    rows = np.array(rows, dtype=int)[idx]
-    cols = np.array(cols, dtype=int)[idx]
+    # logging.info("Start parallel_sim_matrix function ...")
+    # data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
+    #
+    # data = np.array(data, dtype=float)
+    # idx = data > 0
+    # data = data[idx]
+    # rows = np.array(rows, dtype=int)[idx]
+    # cols = np.array(cols, dtype=int)[idx]
 
     # tic = time.time()
     # data, rows, cols = similar_elements(dd, igs, n, similarity_function)
