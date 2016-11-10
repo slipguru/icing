@@ -461,15 +461,15 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
 
             # # AffinityPropagation
-            # db = AffinityPropagation(affinity='precomputed',
-            #                          max_iter=max_iter) \
-            #     .fit(similarity_matrix[idxs][:, idxs].toarray())
-            # clusters_ = np.array(db.labels_, dtype=int) + 1
+            db = AffinityPropagation(affinity='precomputed',
+                                     max_iter=max_iter) \
+                .fit(similarity_matrix[idxs][:, idxs].toarray())
+            clusters_ = np.array(db.labels_, dtype=int) + 1
 
             # # SparseAffinityPropagation
-            db = SAP(verboseIter=0, damping=.5) \
-                .fit(similarity_matrix[idxs][:, idxs], 'median')
-            clusters_ = np.array(clusters_dict(db.exemplars_), dtype=int) + 1
+            # db = SAP(verboseIter=0, damping=.5) \
+            #     .fit(similarity_matrix[idxs][:, idxs], 'median')
+            # clusters_ = np.array(clusters_dict(db.exemplars_), dtype=int) + 1
             clusters_ += prev_max_clust
             clusters[idxs] = clusters_
             prev_max_clust = max(clusters_)
