@@ -48,7 +48,8 @@ def hypergeometric_index(nodes_a, nodes_b):
     raise NotImplementedError("hypergeometric index not implemented")
 
 
-def connection_specificity_index(nodes_a, nodes_b):
+def connection_specificity_index(nodes_a, nodes_b, pcc_ab, tot_nodes,
+        nodes_connected_to_a, nodes_connected_to_b):
     """Connection specificity index of a bipartite graph."""
     raise NotImplementedError("CSI index not implemented")
 
@@ -85,6 +86,15 @@ def similarity_score_bipartite(nodes_connected_to_A, nodes_connected_to_B,
         raise ValueError("Method %s not supported" % method)
 
 
+def _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2):
+    w1 = w2 = 1.
+    if r1 != 1. or r2 != 1.:
+        w1 = r1 * (tot_V + tot_J) / (r1 * tot_V + r2 * tot_J)
+        # w2 = 1. + tot_V / tot_J * (1. - w1)
+        w2 = r2 / r1 * w1
+    return (w1 * common_V + w2 * common_J) / (tot_V + tot_J)
+
+
 def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
                                 r1=1., r2=1., method='jaccard',
                                 sim_score_params=None):
@@ -109,17 +119,11 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
         The computed similarity score between A and B.
         Values are in range [0,1].
     """
-    if not V_genes_A or not V_genes_B or (r1 == 0 and r2 != 0):
-        # sys.stderr.write("V genes unspecified or zero weight."
-        #                  "Computing similarity between J genes ..."
-        #                  "V1 = {}, V2 = {}\n".format(V_genes_A, V_genes_B))
-        return similarity_score_bipartite(J_genes_A, J_genes_B, method)
     if r1 < 0 or r2 < 0 or (r1 == 0 and r2 == 0):
         raise ValueError("Weights cannot be negative")
+    if not V_genes_A or not V_genes_B or (r1 == 0 and r2 != 0):
+        return similarity_score_bipartite(J_genes_A, J_genes_B, method)
     if not J_genes_A or not J_genes_B or (r2 == 0 and r1 != 0):
-        # sys.stderr.write("J genes unspecified or zero weight."
-        #                  "Computing similarity between V genes ..."
-        #                  "J1 = {}, J2 = {}\n".format(J_genes_A, J_genes_B))
         return similarity_score_bipartite(V_genes_A, V_genes_B, method)
 
     # enforce sets
@@ -127,68 +131,99 @@ def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
     V_genes_B = set(V_genes_B)
     J_genes_A = set(J_genes_A)
     J_genes_B = set(J_genes_B)
-    w1 = w2 = 1.
 
-    if method.lower() == 'jaccard':
-        tot_V = len(V_genes_A | V_genes_B)
-        tot_J = len(J_genes_A | J_genes_B)
-        if r1 != 1. or r2 != 1.:
-            # sys.stdout.write("Recalculating w1 and w2, based on "
-            #                  "r1 = {.2f} and r2 = {.2f}\n".format(r1, r2))
-            w1 = r1 * (tot_V + tot_J) / (r1 * tot_V + r2 * tot_J)
-            # w2 = (tot_V + tot_J) / tot_J - w1 * tot_V / tot_J
-            w2 = 1. + tot_V / tot_J * (1. - w1)
-        return (w1 * len(V_genes_A & V_genes_B) +
-                w2 * len(J_genes_A & J_genes_B)) / (tot_V + tot_J)
-
-    elif method.lower() == 'simpson':
-        min_V = min(len(V_genes_A), len(V_genes_B))
-        min_J = min(len(J_genes_A), len(J_genes_B))
-        if r1 != 1. or r2 != 1.:
-            w1 = r1 * (min_V + min_J) / (r1 * min_V + r2 * min_J)
-            # w2 = (min_V + min_J) / min_J - w1 * min_V / min_J
-            w2 = 1. + min_V / min_J * (1. - w1)
-        return (w1 * len(V_genes_A & V_genes_B) +
-                w2 * len(J_genes_A & J_genes_B)) / (min_V + min_J)
-
-    elif method.lower() == 'geometric':
-        tot_V = len(V_genes_A) * len(V_genes_B)
-        tot_J = len(J_genes_A) * len(J_genes_B)
-        if r1 != 1. or r2 != 1.:
-            w1 = r1 * (tot_V + tot_J) / (r1 * tot_V + r2 * tot_J)
-            # w2 = (min_V + min_J) / min_J - w1 * min_V / min_J
-            w2 = 1. + tot_V / tot_J * (1. - w1)
-
+    if method == 'jaccard':
         common_V = len(V_genes_A & V_genes_B)
         common_J = len(J_genes_A & J_genes_B)
-        return (w1 * common_V * common_V +
-                w2 * common_J * common_J) / (tot_V + tot_J)
+        tot_V = len(V_genes_A | V_genes_B)
+        tot_J = len(J_genes_A | J_genes_B)
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
 
-    elif method.lower() == 'jaccard_new':
+    elif method == 'simpson':
+        common_V = len(V_genes_A & V_genes_B)
+        common_J = len(J_genes_A & J_genes_B)
+        tot_V = min(len(V_genes_A), len(V_genes_B))
+        tot_J = min(len(J_genes_A), len(J_genes_B))
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
+
+    elif method == 'geometric':
+        common_V = len(V_genes_A & V_genes_B)
+        common_V *= common_V
+        common_J = len(J_genes_A & J_genes_B)
+        common_J *= common_J
+        tot_V = len(V_genes_A) * len(V_genes_B)
+        tot_J = len(J_genes_A) * len(J_genes_B)
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
+
+    elif method == 'cosine':
+        common_V = len(V_genes_A & V_genes_B)
+        common_J = len(J_genes_A & J_genes_B)
+        tot_V = sqrt(len(V_genes_A) * len(V_genes_B))
+        tot_J = sqrt(len(J_genes_A) * len(J_genes_B))
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
+
+    elif method == 'firstkul':
+        # First Kulczynski coefficient
+        # Note that the codomain is [0, inf)
+        common_V = len(V_genes_A & V_genes_B)
+        common_J = len(J_genes_A & J_genes_B)
+        tot_V = len(V_genes_A) + len(V_genes_B) - 2 * common_V
+        tot_J = len(J_genes_A) + len(J_genes_B) - 2 * common_J
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
+
+    elif method == 'dice':
+        common_V = 2 * len(V_genes_A & V_genes_B)
+        common_J = 2 * len(J_genes_A & J_genes_B)
+        tot_V = len(V_genes_A) + len(V_genes_B)
+        tot_J = len(J_genes_A) + len(J_genes_B)
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
+
+    elif method == 'russelrao':
+        common_V = len(V_genes_A & V_genes_B)
+        common_J = len(J_genes_A & J_genes_B)
+        tot_V = sim_score_params.get('nV')
+        tot_J = sim_score_params.get('nJ')
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
+
+    elif method == 'pcc':
+        nv = sim_score_params.get('nV')
+        len_va = len(V_genes_A)
+        len_vb = len(V_genes_B)
+        common_V = abs((len(V_genes_A & V_genes_B) * nv - len_va * len_vb))
+        tot_V = sqrt(len_va * len_vb * (nv - len_va) * (nv - len_vb))
+
+        nj = sim_score_params.get('nJ')
+        len_ja = len(J_genes_A)
+        len_jb = len(J_genes_B)
+        common_J = abs((len(J_genes_A & J_genes_B) * nj - len_ja * len_jb))
+        tot_J = sqrt(len_ja * len_jb * (nj - len_ja) * (nj - len_jb))
+        return _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2)
+
+    elif method == 'jaccard_new':
         w1 = r1 / r1 + r2
         w2 = 1 - w1
         return (w1 * jaccard_index(V_genes_A, V_genes_B) +
                 w2 * jaccard_index(J_genes_A, J_genes_B))
 
-    elif method.lower() == 'simpson_new':
+    elif method == 'simpson_new':
         w1 = r1 / r1 + r2
         w2 = 1 - w1
         return (w1 * simpson_index(V_genes_A, V_genes_B) +
                 w2 * simpson_index(J_genes_A, J_genes_B))
 
-    elif method.lower() == 'geometric_new':
+    elif method == 'geometric_new':
         w1 = r1 / r1 + r2
         w2 = 1 - w1
         return (w1 * geometric_index(V_genes_A, V_genes_B) +
                 w2 * geometric_index(J_genes_A, J_genes_B))
 
-    elif method.lower() == 'cosine_new':
+    elif method == 'cosine_new':
         w1 = r1 / r1 + r2
         w2 = 1 - w1
         return (w1 * cosine_index(V_genes_A, V_genes_B) +
                 w2 * cosine_index(J_genes_A, J_genes_B))
 
-    elif method.lower() == 'pcc':
+    elif method == 'pcc_new':
         w1 = r1 / r1 + r2
         w2 = 1 - w1
         nv = sim_score_params.get('nV')

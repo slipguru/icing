@@ -17,6 +17,7 @@ import scipy
 
 from collections import defaultdict
 from functools import partial
+from pysapc import SAP  # Sparse Affinity Propagation
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
@@ -425,10 +426,20 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
     n, labels = connected_components(similarity_matrix, directed=False)
     prev_max_clust = 0
     clusters = labels.copy()
+
+    def clusters_dict(a):
+        d = {}
+        count = 0
+        for e in a:
+            if d.get(e, None) is None:
+                d[e] = count
+                count += 1
+        return [d[e] for e in a]
+
     for i in range(n):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
-            dm = 1. - similarity_matrix[idxs][:, idxs].toarray()
+            # dm = 1. - similarity_matrix[idxs][:, idxs].toarray()
 
             # # Hierarchical clustering
             # links = linkage((dm), method='ward')
@@ -437,14 +448,20 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             # DBSCAN
             # db = DBSCAN(eps=threshold, min_samples=1,
             #             metric='precomputed').fit(dm)
-
-            db = AffinityPropagation(affinity='precomputed',
-                                     max_iter=max_iter) \
-                .fit(similarity_matrix[idxs][:, idxs].toarray())
-            clusters_ = np.array(db.labels_, dtype=int) + 1
             # # Number of clusters in labels, ignoring noise if present.
             # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
+
+            # # AffinityPropagation
+            # db = AffinityPropagation(affinity='precomputed',
+            #                          max_iter=max_iter) \
+            #     .fit(similarity_matrix[idxs][:, idxs].toarray())
+            # clusters_ = np.array(db.labels_, dtype=int) + 1
+
+            # # SparseAffinityPropagation
+            db = SAP(verboseIter=0, damping=.5) \
+                .fit(similarity_matrix[idxs][:, idxs], 'median')
+            clusters_ = np.array(clusters_dict(db.exemplars_), dtype=int) + 1
             clusters_ += prev_max_clust
             clusters[idxs] = clusters_
             prev_max_clust = max(clusters_)
