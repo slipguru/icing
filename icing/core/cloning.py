@@ -337,7 +337,7 @@ def indicator_to_similarity(rows, cols, records, similarity_function):
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
-                           args=(data, rows, cols, records, idx, nprocs,
+                           args=(data, rows, cols, n, records, idx, nprocs,
                                  similarity_function))
             p.start()
             ps.append(p)
@@ -400,7 +400,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     logging.info("Similarity function parameters: %s", sim_func_args)
     similarity_function = partial(sim_function, **sim_func_args)
 
-    logging.info("Start similar_elements_parallel function ...")
+    logging.info("Start similar_elements function ...")
     _, rows, cols = similar_elements(dd, igs, n, similarity_function)
 
     logging.info("Start parallel_sim_matrix function ...")
