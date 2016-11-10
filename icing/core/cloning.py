@@ -131,12 +131,19 @@ def inverse_index(records):
         the list of indices of records which contains that gene.
         Example: reverse_index = {'IGHV3' : [0,3,5] ...}
     """
-    r_index = defaultdict(list)
-    for i, ig in enumerate(list(records)):
+    r_index = dict()
+    for i, ig in enumerate(records):
         for v in ig.getVGene('set'):
-            r_index[v].append(i)
+            r_index.setdefault(v, []).append(i)
         for j in ig.getJGene('set'):
-            r_index[j].append(i)
+            r_index.setdefault(j, []).append(i)
+
+    # r_index = defaultdict(list)
+    # for i, ig in enumerate(list(records)):
+    #     for v in ig.getVGene('set'):
+    #         r_index[v].append(i)
+    #     for j in ig.getJGene('set'):
+    #         r_index[j].append(i)
 
     return r_index
 
@@ -163,9 +170,9 @@ def inverse_index_parallel(records):
         for i in range(idx, n, nprocs):
             ig = igs_arr[i]
             for _ in ig.getVGene('set'):
-                local_dict[_].append((i,))
+                local_dict[_].append(i)
             for _ in ig.getJGene('set'):
-                local_dict[_].append((i,))
+                local_dict[_].append(i)
         with lock:
             queue.append(dict(local_dict))
 
@@ -196,23 +203,8 @@ def inverse_index_parallel(records):
     return reverse_index
 
 
-def similar_elements(reverse_index, records, n, distance_function):
-    """Return a set of elements on which to compute similarity.
-
-    Parameters
-    ----------
-    reverse_index : dict
-        Reverse index. For each key (a string which represent a gene), it has
-        the list of indices of records which contains that gene.
-        Example: reverse_index = {'IGHV3' : [0,3,5] ...}
-    n : int
-        Number of records.
-
-    Returns
-    -------
-    _ : set
-        Set of pairs of elements on which further calculate the similarity.
-    """
+def _similar_elements_sequential(reverse_index, records, n,
+                                 similarity_function):
     # To avoid memory problems, use a sparse matrix.
     # lil_matrix is good to update
     indicator_matrix = scipy.sparse.lil_matrix((n, n), dtype=float)
@@ -229,7 +221,8 @@ def similar_elements(reverse_index, records, n, distance_function):
                     j = length-j
                 i = v[i]
                 j = v[j]
-                indicator_matrix[i, j] = distance_function(records[i], records[j])
+                indicator_matrix[i, j] = similarity_function(
+                    records[i], records[j])
                 # If the distance function is not symmetric,
                 # then turn the following on:
                 # indicator_matrix[v[j][0], v[i][0]] = True
@@ -237,11 +230,31 @@ def similar_elements(reverse_index, records, n, distance_function):
     return data, rows, cols
 
 
-def similar_elements_parallel(reverse_index, records, n, similarity_function):
-    """Return the sparse similarity matrix in form of data, rows and cols.
+def _similar_elements_job(
+        reverse_index, records, n, idx, nprocs, data, rows, cols, sim_func):
+    key_list = list(reverse_index)
+    m = len(key_list)
+    for ii in range(idx, m, nprocs):
+        v = reverse_index[key_list[ii]]
+        length = len(v)
+        if length > 1:
+            for k in (range(int(length * (length - 1) / 2))):
+                j = k % (length - 1) + 1
+                i = int(k / (length - 1))
+                if i >= j:
+                    i = length - i - 1
+                    j = length - j
+                i = v[i]
+                j = v[j]
+                c_idx = n*(n-1)/2 - (n - i) * (n - i - 1) / 2 + j - i - 1
+                rows[c_idx] = int(i)
+                cols[c_idx] = int(j)
+                data[c_idx] = 1  # sim_func(records[i], records[j])
 
-    Differently from similar_elements(), perform the calculation in a parallel
-    way.
+
+def similar_elements(reverse_index, records, n, similarity_function,
+                     nprocs=-1):
+    """Return the sparse similarity matrix in form of data, rows and cols.
 
     Parameters
     ----------
@@ -255,34 +268,18 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
         Number of records.
     similarity_function : function
         Function which computes the similarity between two records.
+    nprocs : int, optional, default: -1
+        Number of processes to use.
 
     Returns
     -------
     _ : set
         Set of pairs of elements on which further calculate the similarity.
     """
-    def _internal(reverse_index, records, n, idx, nprocs, data, rows, cols,
-                  sim_func):
-        key_list = list(reverse_index)
-        m = len(key_list)
-        for ii in range(idx, m, nprocs):
-            v = reverse_index[key_list[ii]]
-            length = len(v)
-            if length > 1:
-                for k in (range(int(length * (length - 1) / 2))):
-                    j = k % (length - 1) + 1
-                    i = int(k / (length - 1))
-                    if i >= j:
-                        i = length - i - 1
-                        j = length - j
-                    i = v[i]
-                    j = v[j]
-                    c_idx = n*(n-1)/2 - (n - i) * (n - i - 1) / 2 + j - i - 1
-                    rows[c_idx] = int(i)
-                    cols[c_idx] = int(j)
-                    data[c_idx] = sim_func(records[i], records[j])
-
-    nprocs = min(mp.cpu_count(), n)
+    if nprocs == 1:
+        return _similar_elements_sequential(reverse_index, records, n,
+                                            similarity_function)
+    nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
     c_length = int(n * (n - 1) / 2)
     data = mp.Array('d', [0] * c_length)
     rows = mp.Array('d', [0] * c_length)
@@ -290,7 +287,7 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
     ps = []
     try:
         for idx in range(nprocs):
-            p = mp.Process(target=_internal,
+            p = mp.Process(target=_similar_elements_job,
                            args=(reverse_index, records, n, idx, nprocs,
                                  data, rows, cols, similarity_function))
             p.start()
@@ -310,8 +307,26 @@ def similar_elements_parallel(reverse_index, records, n, similarity_function):
     return data, rows, cols
 
 
-def parallel_sim_matrix(rows, cols, records, n, similarity_function):
-    def _internal(data, rows, cols, records, idx, nprocs, similarity_function):
+def indicator_to_similarity(rows, cols, records, similarity_function):
+    """Given the position on a sparse matrix, compute the similarity.
+
+    Parameters:
+    -----------
+    rows, cols : array_like
+        Positions of records to calculate similarities.
+    records : array_like
+        Records to use for the ocmputation.
+    similarity_function : function
+        Function to calculate similarities.
+
+    Returns:
+    --------
+    data : multiprocessing.array
+        Array of length len(rows) which contains similarities among records
+        as specified by rows and cols.
+    """
+    def _internal(data, rows, cols, n, records,
+                  idx, nprocs, similarity_function):
         for i in range(idx, n, nprocs):
             data[i] = similarity_function(records[rows[i]], records[cols[i]])
 
@@ -362,14 +377,6 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     ``parallel_distance.distance_matrix_parallel(db_iter, d_func, sparse_mode)``
     However, this method is really inefficient, so the matrix is computed
     between chosen couples of values.
-
-    The reverse index with one core, instead, looks like::
-
-      r_index = dict()
-      for i, ig in enumerate(igs):
-          for v in ig.getVGene('set'): r_index.setdefault(v,[]).append((i,ig))
-          for j in ig.getJGene('set'): r_index.setdefault(j,[]).append((i,ig))
-
     """
     igs = list(db_iter)
     n = len(igs)
@@ -394,16 +401,16 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     similarity_function = partial(sim_function, **sim_func_args)
 
     logging.info("Start similar_elements_parallel function ...")
-    data, rows, cols = similar_elements_parallel(dd, igs, n, similarity_function)
+    _, rows, cols = similar_elements(dd, igs, n, similarity_function)
 
-    # logging.info("Start parallel_sim_matrix function ...")
-    # data = parallel_sim_matrix(rows, cols, igs, n, similarity_function)
-    #
-    # data = np.array(data, dtype=float)
-    # idx = data > 0
-    # data = data[idx]
-    # rows = np.array(rows, dtype=int)[idx]
-    # cols = np.array(cols, dtype=int)[idx]
+    logging.info("Start parallel_sim_matrix function ...")
+    data = indicator_to_similarity(rows, cols, igs, similarity_function)
+
+    data = np.array(data, dtype=float)
+    idx = data > 0
+    data = data[idx]
+    rows = np.array(rows, dtype=int)[idx]
+    cols = np.array(cols, dtype=int)[idx]
 
     # tic = time.time()
     # data, rows, cols = similar_elements(dd, igs, n, similarity_function)
