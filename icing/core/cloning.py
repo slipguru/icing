@@ -21,7 +21,8 @@ from pysapc import SAP  # Sparse Affinity Propagation
 from scipy.cluster.hierarchy import fcluster, linkage
 from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
-from sklearn.cluster import AffinityPropagation
+# from sklearn.cluster import AffinityPropagation
+from icing.externals.sparse_affinity_propagation import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
 
 from icing.core.distances import string_distance
@@ -435,18 +436,10 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
     prev_max_clust = 0
     clusters = labels.copy()
 
-    def clusters_dict(a):
-        d = {}
-        count = 0
-        for e in a:
-            if d.get(e, None) is None:
-                d[e] = count
-                count += 1
-        return [d[e] for e in a]
-
     for i in range(n):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
+            sm = similarity_matrix[idxs][:, idxs]
             # dm = 1. - similarity_matrix[idxs][:, idxs].toarray()
 
             # # Hierarchical clustering
@@ -460,16 +453,20 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
 
-            # # AffinityPropagation
+            # AffinityPropagation
             db = AffinityPropagation(affinity='precomputed',
-                                     max_iter=max_iter) \
-                .fit(similarity_matrix[idxs][:, idxs].toarray())
+                                     max_iter=max_iter,
+                                     preference=np.median(sm.data)) \
+                .fit(sm)
             clusters_ = np.array(db.labels_, dtype=int) + 1
 
             # # SparseAffinityPropagation
             # db = SAP(verboseIter=0, damping=.5) \
             #     .fit(similarity_matrix[idxs][:, idxs], 'median')
-            # clusters_ = np.array(clusters_dict(db.exemplars_), dtype=int) + 1
+            # _centers = np.unique(db.exemplars_)
+            # lookup = {v: i + 1 for i, v in enumerate(_centers)}
+            # clusters_ = np.array([lookup[x] for x in db.exemplars_], dtype=int)
+
             clusters_ += prev_max_clust
             clusters[idxs] = clusters_
             prev_max_clust = max(clusters_)
