@@ -152,17 +152,19 @@ def preCompute(rows, cols, data):
     kk_col_index = sparseAP_cy.getKKIndex(colBased_row_array, colBased_col_array)
 
     # Initialize matrix A, R
-    A_rowBased_data = np.zeros(data_len, dtype=float)
-    R_rowBased_data = np.zeros(data_len, dtype=float)
+    A = np.zeros(data_len, dtype=float)
+    R = np.zeros(data_len, dtype=float)
 
     # Add random small value to remove degeneracies
     random_state = np.random.RandomState(0)
-    data += 1e-12 * random_state.randn(data_len) * (np.amax(data) - np.amin(data))
+    # data += 1e-12 * random_state.randn(data_len) * (np.amax(data) - np.amin(data))
+    data += ((np.finfo(np.double).eps * data + np.finfo(np.double).tiny * 100) *
+            random_state.randn(data_len))
 
     # Convert row_to_col_ind_arr/col_to_row_ind_arr data type to np.int
     # datatype so it is compatible with cython code
     row_to_col_ind_arr = row_to_col_ind_arr.astype(np.int)
     col_to_row_ind_arr = col_to_row_ind_arr.astype(np.int)
 
-    return data, A_rowBased_data, R_rowBased_data, col_indptr, row_indptr, \
+    return data, A, R, col_indptr, row_indptr, \
         row_to_col_ind_arr, col_to_row_ind_arr, kk_col_index
