@@ -18,8 +18,112 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.metrics import euclidean_distances
 from sklearn.metrics import pairwise_distances_argmin
 
-from . import sparseMatrixPrepare, sparseAP_cy
-from .SparseAPCluster import *
+
+def rmSingleSamples(rows, cols, rowBased_data, n_samples):
+    """
+    Affinity/similarity matrix does not need be symmetric, that is s(A,B) does not need be same as s(B,A).
+    Also since Affinity/similarity matrix is sparse, it could be that s(A,B) exist but s(B,A) does not exist in the sparse matrix.
+    For the FSAPC to work, specifically in computation of R and A matrix, each row/column of Affinity/similarity matrix should have at least two datapoints.
+    So in FSAPC, we first remove samples that do not have affinity/similarity with other samples, that is samples that only have affinity/similarity with itself
+    And we remove samples only have one symmetric datapoint, for example for sample 'B' only s(B,C) exist and for sample 'C' only s(C,B) exist
+    In these two cases, these samples are removed from FSAPC computation and their examplers are set to themself.
+    For samples that only have one data (affinity/similarity) with others, For example if for sample 'A', the only datapoint of [s(A,A),s(A,B),s(A,C)...] is s(A,B),
+    and there exist at least one value in [s(A,A),s(C,A),s(D,A)...] (except s(B,A), because if we copy s(B,A), for 'A' we still only have one data point)
+    then we copy the minimal value of [s(A,A),s(C,A),s(D,A)...]
+    n_samples is the number of samples of orignail input data
+    """
+    # find rows and cols that only have one datapoint
+    # singleRowInds=set(sparseAP_cy.singleItems(rows))
+    # singleColInds=set(sparseAP_cy.singleItems(cols))
+
+    unique, counts = np.unique(rows, return_counts=True)
+    singleRowInds = set(unique[counts < 2])
+    unique, counts = np.unique(cols, return_counts=True)
+    singleColInds = set(unique[counts < 2])
+
+    # assert sorted(singleRowInds) == sorted(rows_one_element)
+    # in case every col/row have more than one datapoint, return original data
+    if len(singleRowInds) == 0 and len(singleColInds) == 0:
+        return rows, cols, rowBased_data, \
+            None, None, n_samples
+
+    # samples that have one datapoint in row and col are samples only have
+    # affinity/similarity with itself
+    singleSampleInds = singleRowInds & singleColInds
+
+    # remove samples that only have affinity/similarity with itself
+    # or only have one symmetric datapoint, for example for sample 'B' only
+    # s(B,C) exist and for sample 'C' only s(C,B) exist
+    # in these two cases, these samples are removed from FSAPC computation and
+    # their examplers are set to themself.
+    if len(singleSampleInds) > 0:
+        # row indexs that left after remove single samples
+        # rowLeft_old = sorted(list(set(range(n_samples)) - singleSampleInds))
+        mask = np.ones(n_samples, dtype=bool)
+        mask[np.array(singleSampleInds)] = False
+        rowLeft = np.arange(n_samples)[mask]
+        # assert rowLeft == rowLeft_old
+        # map of original row index to current row index(after remove rows/cols
+        # that only have single item)
+        rowOriLeftDict, rowLeftOriDict = {}, {}
+        for left, ori in enumerate(rowLeft):
+            rowOriLeftDict[ori] = left
+            rowLeftOriDict[left] = ori
+
+        # remove single elements outside the diagonal
+        mask = np.ones(rows.shape[0], dtype=bool)
+        mask[singleSampleInds] = False
+        idx_to_remove = np.logical_or(rows == cols, mask)
+        rows = rows[idx_to_remove]
+        cols = cols[idx_to_remove]
+        rowBased_data = rowBased_data[idx_to_remove]
+
+        # rows, cols, rowBased_data = sparseAP_cy.removeSingleSamples(
+        #     rows, cols, rowBased_data, singleSampleInds)
+        # assert set(rows) == set(rows)
+        # assert set(cols) == set(cols)
+        # assert set(data) == set(rowBased_data)
+    else:  # no samples are removed
+        rowLeftOriDict = None
+
+    # for samples that need copy a minimal value to have at least two
+    # datapoints in row/column
+    # for samples that row have single data point, copy minimal value of this
+    # sample's column
+    singleRowInds = singleRowInds - singleSampleInds
+    if len(singleRowInds) > 0:
+        rows, cols, rowBased_data = copySym(
+            rows, cols, rowBased_data, singleRowInds)
+    # for samples that col have single data point, copy minimal value of this sample's row
+    singleColInds = singleColInds - singleSampleInds
+    if len(singleColInds) > 0:
+        cols, rows, rowBased_data = copySym(
+            cols, rows, rowBased_data, singleColInds)
+
+    # change row, col index if there is any sample removed
+    if len(singleSampleInds) > 0:
+        changeIndV = np.vectorize(lambda x: rowOriLeftDict[x])
+        rows = changeIndV(rows)
+        cols = changeIndV(cols)
+
+    # rearrange based on new row index and new col index
+    sortedLeftOriInd = np.lexsort((cols, rows)).astype(np.int)
+
+    rows = sparseAP_cy.npArrRearrange_int_para(
+        rows, sortedLeftOriInd)
+    cols = sparseAP_cy.npArrRearrange_int_para(
+        cols, sortedLeftOriInd)
+    rowBased_data = sparseAP_cy.npArrRearrange_float_para(
+        rowBased_data, sortedLeftOriInd)
+    # rows2 = rows[sortedLeftOriInd]
+    # cols2 = cols[sortedLeftOriInd]
+    # rowBased_data2 = rowBased_data[sortedLeftOriInd]
+    # assert rowBased_data1 == rowBased_data2
+    # assert cols1 == cols2
+    # assert rows1 == rows2
+
+    return rows, cols, rowBased_data, rowLeftOriDict, \
+        singleSampleInds, n_samples - len(singleSampleInds)
 
 
 def matrix_to_row_col_data(X):
@@ -39,37 +143,24 @@ def matrix_to_row_col_data(X):
     return X_coo.row.astype(np.int), X_coo.col.astype(np.int), X_coo.data
 
 
-def getPreferenceList(preference, n_samples, data_array):
+def parse_preference(preference, n_samples, data):
     """
     Input preference should be a numeric scalar,
     a string of 'min' / 'median', or a list/np 1D array(length of samples).
     Return preference list(same length as samples)
     """
-    # numeric value
-    if isinstance(preference, float) or isinstance(preference, int) or \
-            isinstance(preference, long):
-        preference_list = [float(preference)] * n_samples
-    elif isinstance(preference, basestring):
-        if str(preference) == 'min':
-            preference = data_array.min()
-        elif str(preference) == 'median':
-            preference = np.median(data_array)
-        else:
-            raise ValueError(
-                "Preference should be a numeric scalar, a string of "
-                "'min' / 'median', or a list/np 1D array(length of samples)."
-                "\nYour input preference is: {0})".format(str(preference)))
-        preference_list = [preference] * n_samples
-    # list or numpy array
-    elif (isinstance(preference, list) or isinstance(preference, np.ndarray)) \
-            and len(preference) == n_samples:
-        preference_list = preference
-    else:
-        raise ValueError(
-            "Preference should be a numeric scalar, a string of "
-            "'min' / 'median', or a list/np 1D array(length of samples)."
-            "\nYour input preference is: {0})".format(str(preference)))
-    return np.asarray(preference_list)
+    err = "Preference should be a numeric scalar, a string of "
+    "'min' / 'median', or a list/np 1D array(length of samples)."
+    "\nYour input preference is: {0})".format(str(preference))
+
+    if (isinstance(preference, list) or isinstance(preference, np.ndarray)):
+        if len(preference) != n_samples:
+            raise ValueError()
+        return np.asarray(preference)
+
+    preference = preference == 'min' and data.min() or \
+        preference == 'median' and np.median(data) or preference
+    return np.ones(n_samples) * preference
 
 
 def _set_sparse_diagonal(rows, cols, data, preferences):
@@ -82,6 +173,46 @@ def _set_sparse_diagonal(rows, cols, data, preferences):
     cols = np.concatenate((cols, diag_other))
     data = np.concatenate((data, preferences[mask]))
     return rows, cols, data
+
+
+def _sparse_row_maxindex(data, row_indptr):
+    # data and row_idx must have same dimensions.
+    # row_idx is ordered
+    tmp = np.empty(row_indptr.shape[0]-1, dtype=int)
+    for i in range(1, row_indptr.shape[0]):
+        i_start = row_indptr[i - 1]
+        i_end = row_indptr[i]
+        # tmp[i_start:i_end] = np.sort(data[i_start:i_end])[::-1]
+        tmp[i - 1] = np.argmax(data[i_start:i_end]) + i_start
+    return tmp
+
+
+def _sparse_row_sum_update(data, row_indptr, kk):
+    # data and row_idx must have same dimensions.
+    # row_idx is ordered
+    tmp = np.empty(data.shape[0])
+    for i in range(1, row_indptr.shape[0]):
+        i_start = row_indptr[i - 1]
+        i_end = row_indptr[i]
+        col_sum = np.sum(data[i_start:i_end])
+        np.clip(data[i_start:i_end] - col_sum, 0, np.inf, tmp[i_start:i_end])
+        kk_ind = kk[i - 1]
+        tmp[kk_ind] = data[kk_ind] - col_sum
+    return tmp
+
+
+def _updateR_maxRow(arr, row_indptr):
+    """Given a numpy array(arr) and split index(sp[0,...,len(arr)]),
+    Return a array that have max value of each split, except the position that have max value will have second max value
+    """
+    max_row = np.empty(arr.shape[0])
+    for i in range(1, row_indptr.shape[0]):
+        i_start = row_indptr[i - 1]
+        i_end = row_indptr[i]
+        smi, mi = (np.argsort(arr[i_start:i_end]) + i_start)[-2:]
+        max_row[i_start:i_end] = arr[mi]
+        max_row[mi] = arr[smi]
+    return max_row
 
 
 def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
@@ -151,15 +282,19 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
     rows, cols, data = matrix_to_row_col_data(S)
     # Get parameters (nSamplesOri, preference_list, damping)
     n_samples = S.shape[0]
-    preferences = getPreferenceList(preference, n_samples, data)
+    preferences = parse_preference(preference, n_samples, data)
     if damping < 0.5 or damping >= 1:
         raise ValueError('damping must be >= 0.5 and < 1')
+    if convergence_percentage is None:
+        convergence_percentage = 1
+
+    random_state = np.random.RandomState(0)
 
     # set diag of affinity/similarity matrix to preference_list
     rows, cols, data = _set_sparse_diagonal(rows, cols, data, preferences)
 
     # reOrder by rowbased
-    sortedLeftOriInd = np.lexsort((cols, rows)).astype(np.int)
+    sortedLeftOriInd = np.lexsort((cols, rows))
     rows = rows[sortedLeftOriInd]
     cols = cols[sortedLeftOriInd]
     data = data[sortedLeftOriInd]
@@ -171,67 +306,102 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
     # (so their exemplars are themself) or copy a minimal value of
     # corresponding column/row
     rows, cols, data, rowLeftOriDict, singleSampleInds, n_samples = \
-            sparseMatrixPrepare.rmSingleSamples(rows, cols, data, n_samples)
+        rmSingleSamples(rows, cols, data, n_samples)
 
-    # Initialize matrix A, R; Remove degeneracies in data;
-    S_rowBased_data_array, A_rowbased_data_array, R_rowbased_data_array, \
-        col_indptr, row_indptr, row_to_col_ind_arr, col_to_row_ind_arr, \
-            kk_col_index = sparseMatrixPrepare.preCompute(rows, cols, data)
+    data_len = data.shape[0]
+    row_indptr = np.insert(np.where(np.diff(rows) > 0)[0] + 1, 0, 0)
+    if row_indptr[-1] != data_len:
+        row_indptr = np.append(row_indptr, data_len)
 
-    # Iterate update R,A matrix until meet convergence condition or
-    # reach max iteration
-    # In FSAPC, the convergence condition is when there is more than
-    #  convergence_iter iteration in rows that have exact clustering result or
-    # have similar clustering result that similarity is great than
+    row_to_col_ind_arr = np.lexsort((rows, cols))
+    rows_colbased = rows[row_to_col_ind_arr]
+    cols_colbased = cols[row_to_col_ind_arr]
+    col_to_row_ind_arr = np.lexsort((cols_colbased, rows_colbased))
+
+    col_indptr = np.insert(np.where(np.diff(cols_colbased) > 0)[0] + 1, 0, 0)
+    if col_indptr[-1] != data_len:
+        col_indptr = np.append(col_indptr, data_len)
+
+    kk_col_index = np.where(rows_colbased == cols_colbased)[0]
+    kk_row_index = np.where(rows == cols)[0]
+
+    # Add random small value to remove degeneracies
+    data_len = data.shape[0]
+    data += ((np.finfo(np.double).eps * data + np.finfo(np.double).tiny * 100)
+             * random_state.randn(data_len))
+
+    # Initialize matrix A, R
+    A = np.zeros(data_len, dtype=float)
+    R = np.zeros(data_len, dtype=float)
+    tmp = np.zeros(data_len, dtype=float)
+    # Update R, A matrix until meet convergence condition or
+    # reach max iteration. In FSAPC, the convergence condition is when there is
+    # more than convergence_iter iteration in rows that have exact clustering
+    # result or have similar clustering result that similarity is great than
     # convergence_percentage if convergence_percentage is set other than None
     # (default convergence_percentage is 0.999999, that is one datapoint in 1
     # million datapoints have different clustering.)
     # This condition is added to FSAPC is because FSAPC is designed to deal
     # with large data set.
+
     lastLabels = np.empty((0), dtype=np.int)
     labels = np.empty((0), dtype=np.int)
     convergeCount = 0
-    it = 0
-    for it in range(1, max_iter + 1):
+
+    for it in range(max_iter):
         lastLabels = labels
-        R_rowbased_data_array = updateR_cython_para(
-            S_rowBased_data_array, A_rowbased_data_array, R_rowbased_data_array,
-            row_indptr, rows, cols, damping)
-        A_rowbased_data_array = updateA_cython_para(
-            A_rowbased_data_array, R_rowbased_data_array, col_indptr, row_to_col_ind_arr, col_to_row_ind_arr, kk_col_index, damping)
-        AR_rowBased_data_array = A_rowbased_data_array + R_rowbased_data_array
-        labels = sparseAP_cy.rowMaxARIndex(
-            AR_rowBased_data_array, row_indptr).astype(np.int)
+
+        # tmp = A + S; compute responsibilities
+        np.add(A, data, tmp)
+        np.subtract(data, _updateR_maxRow(tmp, row_indptr), tmp)
+
+        # Damping
+        tmp *= 1. - damping
+        R *= damping
+        R += tmp
+
+        # tmp = Rp; compute availabilities
+        np.maximum(R, 0, tmp)
+        tmp[kk_row_index] = R[kk_row_index]
+
+        # tmp = -Anew
+        tmp = _sparse_row_sum_update(tmp[row_to_col_ind_arr], col_indptr,
+                                     kk_col_index)[col_to_row_ind_arr]
+
+        # Damping
+        tmp *= 1. - damping
+        A *= damping
+        A -= tmp
+
+        labels = _sparse_row_maxindex(A + R, row_indptr)
 
         # check convergence
-        if convergence_percentage is None:
-            if np.array_equal(lastLabels, labels) and len(labels) != 0:
-                convergeCount += 1
-            else:
-                convergeCount = 0
+        eq_perc = np.sum(lastLabels == labels) / float(labels.shape[0])
+        if eq_perc >= convergence_percentage and labels.shape[0] > 0:
+            convergeCount += 1
         else:
-            if sparseAP_cy.arrSamePercent(lastLabels, labels) >= convergence_percentage and len(labels) != 0:
-                convergeCount += 1
-            else:
-                convergeCount = 0
-        if convergeCount == convergence_iter and it < max_iter:
+            convergeCount = 0
+        if convergeCount == convergence_iter:
             break
 
     # Converting labels back to original sample index
-    sampleLables = np.asarray(cols[labels])
+    cols = cols[labels]
     if singleSampleInds is None or len(singleSampleInds) == 0:
-        finalLabels = sampleLables
+        cluster_centers_indices = cols
     else:
-        finalLabels = [rowLeftOriDict[el] for el in sampleLables]
+        cluster_centers_indices = [rowLeftOriDict[el] for el in cols]
         for ind in sorted(singleSampleInds):
-            # sorted singleSampleInds, insert samples that removed in rmSingleSamples()
-            finalLabels.insert(ind, ind)
-        finalLabels = np.asarray(finalLabels)
+            cluster_centers_indices.insert(ind, ind)
+        cluster_centers_indices = np.asarray(cluster_centers_indices)
 
-    _centers = np.unique(finalLabels)
+    _centers = np.unique(cluster_centers_indices)
     lookup = {v: i for i, v in enumerate(_centers)}
-    clusters_ = np.array([lookup[x] for x in finalLabels], dtype=int)
-    return finalLabels, clusters_, it
+    labels = np.array([lookup[x] for x in cluster_centers_indices], dtype=int)
+
+    if return_n_iter:
+        return cluster_centers_indices, labels, it + 1
+    else:
+        return cluster_centers_indices, labels
 
 
 def affinity_propagation(S, preference=None, convergence_iter=15, max_iter=200,

@@ -1,5 +1,7 @@
 """
 Prepare Sparse Matrix for Sparse Affinity Propagation Clustering (SAP)
+
+Script from pysapc.
 """
 # Authors: Huojun Cao <bioinfocao at gmail.com>
 # License: BSD 3 clause
@@ -134,37 +136,3 @@ def rmSingleSamples(rows, cols, rowBased_data, n_samples):
 
     return rows, cols, rowBased_data, rowLeftOriDict, \
         singleSampleInds, n_samples - len(singleSampleInds)
-
-
-def preCompute(rows, cols, data):
-    """Format affinity/similarity matrix."""
-    data_len = data.shape[0]
-    row_indptr = sparseAP_cy.getIndptr(rows)
-    if row_indptr[-1] != data_len:
-        row_indptr = np.concatenate((row_indptr, np.array([data_len])))
-    row_to_col_ind_arr = np.lexsort((rows, cols))
-    colBased_row_array = sparseAP_cy.npArrRearrange_int_para(rows, row_to_col_ind_arr)
-    colBased_col_array = sparseAP_cy.npArrRearrange_int_para(cols, row_to_col_ind_arr)
-    col_to_row_ind_arr = np.lexsort((colBased_col_array, colBased_row_array))
-    col_indptr = sparseAP_cy.getIndptr(colBased_col_array)
-    if col_indptr[-1] != data_len:
-        col_indptr = np.concatenate((col_indptr, np.array([data_len])))
-    kk_col_index = sparseAP_cy.getKKIndex(colBased_row_array, colBased_col_array)
-
-    # Initialize matrix A, R
-    A = np.zeros(data_len, dtype=float)
-    R = np.zeros(data_len, dtype=float)
-
-    # Add random small value to remove degeneracies
-    random_state = np.random.RandomState(0)
-    # data += 1e-12 * random_state.randn(data_len) * (np.amax(data) - np.amin(data))
-    data += ((np.finfo(np.double).eps * data + np.finfo(np.double).tiny * 100) *
-            random_state.randn(data_len))
-
-    # Convert row_to_col_ind_arr/col_to_row_ind_arr data type to np.int
-    # datatype so it is compatible with cython code
-    row_to_col_ind_arr = row_to_col_ind_arr.astype(np.int)
-    col_to_row_ind_arr = col_to_row_ind_arr.astype(np.int)
-
-    return data, A, R, col_indptr, row_indptr, \
-        row_to_col_ind_arr, col_to_row_ind_arr, kk_col_index

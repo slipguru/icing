@@ -252,7 +252,7 @@ def create_alpha_plot(my_dict, order=3):
                 print("Error", np.unique(pred))
 
             plt.axvline(x=lin[idx], linestyle='--', color='r')
-            plt.gcf().savefig("threshold_naive{}.png".format(k))
+            # plt.gcf().savefig("threshold_naive{}.png".format(k))
             plt.close()
             threshold = lin[idx][0]  # threshold
             # np.save("threshold_naive", threshold)
