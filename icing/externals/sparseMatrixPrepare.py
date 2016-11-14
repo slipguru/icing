@@ -8,7 +8,7 @@ Script from pysapc.
 
 import numpy as np
 import pandas as pd
-import sparseAP_cy # cython for calculation
+from pysapc import sparseAP_cy # cython for calculation
 
 
 def copySym(rows, cols, rowBased_data, singleRowInds):
