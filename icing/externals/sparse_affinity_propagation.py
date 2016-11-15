@@ -39,18 +39,20 @@ def matrix_to_row_col_data(X):
 
 
 def parse_preference(preference, n_samples, data):
-    """
-    Input preference should be a numeric scalar,
-    a string of 'min' / 'median', or a list/np 1D array(length of samples).
-    Return preference list(same length as samples)
-    """
-    err = "Preference should be a numeric scalar, a string of "
-    "'min' / 'median', or a list/np 1D array(length of samples)."
-    "\nYour input preference is: {0})".format(str(preference))
+    """Set array of preferences.
 
+    Parameters:
+    -----------
+    preference : str, array-like or float
+        If preference is array-like, it must have same dimensions as data.
+    n_samples : int
+        Number of samples in the analysis.
+    data : array-like
+        Array of dense data.
+    """
     if (isinstance(preference, list) or isinstance(preference, np.ndarray)):
         if len(preference) != n_samples:
-            raise ValueError()
+            raise ValueError("Preference array of incorrect size.")
         return np.asarray(preference)
 
     preference = preference == 'min' and data.min() or \
@@ -82,24 +84,41 @@ def _sparse_row_maxindex(data, row_indptr):
     return tmp
 
 
+# def _sparse_maxindex(data, rows):
+#     # data and row_idx must have same dimensions.
+#     # row_idx is ordered
+#     ma = np.ma.MaskedArray(data)
+#     tmp = np.empty(np.unique(rows).shape[0], dtype=int)
+#     for i in np.unique(rows):
+#         ma.mask = np.where(rows == i, False, True)
+#         tmp[i] = np.ma.argmax(ma)
+#     return tmp
+
+
 def _sparse_row_sum_update(data, row_indptr, kk):
     # data and row_idx must have same dimensions.
     # row_idx is ordered
-    tmp = np.empty(data.shape[0])
-    for i in range(1, row_indptr.shape[0]):
-        i_start = row_indptr[i - 1]
-        i_end = row_indptr[i]
-        col_sum = np.sum(data[i_start:i_end])
-        np.clip(data[i_start:i_end] - col_sum, 0, np.inf, tmp[i_start:i_end])
-        kk_ind = kk[i - 1]
-        tmp[kk_ind] = data[kk_ind] - col_sum
-    return tmp
+    for i in range(row_indptr.shape[0] - 1):
+        i_start = row_indptr[i]
+        i_end = row_indptr[i + 1]
+        data[i_start:i_end] -= np.sum(data[i_start:i_end])
+        kk_ind = kk[i]
+        diag = data[kk_ind]
+        data[i_start:i_end].clip(0, np.inf, data[i_start:i_end])
+        data[kk_ind] = diag
+
+
+def _sparse_sum_update(data, rows, kk):
+    for i in np.unique(rows):
+        idx = np.where(rows == i)
+        data.flat[idx] -= np.sum(data.flat[idx])
+        kk_ind = kk[i]
+        diag = data[kk_ind]
+        data.flat[idx] = np.clip(data.flat[idx], 0, np.inf)
+        data[kk_ind] = diag
 
 
 def _updateR_maxRow(arr, row_indptr):
-    """Given a numpy array(arr) and split index(sp[0,...,len(arr)]),
-    Return a array that have max value of each split, except the position that have max value will have second max value
-    """
     max_row = np.empty(arr.shape[0])
     for i in range(1, row_indptr.shape[0]):
         i_start = row_indptr[i - 1]
@@ -175,8 +194,8 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
     Between Data Points", Science Feb. 2007
     """
     rows, cols, data = matrix_to_row_col_data(S)
-    # Get parameters (nSamplesOri, preference_list, damping)
     n_samples = S.shape[0]
+
     preferences = parse_preference(preference, n_samples, data)
     if damping < 0.5 or damping >= 1:
         raise ValueError('damping must be >= 0.5 and < 1')
@@ -185,14 +204,13 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
 
     random_state = np.random.RandomState(0)
 
-    # set diag of affinity/similarity matrix to preference_list
+    # Place preference on the diagonal of S
     rows, cols, data = _set_sparse_diagonal(rows, cols, data, preferences)
 
-    # reOrder by rowbased
-    sortedLeftOriInd = np.lexsort((cols, rows))
-    rows = rows[sortedLeftOriInd]
-    cols = cols[sortedLeftOriInd]
-    data = data[sortedLeftOriInd]
+    idx_sorted_left_ori = np.lexsort((cols, rows))
+    rows = rows[idx_sorted_left_ori]
+    cols = cols[idx_sorted_left_ori]
+    data = data[idx_sorted_left_ori]
 
     # For the FSAPC to work, specifically in computation of R and A matrix,
     # each row/column of Affinity/similarity matrix should have at least two
@@ -200,35 +218,34 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
     # Samples do not meet this condition are removed from computation
     # (so their exemplars are themself) or copy a minimal value of
     # corresponding column/row
-    rows, cols, data, rowLeftOriDict, singleSampleInds, n_samples = \
+    rows, cols, data, rowLeftOriDict, idx_single_samples, n_samples = \
         sparseMatrixPrepare.rmSingleSamples(rows, cols, data, n_samples)
 
     data_len = data.shape[0]
-    row_indptr = np.insert(np.where(np.diff(rows) > 0)[0] + 1, 0, 0)
-    if row_indptr[-1] != data_len:
-        row_indptr = np.append(row_indptr, data_len)
+    row_indptr = np.append(
+        np.insert(np.where(np.diff(rows) > 0)[0] + 1, 0, 0), data_len)
 
     row_to_col_ind_arr = np.lexsort((rows, cols))
     rows_colbased = rows[row_to_col_ind_arr]
     cols_colbased = cols[row_to_col_ind_arr]
     col_to_row_ind_arr = np.lexsort((cols_colbased, rows_colbased))
 
-    col_indptr = np.insert(np.where(np.diff(cols_colbased) > 0)[0] + 1, 0, 0)
-    if col_indptr[-1] != data_len:
-        col_indptr = np.append(col_indptr, data_len)
+    col_indptr = np.append(
+        np.insert(np.where(np.diff(cols_colbased) > 0)[0] + 1, 0, 0), data_len)
 
     kk_col_index = np.where(rows_colbased == cols_colbased)[0]
     kk_row_index = np.where(rows == cols)[0]
 
-    # Add random small value to remove degeneracies
-    data_len = data.shape[0]
+    # Initialize messages
+    A = np.zeros(data_len, dtype=float)
+    R = np.zeros(data_len, dtype=float)
+    # Intermediate results
+    tmp = np.zeros(data_len, dtype=float)
+
+    # Remove degeneracies
     data += ((np.finfo(np.double).eps * data + np.finfo(np.double).tiny * 100)
              * random_state.randn(data_len))
 
-    # Initialize matrix A, R
-    A = np.zeros(data_len, dtype=float)
-    R = np.zeros(data_len, dtype=float)
-    tmp = np.zeros(data_len, dtype=float)
     # Update R, A matrix until meet convergence condition or
     # reach max iteration. In FSAPC, the convergence condition is when there is
     # more than convergence_iter iteration in rows that have exact clustering
@@ -239,8 +256,8 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
     # This condition is added to FSAPC is because FSAPC is designed to deal
     # with large data set.
 
-    lastLabels = np.empty((0), dtype=np.int)
-    labels = np.empty((0), dtype=np.int)
+    labels = np.empty(0, dtype=np.int)
+    lastLabels = None
     convergeCount = 0
 
     for it in range(max_iter):
@@ -248,7 +265,8 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
 
         # tmp = A + S; compute responsibilities
         np.add(A, data, tmp)
-        np.subtract(data, _updateR_maxRow(tmp, row_indptr), tmp)
+        tmp1 = _updateR_maxRow(tmp, row_indptr)
+        np.subtract(data, tmp1, tmp)
 
         # Damping
         tmp *= 1. - damping
@@ -260,8 +278,9 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
         tmp[kk_row_index] = R[kk_row_index]
 
         # tmp = -Anew
-        tmp = _sparse_row_sum_update(tmp[row_to_col_ind_arr], col_indptr,
-                                     kk_col_index)[col_to_row_ind_arr]
+        tmp = tmp[row_to_col_ind_arr]
+        _sparse_row_sum_update(tmp, col_indptr, kk_col_index)
+        tmp = tmp[col_to_row_ind_arr]
 
         # Damping
         tmp *= 1. - damping
@@ -270,7 +289,7 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
 
         labels = _sparse_row_maxindex(A + R, row_indptr)
 
-        # check convergence
+        # Check for convergence
         eq_perc = np.sum(lastLabels == labels) / float(labels.shape[0])
         if eq_perc >= convergence_percentage and labels.shape[0] > 0:
             convergeCount += 1
@@ -279,13 +298,11 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
         if convergeCount == convergence_iter:
             break
 
-    # Converting labels back to original sample index
-    cols = cols[labels]
-    if singleSampleInds is None or len(singleSampleInds) == 0:
-        cluster_centers_indices = cols
+    if idx_single_samples is None or len(idx_single_samples) == 0:
+        cluster_centers_indices = cols[labels]
     else:
-        cluster_centers_indices = [rowLeftOriDict[el] for el in cols]
-        for ind in sorted(singleSampleInds):
+        cluster_centers_indices = [rowLeftOriDict[el] for el in cols[labels]]
+        for ind in sorted(idx_single_samples):
             cluster_centers_indices.insert(ind, ind)
         cluster_centers_indices = np.asarray(cluster_centers_indices)
 
