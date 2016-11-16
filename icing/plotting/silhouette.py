@@ -23,7 +23,7 @@ from scipy.cluster.hierarchy import linkage, fcluster
 from sklearn.cluster import AffinityPropagation
 from sklearn.metrics import silhouette_samples  # , silhouette_score
 
-from icing.externals.spectral import SpectralClustering
+from icing.externals import SpectralClustering
 from icing.externals import Tango
 from icing.utils import extra
 

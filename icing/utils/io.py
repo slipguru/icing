@@ -10,7 +10,7 @@ import csv
 import sys
 
 from itertools import ifilter, islice
-from icing.externals.DbCore import IgRecord
+from icing.externals import IgRecord
 
 
 def read_db(db_file, filt=None, ig=True, dialect='excel-tab',

@@ -21,7 +21,7 @@ from sklearn import mixture
 from icing.core import cloning
 from icing.core import parallel_distance
 from icing.utils import io, extra
-from string_kernel.core.src.sum_string_kernel import sum_string_kernel
+from string_kernel import sum_string_kernel
 
 
 # def _remove_duplicate_junctions(igs_list):

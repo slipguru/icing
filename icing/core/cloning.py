@@ -17,19 +17,18 @@ import scipy
 
 from collections import defaultdict
 from functools import partial
-from pysapc import SAP  # Sparse Affinity Propagation
-from scipy.cluster.hierarchy import fcluster, linkage
-from scipy.spatial.distance import squareform
-from sklearn.cluster import DBSCAN
+# from scipy.cluster.hierarchy import fcluster, linkage
+# from scipy.spatial.distance import squareform
+# from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
-from icing.externals.sparse_affinity_propagation import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
 
-from icing.core.distances import string_distance
+# from icing.core.distances import string_distance
 from icing.core.similarity_scores import similarity_score_tripartite as mwi
+from icing.externals import AffinityPropagation
 from icing.models.model import model_matrix
 from icing.utils import extra
-from string_kernel.core.src.sum_string_kernel import sum_string_kernel
+from string_kernel import sum_string_kernel
 
 
 def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
@@ -40,7 +39,7 @@ def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
         popt = np.load(os.path.join(params_folder, fn))
         # return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
         return popt
-    except Exception:
+    except IOError:
         logging.error("Correction coefficient file not found. "
                       "No correction can be applied for mutation.")
         # return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
@@ -436,6 +435,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
     prev_max_clust = 0
     clusters = labels.copy()
 
+    ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
+                             preference='median')
     for i in range(n):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
@@ -454,11 +455,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
 
             # AffinityPropagation
-            db = AffinityPropagation(affinity='precomputed',
-                                     max_iter=max_iter,
-                                     preference=np.median(sm.data)) \
-                .fit(sm)
-            clusters_ = np.array(db.labels_, dtype=int) + 1
+            db = ap.fit(sm)
+            clusters_ = db.labels_ + 1
 
             # # SparseAffinityPropagation
             # db = SAP(verboseIter=0, damping=.5) \
