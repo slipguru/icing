@@ -11,122 +11,16 @@ account sparse matrices, which are not currently supported.
 
 import numpy as np
 
-from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
 from sklearn.base import BaseEstimator, ClusterMixin
 from sklearn.utils import as_float_array, check_array
 from sklearn.utils.validation import check_is_fitted
 from sklearn.metrics import euclidean_distances
 from sklearn.metrics import pairwise_distances_argmin
 
-from . import sparseMatrixPrepare
-
-
-def matrix_to_row_col_data(X):
-    """Convert sparse affinity/similarity matrix to arrays.
-
-    (row_array,col_array,data_array)
-    """
-    # convert to coo format (from lil,csr,csc)
-    if isinstance(X, coo_matrix):
-        X_coo = X
-    elif (isinstance(X, csr_matrix)) or (isinstance(X, lil_matrix)):
-        X_coo = X.tocoo()
-    else:  # others like numpy matrix could be convert to coo matrix
-        X_coo = coo_matrix(X)
-    # Upcast matrix to a floating point format (if necessary)
-    X_coo = X_coo.asfptype()
-    return X_coo.row.astype(np.int), X_coo.col.astype(np.int), X_coo.data
-
-
-def parse_preference(preference, n_samples, data):
-    """Set array of preferences.
-
-    Parameters:
-    -----------
-    preference : str, array-like or float
-        If preference is array-like, it must have same dimensions as data.
-    n_samples : int
-        Number of samples in the analysis.
-    data : array-like
-        Array of dense data.
-    """
-    if (isinstance(preference, list) or isinstance(preference, np.ndarray)):
-        if len(preference) != n_samples:
-            raise ValueError("Preference array of incorrect size.")
-        return np.asarray(preference)
-
-    preference = preference == 'min' and data.min() or \
-        preference == 'median' and np.median(data) or preference
-    return np.ones(n_samples) * preference
-
-
-def _set_sparse_diagonal(rows, cols, data, preferences):
-    idx = np.where(rows == cols)
-    data[idx] = preferences[rows[idx]]
-    mask = np.ones(preferences.shape, dtype=bool)
-    mask[rows[idx]] = False
-    diag_other = np.argwhere(mask).T[0]
-    rows = np.concatenate((rows, diag_other))
-    cols = np.concatenate((cols, diag_other))
-    data = np.concatenate((data, preferences[mask]))
-    return rows, cols, data
-
-
-def _sparse_row_maxindex(data, row_indptr):
-    # data and row_idx must have same dimensions.
-    # row_idx is ordered
-    tmp = np.empty(row_indptr.shape[0]-1, dtype=int)
-    for i in range(1, row_indptr.shape[0]):
-        i_start = row_indptr[i - 1]
-        i_end = row_indptr[i]
-        # tmp[i_start:i_end] = np.sort(data[i_start:i_end])[::-1]
-        tmp[i - 1] = np.argmax(data[i_start:i_end]) + i_start
-    return tmp
-
-
-# def _sparse_maxindex(data, rows):
-#     # data and row_idx must have same dimensions.
-#     # row_idx is ordered
-#     ma = np.ma.MaskedArray(data)
-#     tmp = np.empty(np.unique(rows).shape[0], dtype=int)
-#     for i in np.unique(rows):
-#         ma.mask = np.where(rows == i, False, True)
-#         tmp[i] = np.ma.argmax(ma)
-#     return tmp
-
-
-def _sparse_row_sum_update(data, row_indptr, kk):
-    # data and row_idx must have same dimensions.
-    # row_idx is ordered
-    for i in range(row_indptr.shape[0] - 1):
-        i_start = row_indptr[i]
-        i_end = row_indptr[i + 1]
-        data[i_start:i_end] -= np.sum(data[i_start:i_end])
-        kk_ind = kk[i]
-        diag = data[kk_ind]
-        data[i_start:i_end].clip(0, np.inf, data[i_start:i_end])
-        data[kk_ind] = diag
-
-
-def _sparse_sum_update(data, rows, kk):
-    for i in np.unique(rows):
-        idx = np.where(rows == i)
-        data.flat[idx] -= np.sum(data.flat[idx])
-        kk_ind = kk[i]
-        diag = data[kk_ind]
-        data.flat[idx] = np.clip(data.flat[idx], 0, np.inf)
-        data[kk_ind] = diag
-
-
-def _updateR_maxRow(arr, row_indptr):
-    max_row = np.empty(arr.shape[0])
-    for i in range(1, row_indptr.shape[0]):
-        i_start = row_indptr[i - 1]
-        i_end = row_indptr[i]
-        smi, mi = (np.argsort(arr[i_start:i_end]) + i_start)[-2:]
-        max_row[i_start:i_end] = arr[mi]
-        max_row[mi] = arr[smi]
-    return max_row
+from ._sparse_affinity_propagation import (
+    matrix_to_row_col_data, parse_preference, _set_sparse_diagonal,
+    _sparse_row_maxindex, _sparse_row_sum_update,
+    _update_r_max_row, remove_single_samples)
 
 
 def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
@@ -163,7 +57,8 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
 
     copy : boolean, optional, default: True
         If copy is False, the affinity matrix is modified inplace by the
-        algorithm, for memory efficiency
+        algorithm, for memory efficiency.
+        Unused, but left for sklearn affinity propagation consistency.
 
     verbose : boolean, optional, default: False
         The verbosity level
@@ -206,35 +101,23 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
 
     # Place preference on the diagonal of S
     rows, cols, data = _set_sparse_diagonal(rows, cols, data, preferences)
-
-    idx_sorted_left_ori = np.lexsort((cols, rows))
-    rows = rows[idx_sorted_left_ori]
-    cols = cols[idx_sorted_left_ori]
-    data = data[idx_sorted_left_ori]
-
-    # For the FSAPC to work, specifically in computation of R and A matrix,
-    # each row/column of Affinity/similarity matrix should have at least two
-    # datapoints.
-    # Samples do not meet this condition are removed from computation
-    # (so their exemplars are themself) or copy a minimal value of
-    # corresponding column/row
-    rows, cols, data, rowLeftOriDict, idx_single_samples, n_samples = \
-        sparseMatrixPrepare.rmSingleSamples(rows, cols, data, n_samples)
+    rows, cols, data, left_ori_dict, idx_single_samples, n_samples = \
+        remove_single_samples(rows, cols, data, n_samples)
 
     data_len = data.shape[0]
     row_indptr = np.append(
         np.insert(np.where(np.diff(rows) > 0)[0] + 1, 0, 0), data_len)
 
-    row_to_col_ind_arr = np.lexsort((rows, cols))
-    rows_colbased = rows[row_to_col_ind_arr]
-    cols_colbased = cols[row_to_col_ind_arr]
-    col_to_row_ind_arr = np.lexsort((cols_colbased, rows_colbased))
+    row_to_col_idx = np.lexsort((rows, cols))
+    rows_colbased = rows[row_to_col_idx]
+    cols_colbased = cols[row_to_col_idx]
+    col_to_row_idx = np.lexsort((cols_colbased, rows_colbased))
 
     col_indptr = np.append(
         np.insert(np.where(np.diff(cols_colbased) > 0)[0] + 1, 0, 0), data_len)
 
-    kk_col_index = np.where(rows_colbased == cols_colbased)[0]
     kk_row_index = np.where(rows == cols)[0]
+    kk_col_index = np.where(rows_colbased == cols_colbased)[0]
 
     # Initialize messages
     A = np.zeros(data_len, dtype=float)
@@ -246,27 +129,16 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
     data += ((np.finfo(np.double).eps * data + np.finfo(np.double).tiny * 100)
              * random_state.randn(data_len))
 
-    # Update R, A matrix until meet convergence condition or
-    # reach max iteration. In FSAPC, the convergence condition is when there is
-    # more than convergence_iter iteration in rows that have exact clustering
-    # result or have similar clustering result that similarity is great than
-    # convergence_percentage if convergence_percentage is set other than None
-    # (default convergence_percentage is 0.999999, that is one datapoint in 1
-    # million datapoints have different clustering.)
-    # This condition is added to FSAPC is because FSAPC is designed to deal
-    # with large data set.
-
     labels = np.empty(0, dtype=np.int)
-    lastLabels = None
-    convergeCount = 0
+    last_labels = None
+    convergence_count = 0
 
     for it in range(max_iter):
-        lastLabels = labels
+        last_labels = labels.copy()
 
         # tmp = A + S; compute responsibilities
         np.add(A, data, tmp)
-        tmp1 = _updateR_maxRow(tmp, row_indptr)
-        np.subtract(data, tmp1, tmp)
+        np.subtract(data, _update_r_max_row(tmp, row_indptr), tmp)
 
         # Damping
         tmp *= 1. - damping
@@ -278,30 +150,34 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
         tmp[kk_row_index] = R[kk_row_index]
 
         # tmp = -Anew
-        tmp = tmp[row_to_col_ind_arr]
+        tmp = tmp[row_to_col_idx]
         _sparse_row_sum_update(tmp, col_indptr, kk_col_index)
-        tmp = tmp[col_to_row_ind_arr]
+        tmp = tmp[col_to_row_idx]
 
         # Damping
         tmp *= 1. - damping
         A *= damping
         A -= tmp
 
-        labels = _sparse_row_maxindex(A + R, row_indptr)
-
         # Check for convergence
-        eq_perc = np.sum(lastLabels == labels) / float(labels.shape[0])
-        if eq_perc >= convergence_percentage and labels.shape[0] > 0:
-            convergeCount += 1
+        labels = _sparse_row_maxindex(A + R, row_indptr)
+        if labels.shape[0] == 0 or np.sum(last_labels == labels) / \
+                float(labels.shape[0]) < convergence_percentage:
+            convergence_count = 0
         else:
-            convergeCount = 0
-        if convergeCount == convergence_iter:
+            convergence_count += 1
+        if convergence_count == convergence_iter:
+            if verbose:
+                print("Converged after %d iterations." % it)
             break
+    else:
+        if verbose:
+            print("Did not converge")
 
     if idx_single_samples is None or len(idx_single_samples) == 0:
         cluster_centers_indices = cols[labels]
     else:
-        cluster_centers_indices = [rowLeftOriDict[el] for el in cols[labels]]
+        cluster_centers_indices = [left_ori_dict[el] for el in cols[labels]]
         for ind in sorted(idx_single_samples):
             cluster_centers_indices.insert(ind, ind)
         cluster_centers_indices = np.asarray(cluster_centers_indices)
@@ -319,7 +195,7 @@ def sparse_ap(S, preference=None, convergence_iter=15, max_iter=200,
 def affinity_propagation(S, preference=None, convergence_iter=15, max_iter=200,
                          damping=0.5, copy=True, verbose=False,
                          return_n_iter=False):
-    """Perform Affinity Propagation Clustering of data
+    """Perform Affinity Propagation Clustering of data.
 
     Read more in the :ref:`User Guide <affinity_propagation>`.
 
@@ -574,7 +450,7 @@ class AffinityPropagation(BaseEstimator, ClusterMixin):
         return self.affinity == "precomputed"
 
     def fit(self, X, y=None):
-        """ Create affinity matrix from negative euclidean distances, then
+        """Create affinity matrix from negative euclidean distances, then
         apply affinity propagation clustering.
 
         Parameters
@@ -595,7 +471,7 @@ class AffinityPropagation(BaseEstimator, ClusterMixin):
                              % str(self.affinity))
 
         # dense matrix or sparse?
-        _ap = affinity_propagation if type(X) == np.ndarray else sparse_ap
+        _ap = affinity_propagation if isinstance(X, np.ndarray) else sparse_ap
 
         self.cluster_centers_indices_, self.labels_, self.n_iter_ = \
             _ap(
