@@ -14,7 +14,12 @@ from scipy.sparse import coo_matrix, csr_matrix, lil_matrix
 
 
 def matrix_to_row_col_data(X):
-    """Convert sparse affinity matrix to arrays."""
+    """Convert sparse affinity matrix to arrays.
+
+    .. note:: Deprecated.
+          It will be removed in icing 0.2. This is now done by check_array from
+          numpy.
+    """
     # convert to coo format (from lil,csr,csc)
     if isinstance(X, coo_matrix):
         X_coo = X
