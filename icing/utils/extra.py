@@ -111,12 +111,13 @@ def affinity_to_laplacian_matrix(A, normalised=False, tol=None,
     L = Deg - W
 
     if normalised and not rw:
-        #aux = np.linalg.inv(np.diag([np.sqrt(np.sum(x)) for x in W]))
+        # aux = np.linalg.inv(np.diag([np.sqrt(np.sum(x)) for x in W]))
         aux = np.diag(1. / np.array([np.sqrt(np.sum(x)) for x in W]))
         L = np.eye(L.shape[0]) - (np.dot(np.dot(aux, W), aux))
     elif rw:
         # normalised is ignored; it is implicit
-        L = np.eye(L.shape[0]) - np.dot(np.diag(1. / np.array([np.sum(x) for x in W])), W)
+        L = np.eye(L.shape[0]) - \
+            np.dot(np.diag(1. / np.array([np.sum(x) for x in W])), W)
 
     if tol is not None:
         L[np.abs(L) < tol] = 0.
@@ -131,7 +132,7 @@ def affinity_to_laplacian_matrix(A, normalised=False, tol=None,
 def split_list(l, n):
     """Split list in n chunks."""
     for i in xrange(n):
-        yield l[i*n:(i+1)*n]
+        yield l[i * n:(i + 1) * n]
 
 
 def junction_re(x, n='N', filt='[\.-/]'):
@@ -141,7 +142,8 @@ def junction_re(x, n='N', filt='[\.-/]'):
 
 def flatten(x):
     """Flatten a list."""
-    return [y for l in x for y in flatten(l)] if type(x) in (list, np.ndarray) else [x]
+    return [y for l in x for y in flatten(l)] \
+        if type(x) in (list, np.ndarray) else [x]
 
 
 def term_processes(ps, e=''):
@@ -172,9 +174,12 @@ def get_time_from_seconds(seconds):
     return "%d:%02d:%02d" % (h, m, s)
 
 
-def get_time():
+def get_time(ms=False):
     """Get current seconds and return them as a formatted string."""
-    return datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d_%H.%M.%S')
+    fmt = '%Y-%m-%d_%H.%M.%S'
+    if ms:
+        fmt += ',%f'
+    return datetime.fromtimestamp(time.time()).strftime(fmt)
 
 
 def mkpath(path):
@@ -211,7 +216,8 @@ def set_module_defaults(module, dictionary):
 
 # progress bar
 try:
-    TERMINAL_COLS = struct.unpack('hh',  fcntl.ioctl(sys.stdout, termios.TIOCGWINSZ, '1234'))[1]
+    TERMINAL_COLS = struct.unpack('hh', fcntl.ioctl(
+        sys.stdout, termios.TIOCGWINSZ, '1234'))[1]
 except:
     TERMINAL_COLS = 50
 

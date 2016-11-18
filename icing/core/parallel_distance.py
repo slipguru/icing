@@ -49,8 +49,8 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
     """
     def _internal(l1, l2, n, idx, nprocs, shared_arr, dist_function):
         for i in range(idx, n, nprocs):
-            if i % 100 == 0:
-                progressbar(i, n)
+            # if i % 100 == 0:
+            #     progressbar(i, n)
             shared_arr[i] = _min(ifilter(filt,
                                  (dist_function(l1[i], el2) for el2 in l2)),
                                  func)
@@ -76,11 +76,11 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
     except:
         _terminate(ps, 'ERROR: Exiting with unknown exception\n')
 
-    progressbar(n, n)
+    # progressbar(n, n)
     return shared_array
 
 
-def dnearest_intra_padding(l1, dist_function):
+def dnearest_intra_padding(l1, dist_function, filt=None, func=min):
     """Compute in a parallel way a dist2nearest for a 1-d arrays.
 
     For each element in l1, find its closest (without considering itself).
@@ -102,9 +102,11 @@ def dnearest_intra_padding(l1, dist_function):
             if i % 100 == 0:
                 progressbar(i, n)
             shared_arr[i] = _min(
-                chain((dist_function(l1[i], l1[j]) for j in range(0, i)),
-                      (dist_function(l1[i], l1[j]) for j in range(i + 1, n)
-                       )))
+                ifilter(
+                    filt,
+                    chain((dist_function(l1[i], l1[j]) for j in range(0, i)),
+                          (dist_function(l1[i], l1[j]) for j in range(i + 1, n)
+                       ))), func)
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)

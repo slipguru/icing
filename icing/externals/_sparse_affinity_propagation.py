@@ -35,8 +35,8 @@ def matrix_to_row_col_data(X):
 def parse_preference(preference, n_samples, data):
     """Set array of preferences.
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
     preference : str, array-like or float
         If preference is array-like, it must have same dimensions as data.
     n_samples : int
@@ -166,7 +166,7 @@ def remove_single_samples(rows, cols, data, n_samples):
     (except s(B,A), because if we copy s(B,A), for 'A' we still only have one
     data point) then we copy the minimal value of [s(A,A),s(C,A),s(D,A)...].
 
-    Parameters:
+    Parameters
     -----------
     rows, cols, data : array-like
         Rows and columns for the sparse matrix. Data is row-based.

@@ -12,6 +12,7 @@ import shutil
 import argparse
 import logging
 import time
+import numpy as np
 
 import icing
 from icing import __version__
@@ -21,6 +22,31 @@ from icing.utils import extra
 from icing.utils import io
 
 __author__ = 'Federico Tomasi'
+
+
+def init_logger(filename, root, verbose):
+    """Initialise logger."""
+    logfile = os.path.join(root, filename + '.log')
+    logging.shutdown()
+    root_logger = logging.getLogger()
+    for _ in list(root_logger.handlers):
+        root_logger.removeHandler(_)
+        _.flush()
+        _.close()
+    for _ in list(root_logger.filters):
+        root_logger.removeFilter(_)
+        _.flush()
+        _.close()
+
+    logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w',
+                        format='%(levelname)s (%(asctime)-15s): %(message)s')
+    stream_handler = logging.StreamHandler()
+    stream_handler.setLevel(logging.INFO if verbose else logging.ERROR)
+    stream_handler.setFormatter(
+        logging.Formatter('%(levelname)s (%(asctime)-15s): %(message)s'))
+
+    root_logger.addHandler(stream_handler)
+    return logfile
 
 
 def main(config_file):
@@ -48,54 +74,54 @@ def main(config_file):
     if not os.path.exists(root):
         os.makedirs(root)
 
-    filename = '_'.join(('icing', config.exp_tag, extra.get_time()))
-    logfile = os.path.join(root, filename + '.log')
-    logging.basicConfig(filename=logfile, level=logging.INFO, filemode='w',
-                        format='%(levelname)s (%(asctime)-15s): %(message)s')
-    root_logger = logging.getLogger()
-    stream_handler = logging.StreamHandler()
-    stream_handler.setLevel(logging.INFO if config.verbose else logging.ERROR)
-    stream_handler.setFormatter(
-        logging.Formatter('%(levelname)s (%(asctime)-15s): %(message)s'))
-    root_logger.addHandler(stream_handler)
+    for db_file, exp_tag in zip(
+        [config.db_file] if not isinstance(config.db_file, list)
+        else config.db_file, [config.exp_tag] if not
+            isinstance(config.exp_tag, list) else config.exp_tag):
+        filename = '_'.join(('icing', exp_tag, extra.get_time(True)))
+        logfile = init_logger(filename, root, config.verbose)
+        logging.critical("Start analysis for %s", exp_tag)
+        tic = time.time()
+        db_iter = list(io.read_db(db_file,
+                                  filt=config.apply_filter,
+                                  dialect=config.dialect,
+                                  max_records=config.max_records))
+        logging.info("Database loaded (%i records)", len(db_iter))
 
-    logging.info("Start analysis ...")
-    tic = time.time()
-    db_iter = list(io.read_db(config.db_file,
-                              filt=config.apply_filter,
-                              dialect=config.dialect,
-                              max_records=config.max_records))
-    logging.info("Database loaded (%i records)", len(db_iter))
+        if config.sim_func_args.pop("correction_function", None) is None:
+            record_quantity = np.clip(config.learning_function_quantity, 0, 1)
+            logging.info("Generate correction function with %.2f%% of records",
+                         record_quantity * 100)
+            (config.sim_func_args['correction_function'],
+             config.threshold,
+             alpha_plot) = generate_correction_function(
+                    db_file, quantity=record_quantity,
+                    sim_func_args=config.sim_func_args.copy(),
+                    order=config.learning_function_order,
+                    root=root)
+        logging.info("Start define_clones function ...")
+        outfolder, clone_dict = define_clones(
+            db_iter, exp_tag=filename, root=root,
+            sim_func_args=config.sim_func_args,
+            threshold=config.threshold,
+            db_file=db_file)
 
-    if config.sim_func_args.pop("correction_function", None) is None:
-        logging.info("Generate correction function with %.2f%% of records",
-                     config.learning_function_quantity * 100)
-        (config.sim_func_args['correction_function'],
-         config.threshold) = \
-            generate_correction_function(
-                config.db_file, quantity=config.learning_function_quantity,
-                sim_func_args=config.sim_func_args.copy(),
-                order=config.learning_function_order)
+        # Copy the ade_config just used into the outFolder
+        shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
+        # Move the logging file into the outFolder
+        shutil.move(logfile, outfolder)
+        shutil.move(alpha_plot, outfolder)
 
-    logging.info("Start define_clones function ...")
-    outfolder, clone_dict = define_clones(
-        db_iter, exp_tag=filename, root=root,
-        sim_func_args=config.sim_func_args,
-        threshold=config.threshold)
+        # Save clusters in a copy of the original database with a new column
+        ext_db = db_file.split(".")[-1]
+        result_db = os.path.join(outfolder, 'db_file_clusters.' + ext_db)
+        # shutil.copy(config.db_file, result_db)
 
-    # Copy the ade_config just used into the outFolder
-    shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
-    # Move the logging file into the outFolder
-    shutil.move(logfile, outfolder)
-
-    # Save clusters in a copy of the original database with a new column
-    ext_db = config.db_file.split(".")[-1]
-    result_db = os.path.join(outfolder, 'db_file_clusters.' + ext_db)
-    # shutil.copy(config.db_file, result_db)
-
-    io.write_clusters_db(config.db_file, result_db, clone_dict, config.dialect)
-    logging.info("Clusters correctly created and written on file. "
-                 "Now run ici_analysis.py on the results folder.")
+        io.write_clusters_db(db_file, result_db,
+                             clone_dict, config.dialect)
+        config.sim_func_args["correction_function"] = None  # bugfix
+        logging.info("Clusters correctly created and written on file. "
+                     "Now run ici_analysis.py on the results folder.")
     logging.info("Run completed in %s",
                  extra.get_time_from_seconds(time.time() - tic))
 

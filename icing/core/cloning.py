@@ -108,7 +108,9 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
             normalize=normalize, return_float=1)
 
     if ss > 0 and correct:
-        correction = correction_function(np.mean((ig1.mut, ig2.mut)))
+        correction = correction_function(np.min((ig1.mut, ig2.mut)))
+        # correction = min(correction_function(ig1.mut),
+        #                  correction_function(ig2.mut))
         # ss = 1 - ((1 - ss) * max(correction, 0))
         # ss = 1 - ((1 - ss) * correction)
         ss *= correction
@@ -435,8 +437,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
     prev_max_clust = 0
     clusters = labels.copy()
 
-    ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
-                             preference='median')
+    # ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
+    #                          preference='median')
     for i in range(n):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
@@ -455,7 +457,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
 
             # AffinityPropagation
-            db = ap.fit(sm)
+            db = AffinityPropagation(affinity='precomputed', max_iter=max_iter
+                                     ).fit(sm.toarray())
             clusters_ = db.labels_ + 1
 
             # # SparseAffinityPropagation
@@ -482,7 +485,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
 
 
 def define_clones(db_iter, exp_tag='debug', root=None,
-                  sim_func_args=None, threshold=0.05):
+                  sim_func_args=None, threshold=0.05, db_file=None):
     """Run the pipeline of icing."""
     if not os.path.exists(root):
         if root is None:
@@ -508,8 +511,12 @@ def define_clones(db_iter, exp_tag='debug', root=None,
 
     logging.info("Start define_clusts function ...")
     clusters = define_clusts(similarity_matrix, threshold=threshold)
-    logging.critical("Number of clones: %i, threshold %.3f",
-                     np.max(clusters) - np.min(clusters) + 1, threshold)
+    n_clones = np.max(clusters) - np.min(clusters) + 1
+    logging.critical("Number of clones: %i, threshold %.3f", n_clones,
+                     threshold)
+    with open(os.path.join(output_folder, 'summary.txt'), 'w') as f:
+        f.write("filename: %s\n" % db_file)
+        f.write("clones: %i\n" % n_clones)
 
     cl_filename = output_filename + '_clusters.pkl.tz'
     with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:
