@@ -49,8 +49,8 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
     """
     def _internal(l1, l2, n, idx, nprocs, shared_arr, dist_function):
         for i in range(idx, n, nprocs):
-            # if i % 100 == 0:
-            #     progressbar(i, n)
+            if i % 100 == 0:
+                progressbar(i, n)
             shared_arr[i] = _min(ifilter(filt,
                                  (dist_function(l1[i], el2) for el2 in l2)),
                                  func)
@@ -76,7 +76,7 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
     except:
         _terminate(ps, 'ERROR: Exiting with unknown exception\n')
 
-    # progressbar(n, n)
+    progressbar(n, n)
     return shared_array
 
 
