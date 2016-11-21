@@ -16,6 +16,7 @@ import seaborn as sns; sns.set_context('poster')
 
 from functools import partial
 from scipy.optimize import curve_fit
+from scipy.optimize import least_squares
 from sklearn import mixture
 
 from icing.core import cloning
@@ -69,7 +70,8 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     logging.info("Computing %s", fn)
     if is_intra:
         dist2nearest = parallel_distance.dnearest_inter_padding(
-            ig1, ig1, sim_func, filt=lambda x: 0 < x < 1, func=max)
+            ig1, ig1, sim_func, filt=lambda x: 0 < x, func=max)
+        # ig1, ig1, sim_func, filt=lambda x: 0 < x < 1, func=max)
     else:
         dist2nearest = parallel_distance.dnearest_inter_padding(
             ig1, ig2, sim_func, filt=lambda x: 0 < x < 1, func=max)
@@ -257,20 +259,15 @@ def create_alpha_plot(my_dict, order=3, alpha_plot='alphaplot.pdf'):
     if my_dict is None:
         return (lambda x: 1), 0
     d_dict = dict()
-    means, samples, mutations, thresholds, medians = [], [], [], [], []
+    samples, thresholds = [], []
     for k, v in my_dict.iteritems():
-        for o in v:
-            if not o:
-                continue
+        for o in (_ for _ in v if _):
             dist2nearest = np.array(np.load("{}.npy".format(o))).reshape(-1, 1)
-            medians.append(np.median(dist2nearest))
-            mean = np.median(dist2nearest)
-
-            means.append(mean)
+            mean = np.mean(dist2nearest)
             samples.append(dist2nearest.shape[0])
-            mutations.append(k)
-            threshold = gaussian_fit(dist2nearest)
-            thresholds.append(threshold)
+
+            # for the threshold, fit a gaussian (unused for AP)
+            thresholds.append(gaussian_fit(dist2nearest))
             d_dict.setdefault(o.split('/')[0], dict()).setdefault(k, mean)
 
     # print(d_dict)
@@ -280,30 +277,19 @@ def create_alpha_plot(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         errors = np.array([np.var(v[x]) for x in keys])
 
     # print(samples)
-    means, samples, mutations, thresholds = \
-        map(np.array, (means, samples, mutations, thresholds))
-
-    idxs = samples.argsort()[-3:][::-1]
+    idxs = np.array(samples).argsort()[-3:][::-1]
     idx = idxs[0]
     if thresholds[idx] == 0:
         idx = idxs[1]
-    # x, y = keys, means[idx] - mean_values
-    # x, y = keys, mean_values - np.min(mean_values) + 1.
     idx2 = mean_values > 0
     keys, mean_values = keys[idx2], mean_values[idx2]
     errors = errors[idx2]
     x, y = np.array(keys), np.min(mean_values) / mean_values
-    # popt, _ = curve_fit(extra.negative_exponential, x, y, p0=(1, 1e-1, 1))
 
     xp = np.linspace(np.min(x), np.max(x), 1000)[:, None]
 
-    from scipy.optimize import least_squares
-
     def model(x, u):
         return x[0] * (u ** 2 + x[1] * u) / (u ** 2 + x[2] * u + x[3])
-
-    def fun(x, u, y):
-        return model(x, u) - y
 
     def jac(x, u, y):
         J = np.empty((u.size, x.size))
@@ -316,11 +302,10 @@ def create_alpha_plot(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         return J
 
     x0 = np.array([2.5, 3.9, 4.15, 3.9])
-    res = least_squares(fun, x0, jac=jac, args=(x, y))
+    res = least_squares(
+        lambda x, u, y: model(x, u) - y, x0,
+        jac=jac, bounds=(0, 100), args=(x, y))  # , ftol=1e-12, loss='cauchy')
     poly = np.poly1d(np.polyfit(x, y, order))
-
-    # from scipy.interpolate import interp1d
-    # fff = interp1d(x, y, kind='cubic')
 
     with sns.axes_style('whitegrid'):
         plt.figure()
