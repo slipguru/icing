@@ -26,7 +26,8 @@ d_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])D[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)')
 
 
-# TODO:  might be better to just use the lower case column name as the member variable name. can use getattr and setattr.
+# TODO:  might be better to just use the lower case column name as the member
+# variable name. can use getattr and setattr.
 class IgRecord:
     """A class defining a V(D)J germline sequence alignment."""
 

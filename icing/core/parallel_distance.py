@@ -99,14 +99,12 @@ def dnearest_intra_padding(l1, dist_function, filt=None, func=min):
     """
     def _internal(l1, n, idx, nprocs, shared_arr, dist_function):
         for i in range(idx, n, nprocs):
-            if i % 100 == 0:
-                progressbar(i, n)
-            shared_arr[i] = _min(
-                ifilter(
-                    filt,
-                    chain((dist_function(l1[i], l1[j]) for j in range(0, i)),
-                          (dist_function(l1[i], l1[j]) for j in range(i + 1, n)
-                       ))), func)
+            # if i % 100 == 0:
+            #     progressbar(i, n)
+            shared_arr[i] = _min(ifilter(filt, chain(
+                (dist_function(l1[i], l1[j]) for j in range(0, i)),
+                (dist_function(l1[i], l1[j]) for j in range(i + 1, n))
+            )), func)
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
@@ -129,7 +127,7 @@ def dnearest_intra_padding(l1, dist_function, filt=None, func=min):
     except:
         _terminate(ps, 'ERROR: Exiting with unknown exception\n')
 
-    progressbar(n, n)
+    # progressbar(n, n)
     return shared_array
 
 

@@ -75,7 +75,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         1: ig1 and ig2 are the same.
     """
     # nmer = 5 if model == 'hs5f' else 1
-    if ig1.junction_length - ig2.junction_length > tol:
+    if abs(ig1.junction_length - ig2.junction_length) > tol:
         return 0.
 
     if dist_mat is None:
@@ -99,7 +99,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         # ss *= (1 - dist)
 
         min_kn = 1
-        max_kn = 5
+        max_kn = 8
         lamda = .75
         normalize = 1
         ss *= sum_string_kernel(
@@ -108,7 +108,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
             normalize=normalize, return_float=1)
 
     if ss > 0 and correct:
-        correction = correction_function(np.min((ig1.mut, ig2.mut)))
+        correction = correction_function(np.max((ig1.mut, ig2.mut)))
         # correction = min(correction_function(ig1.mut),
         #                  correction_function(ig2.mut))
         # ss = 1 - ((1 - ss) * max(correction, 0))
@@ -437,8 +437,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
     prev_max_clust = 0
     clusters = labels.copy()
 
-    # ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
-    #                          preference='median')
+    ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
+                             preference='median')
     for i in range(n):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
@@ -457,16 +457,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
 
             # AffinityPropagation
-            db = AffinityPropagation(affinity='precomputed', max_iter=max_iter
-                                     ).fit(sm.toarray())
+            db = ap.fit(sm)
             clusters_ = db.labels_ + 1
-
-            # # SparseAffinityPropagation
-            # db = SAP(verboseIter=0, damping=.5) \
-            #     .fit(similarity_matrix[idxs][:, idxs], 'median')
-            # _centers = np.unique(db.exemplars_)
-            # lookup = {v: i + 1 for i, v in enumerate(_centers)}
-            # clusters_ = np.array([lookup[x] for x in db.exemplars_], dtype=int)
 
             clusters_ += prev_max_clust
             clusters[idxs] = clusters_

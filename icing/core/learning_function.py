@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import seaborn as sns; sns.set_context('poster')
+import warnings
 
 from functools import partial
 from scipy.optimize import curve_fit
@@ -25,18 +26,18 @@ from icing.utils import io, extra
 from string_kernel import sum_string_kernel
 
 
-# def _remove_duplicate_junctions(igs_list):
-#     igs, juncs = [], []
-#     for ig in igs_list:
-#         junc = extra.junction_re(ig.junction)
-#         if junc not in juncs:
-#             igs.append(ig)
-#             juncs.append(junc)
-#     return igs, juncs
+def _remove_duplicate_junctions(igs_list):
+    igs, juncs = [], []
+    for ig in igs_list:
+        junc = extra.junction_re(ig.junction)
+        if junc not in juncs:
+            igs.append(ig)
+            juncs.append(junc)
+    return igs, juncs
 
-def _remove_duplicate_junctions(igs):
-    igs = list(igs)
-    return igs, map(lambda x: extra.junction_re(x.junction), igs)
+# def _remove_duplicate_junctions(igs):
+#     igs = list(igs)
+#     return igs, map(lambda x: extra.junction_re(x.junction), igs)
 
 
 def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
@@ -69,8 +70,10 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     sim_func = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing %s", fn)
     if is_intra:
-        dist2nearest = parallel_distance.dnearest_inter_padding(
-            ig1, ig1, sim_func, filt=lambda x: 0 < x, func=max)
+        # dist2nearest = parallel_distance.dnearest_inter_padding(
+        #     ig1, ig1, sim_func, filt=lambda x: 0 < x, func=max)
+        dist2nearest = parallel_distance.dnearest_intra_padding(
+            ig1, sim_func, filt=lambda x: 0 < x, func=max)
         # ig1, ig1, sim_func, filt=lambda x: 0 < x < 1, func=max)
     else:
         dist2nearest = parallel_distance.dnearest_inter_padding(
@@ -112,9 +115,11 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
     fn = "{0}/dist2nearest_{0}_{1}-{2}_vs_{3}-{4}_{5}bins_norm_{6}maxseqs" \
          .format(donor, lim_mut1[0], lim_mut1[1], lim_mut2[0],
                  lim_mut2[1], bins, max_seqs)
+    mut = max(lim_mut1[1], lim_mut2[1])
+    # mut = min(lim_mut1[0], lim_mut2[0])
     if os.path.exists(fn + '.npy'):
         logging.info("File %s exists.", fn + '.npy')
-        return fn, max(lim_mut1[1], lim_mut2[1])
+        return fn, mut
 
     n_tot = io.get_num_records(f)
     if max(lim_mut1[1], lim_mut2[1]) == 0:
@@ -135,8 +140,7 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
 
     return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor,
                      None, bins, max_seqs, min_seqs, ig1=igs1, ig2=igs2,
-                     sim_func_args=sim_func_args), \
-        max(lim_mut1[1], lim_mut2[1])
+                     sim_func_args=sim_func_args), mut
 
 
 def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
@@ -150,8 +154,9 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
     fn = "{0}/dist2nearest_{0}vs{1}-{3}_vs_{4}-{5}_{6}bins_norm_{7}maxseqs" \
          .format(donor1, donor2, type_ig.lower(), lim_mut1[0], lim_mut1[1],
                  lim_mut2[0], lim_mut2[1], bins, max_seqs)
+    mut = max(lim_mut1[1], lim_mut2[1])
     if os.path.exists(fn + '.npy'):
-        return fn, max(lim_mut1[1], lim_mut2[1])
+        return fn, mut
 
     if max(lim_mut1[1], lim_mut2[1]) == 0:
         igs = io.read_db(f1, filt=(lambda x: x.mut == 0))
@@ -173,8 +178,7 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
     juncs1 = juncs1[:int(quantity * len(juncs1))]
     juncs2 = juncs2[:int(quantity * len(juncs2))]
     return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor1,
-                     donor2, bins, max_seqs, sim_func_args=sim_func_args), \
-        max(lim_mut1[1], lim_mut2[1])
+                     donor2, bins, max_seqs, sim_func_args=sim_func_args), mut
 
 
 def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
@@ -188,14 +192,12 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
         n_tot = io.get_num_records(db)
         lin = np.linspace(0, max_mut, n_tot / 5.)
         sets = [(0, 0)] + zip(lin[:-1], lin[1:])
-        # else:
-        #     sets = [(0, 0)] + [(i - 1, i) for i in range(1, int(max_mut) + 1)]
+        # sets = [(0, 0)] + [(i - 1, i) for i in range(1, int(max_mut) + 1)]
         if len(sets) == 1:
             # no correction needs to be applied
             return None
         # sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
         #                       np.arange(step, max_mut + step, step))
-        # print(sets)
 
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(
@@ -304,8 +306,15 @@ def create_alpha_plot(my_dict, order=3, alpha_plot='alphaplot.pdf'):
     x0 = np.array([2.5, 3.9, 4.15, 3.9])
     res = least_squares(
         lambda x, u, y: model(x, u) - y, x0,
-        jac=jac, bounds=(0, 100), args=(x, y))  # , ftol=1e-12, loss='cauchy')
-    poly = np.poly1d(np.polyfit(x, y, order))
+        jac=jac, bounds=(0, 100), args=(x, y), ftol=1e-12, loss='soft_l1')
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings('error')
+        try:
+            poly = np.poly1d(np.polyfit(x, y, order))
+        except np.RankWarning:
+            order = 3
+            poly = np.poly1d(np.polyfit(x, y, order))
 
     with sns.axes_style('whitegrid'):
         plt.figure()
@@ -318,8 +327,8 @@ def create_alpha_plot(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         plt.savefig(alpha_plot, transparent=True)
         plt.close()
 
-    # return poly, thresholds[idx]
-    return partial(model, res.x), thresholds[idx]
+    return poly, thresholds[idx]
+    # return partial(model, res.x), thresholds[idx]
 
 
 def generate_correction_function(db, quantity, sim_func_args=None, order=3,
