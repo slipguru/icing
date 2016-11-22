@@ -13,9 +13,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import seaborn as sns; sns.set_context('poster')
+import six
 import warnings
 
 from functools import partial
+from itertools import chain
 from scipy.optimize import curve_fit
 from scipy.optimize import least_squares
 from sklearn import mixture
@@ -23,7 +25,23 @@ from sklearn import mixture
 from icing.core import cloning
 from icing.core import parallel_distance
 from icing.utils import io, extra
-from string_kernel import sum_string_kernel
+
+
+def least_squares_mdl(x, u):
+    """Model for least squares. Used by scipy.optimize.least_squares."""
+    return x[0] * (u ** 2 + x[1] * u) / (u ** 2 + x[2] * u + x[3])
+
+
+def least_squares_jacobian(x, u, y):
+    """Jacobian for least squares. Used by scipy.optimize.least_squares."""
+    J = np.empty((u.size, x.size))
+    den = u ** 2 + x[2] * u + x[3]
+    num = u ** 2 + x[1] * u
+    J[:, 0] = num / den
+    J[:, 1] = x[0] * u / den
+    J[:, 2] = -x[0] * num * u / den ** 2
+    J[:, 3] = -x[0] * num / den ** 2
+    return J
 
 
 def _remove_duplicate_junctions(igs_list):
@@ -40,11 +58,12 @@ def _remove_duplicate_junctions(igs_list):
 #     return igs, map(lambda x: extra.junction_re(x.junction), igs)
 
 
-def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
+def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem', mut=None,
               donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=0,
               ig1=None, ig2=None, is_intra=True, sim_func_args=None):
-    if os.path.exists(fn + '.npy'):
-        logging.critical(fn + '.npy esists.')
+    """Make histogram and main computation of nearest similarities."""
+    if os.path.exists(fn + '.npz'):
+        logging.critical(fn + '.npz esists.')
         return fn
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
         return ''
@@ -70,20 +89,20 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     sim_func = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing %s", fn)
     if is_intra:
-        # dist2nearest = parallel_distance.dnearest_inter_padding(
+        # dnearest = parallel_distance.dnearest_inter_padding(
         #     ig1, ig1, sim_func, filt=lambda x: 0 < x, func=max)
-        dist2nearest = parallel_distance.dnearest_intra_padding(
-            ig1, sim_func, filt=lambda x: 0 < x, func=max)
+        dnearest = parallel_distance.dnearest_intra_padding(
+            ig1, sim_func, filt=lambda x: x > 0, func=max)
         # ig1, ig1, sim_func, filt=lambda x: 0 < x < 1, func=max)
     else:
-        dist2nearest = parallel_distance.dnearest_inter_padding(
+        dnearest = parallel_distance.dnearest_inter_padding(
             ig1, ig2, sim_func, filt=lambda x: 0 < x < 1, func=max)
     if not os.path.exists(fn.split('/')[0]):
         os.makedirs(fn.split('/')[0])
-    np.save(fn, dist2nearest)
-    # dist2nearest = np.array([np.min(r[r>0]) for r in X])
+    np.savez(fn, X=dnearest, mut=mut)
+    # dnearest = np.array([np.min(r[r>0]) for r in X])
     plt.figure(figsize=(20, 10))
-    plt.hist(dist2nearest, bins=bins, normed=True)
+    plt.hist(dnearest, bins=bins, normed=True)
     try:
         if not donor2:
             plt.title("Distances between {} {}-{}% and {}-{}%"
@@ -101,7 +120,7 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem',
     plt.xlabel('Ham distance (normalised)')
     plt.savefig(fn + ".png")
     plt.close()
-    del dist2nearest
+    del dnearest
     return fn
 
 
@@ -115,11 +134,10 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
     fn = "{0}/dist2nearest_{0}_{1}-{2}_vs_{3}-{4}_{5}bins_norm_{6}maxseqs" \
          .format(donor, lim_mut1[0], lim_mut1[1], lim_mut2[0],
                  lim_mut2[1], bins, max_seqs)
-    mut = max(lim_mut1[1], lim_mut2[1])
     # mut = min(lim_mut1[0], lim_mut2[0])
-    if os.path.exists(fn + '.npy'):
-        logging.info("File %s exists.", fn + '.npy')
-        return fn, mut
+    if os.path.exists(fn + '.npz'):
+        logging.info("File %s exists.", fn + '.npz')
+        return fn, float(np.load(fn + '.npz')['mut'])
 
     n_tot = io.get_num_records(f)
     if max(lim_mut1[1], lim_mut2[1]) == 0:
@@ -128,6 +146,7 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
         igs1, juncs1 = _remove_duplicate_junctions(igs)
         juncs2 = juncs1
         igs2 = igs1
+        mut = 0
     else:
         igs = io.read_db(f,
                          filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]),
@@ -137,9 +156,12 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
                          filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]),
                          max_records=quantity * n_tot)
         igs2, juncs2 = _remove_duplicate_junctions(igs)
-
-    return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor,
-                     None, bins, max_seqs, min_seqs, ig1=igs1, ig2=igs2,
+        if not len(juncs1) or not len(juncs2):
+            return '', 0
+        mut = np.mean(list(chain((x.mut for x in igs1),
+                                 (x.mut for x in igs2))))
+    return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, mut,
+                     donor, None, bins, max_seqs, min_seqs, ig1=igs1, ig2=igs2,
                      sim_func_args=sim_func_args), mut
 
 
@@ -151,18 +173,20 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
     Igs involved can be selected by choosing two possibly different ranges
     of mutations.
     """
-    fn = "{0}/dist2nearest_{0}vs{1}-{3}_vs_{4}-{5}_{6}bins_norm_{7}maxseqs" \
-         .format(donor1, donor2, type_ig.lower(), lim_mut1[0], lim_mut1[1],
+    fn = "{0}/dnearest_{0}_{1}_{2}-{3}_vs_{4}-{5}_{6}bins_norm_{7}maxseqs" \
+         .format(donor1, donor2, lim_mut1[0], lim_mut1[1],
                  lim_mut2[0], lim_mut2[1], bins, max_seqs)
-    mut = max(lim_mut1[1], lim_mut2[1])
-    if os.path.exists(fn + '.npy'):
-        return fn, mut
+    # mut = min(lim_mut1[0], lim_mut2[0])
+    if os.path.exists(fn + '.npz'):
+        logging.info("File %s exists.", fn + '.npz')
+        return fn, float(np.load(fn + '.npz')['mut'])
 
     if max(lim_mut1[1], lim_mut2[1]) == 0:
         igs = io.read_db(f1, filt=(lambda x: x.mut == 0))
         _, juncs1 = _remove_duplicate_junctions(igs)
         igs = io.read_db(f2, filt=(lambda x: x.mut == 0))
         _, juncs2 = _remove_duplicate_junctions(igs)
+        mut = 0
     elif max(lim_mut1[1], lim_mut2[1]) < 0:
         # not specified: get at random
         igs = io.read_db(f1)
@@ -170,9 +194,11 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
         igs = io.read_db(f2)
         _, juncs2 = _remove_duplicate_junctions(igs)
     else:
-        igs = io.read_db(f1, filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
+        igs = io.read_db(
+            f1, filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
         _, juncs1 = _remove_duplicate_junctions(igs)
-        igs = io.read_db(f2, filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]))
+        igs = io.read_db(
+            f2, filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]))
         _, juncs2 = _remove_duplicate_junctions(igs)
 
     juncs1 = juncs1[:int(quantity * len(juncs1))]
@@ -190,7 +216,7 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
         max_mut = io.get_max_mut(db)
         # if max_mut < 1:
         n_tot = io.get_num_records(db)
-        lin = np.linspace(0, max_mut, n_tot / 5.)
+        lin = np.linspace(0, max_mut, n_tot / 10.)
         sets = [(0, 0)] + zip(lin[:-1], lin[1:])
         # sets = [(0, 0)] + [(i - 1, i) for i in range(1, int(max_mut) + 1)]
         if len(sets) == 1:
@@ -198,7 +224,6 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
             return None
         # sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
         #                       np.arange(step, max_mut + step, step))
-
         for i, j in list(zip(sets, sets)):
             o, mut = intra_donor_distance(
                 db, i, j, quantity=quantity, donor=db.split('/')[-1],
@@ -210,12 +235,12 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
         logging.critical(e)
 
     d = dict()
-    for i, f in enumerate(out_fles):
-        d.setdefault(mut_lvls[i], []).append(f)
+    for m, f in zip(mut_lvls, out_fles):
+        d.setdefault(m, []).append(f)
     return d
 
 
-def gaussian_fit(array):
+def _gaussian_fit(array):
     if array.shape[0] < 2:
         logging.error("Cannot fit a Gaussian with two distances.")
         return 0
@@ -257,78 +282,89 @@ def gaussian_fit(array):
     return threshold
 
 
-def create_alpha_plot(my_dict, order=3, alpha_plot='alphaplot.pdf'):
+def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
+    """Learn the correction function given data in a dictionary.
+
+    Parameters
+    ----------
+    mydict : dict
+        Organised as {mut: [mean_similarities]}. Calculated by `all_intra_mut`.
+    order : int, optional, default: 3
+        Order of the learning function (polynomial).
+    alpha_plot : str, optional, default: 'alpha_plot.pdf'
+        Filename where to save the correction function plot.
+
+    Returns
+    -------
+    func : function
+        Function which accept the mutation level as parameter, returns the
+        correction to apply on the similarity measure calculated.
+    threshold : float
+        Deprecated. Returns the threshold for methods like Hierarchical
+        clustering to work in defining clones.
+    """
     if my_dict is None:
-        return (lambda x: 1), 0
+        return lambda _: 1, 0
     d_dict = dict()
     samples, thresholds = [], []
-    for k, v in my_dict.iteritems():
+    for k, v in six.iteritems(my_dict):
         for o in (_ for _ in v if _):
-            dist2nearest = np.array(np.load("{}.npy".format(o))).reshape(-1, 1)
-            mean = np.mean(dist2nearest)
-            samples.append(dist2nearest.shape[0])
+            dnearest = np.array(np.load("{}.npz".format(o))['X']) \
+                .reshape(-1, 1)
+            mean = np.mean(dnearest)
+            samples.append(dnearest.shape[0])
+            d_dict.setdefault(o.split('/')[0], dict()).setdefault(k, mean)
 
             # for the threshold, fit a gaussian (unused for AP)
-            thresholds.append(gaussian_fit(dist2nearest))
-            d_dict.setdefault(o.split('/')[0], dict()).setdefault(k, mean)
+            thresholds.append(_gaussian_fit(dnearest))
 
     # print(d_dict)
     for k, v in d_dict.iteritems():  # there is only one
-        keys = np.array(sorted([x for x in v]))
-        mean_values = np.array([np.mean(v[x]) for x in keys])
-        errors = np.array([np.var(v[x]) for x in keys])
+        xvals = np.array(sorted([x for x in v]))
+        yvals = np.array([np.mean(v[x]) for x in xvals])
+        errors = np.array([np.var(v[x]) for x in xvals])
 
-    # print(samples)
-    idxs = np.array(samples).argsort()[-3:][::-1]
-    idx = idxs[0]
-    if thresholds[idx] == 0:
-        idx = idxs[1]
-    idx2 = mean_values > 0
-    keys, mean_values = keys[idx2], mean_values[idx2]
-    errors = errors[idx2]
-    x, y = np.array(keys), np.min(mean_values) / mean_values
+    # Take only significant values, higher than 0
+    mask = yvals > 0
+    xvals = xvals[mask]
+    if xvals.shape[0] < 2:
+        # no correction can be applied
+        return lambda _: 1, 0
 
-    xp = np.linspace(np.min(x), np.max(x), 1000)[:, None]
+    yvals = yvals[mask]
+    yvals = np.min(yvals) / yvals  # normalise
+    errors = errors[mask]
 
-    def model(x, u):
-        return x[0] * (u ** 2 + x[1] * u) / (u ** 2 + x[2] * u + x[3])
-
-    def jac(x, u, y):
-        J = np.empty((u.size, x.size))
-        den = u ** 2 + x[2] * u + x[3]
-        num = u ** 2 + x[1] * u
-        J[:, 0] = num / den
-        J[:, 1] = x[0] * u / den
-        J[:, 2] = -x[0] * num * u / den ** 2
-        J[:, 3] = -x[0] * num / den ** 2
-        return J
-
-    x0 = np.array([2.5, 3.9, 4.15, 3.9])
     res = least_squares(
-        lambda x, u, y: model(x, u) - y, x0,
-        jac=jac, bounds=(0, 100), args=(x, y), ftol=1e-12, loss='soft_l1')
+        lambda x, u, y: least_squares_mdl(x, u) - y,
+        x0=np.array([2.5, 3.9, 4.15, 3.9]),
+        jac=least_squares_jacobian, bounds=(0, 100), args=(xvals, yvals),
+        ftol=1e-12, loss='soft_l1')
 
     with warnings.catch_warnings():
         warnings.filterwarnings('error')
         try:
-            poly = np.poly1d(np.polyfit(x, y, order))
+            poly = np.poly1d(np.polyfit(xvals, yvals, order))
         except np.RankWarning:
-            order = 3
-            poly = np.poly1d(np.polyfit(x, y, order))
+            order = 2
+            poly = np.poly1d(np.polyfit(xvals, yvals, order))
 
     with sns.axes_style('whitegrid'):
+        xp = np.linspace(np.min(xvals), np.max(xvals), 1000)[:, None]
         plt.figure()
-        plt.errorbar(x, y, errors, label='data', marker='s')
+        plt.errorbar(xvals, yvals, errors, label='data', marker='s')
         plt.plot(xp, poly(xp), '-', label='order ' + str(order))
         # plt.plot(xp, fff(xp), '-', label='interpolate')
-        plt.plot(xp, model(res.x, xp), '-', label='least squares')
+        plt.plot(xp, least_squares_mdl(res.x, xp), '-', label='least squares')
         plt.xlabel(r'Igs mutation level')
         plt.legend(loc='lower left')
         plt.savefig(alpha_plot, transparent=True)
         plt.close()
 
-    return poly, thresholds[idx]
-    # return partial(model, res.x), thresholds[idx]
+    # poly = partial(model, res.x)
+    return poly, (filter(
+        lambda x: x > 0,
+        np.array(thresholds)[np.array(samples).argsort()[::-1]]) or [0])[0]
 
 
 def generate_correction_function(db, quantity, sim_func_args=None, order=3,
@@ -338,7 +374,7 @@ def generate_correction_function(db, quantity, sim_func_args=None, order=3,
     filename = db_no_ext + "_correction_function.npy"
 
     # case 1: file exists
-    alpha_plot = os.path.join(root, db_no_ext.split('/')[-1] + '_alphaplot.pdf')
+    aplot = os.path.join(root, db_no_ext.split('/')[-1] + '_alphaplot.pdf')
     if os.path.exists(filename) and os.path.exists("threshold_naive.npy"):
         logging.critical("Best parameters exists. Loading them ...")
         popt = np.load(filename)
@@ -348,9 +384,9 @@ def generate_correction_function(db, quantity, sim_func_args=None, order=3,
     else:
         my_dict = all_intra_mut(
             db, quantity=quantity, min_seqs=2, sim_func_args=sim_func_args)
-        popt, threshold_naive = create_alpha_plot(my_dict, order, alpha_plot)
+        popt, threshold_naive = learning_function(my_dict, order, aplot)
         # save for later, in case of analysis on the same db
         # np.save(filename, popt)  # TODO
 
     # partial(extra.negative_exponential, a=popt[0], c=popt[1], d=popt[2]),
-    return (popt, threshold_naive, alpha_plot)
+    return (popt, threshold_naive, aplot)

@@ -108,12 +108,12 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
             normalize=normalize, return_float=1)
 
     if ss > 0 and correct:
-        correction = correction_function(np.max((ig1.mut, ig2.mut)))
+        correction = correction_function(np.mean((ig1.mut, ig2.mut)))
         # correction = min(correction_function(ig1.mut),
         #                  correction_function(ig2.mut))
         # ss = 1 - ((1 - ss) * max(correction, 0))
         # ss = 1 - ((1 - ss) * correction)
-        ss *= correction
+        ss *= np.clip(correction, 0, 1)
     # return min(max(ss, 0), 1)
     return max(ss, 0)
 

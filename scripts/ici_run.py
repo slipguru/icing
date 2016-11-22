@@ -106,11 +106,14 @@ def main(config_file):
             threshold=config.threshold,
             db_file=db_file)
 
-        # Copy the ade_config just used into the outFolder
-        shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
-        # Move the logging file into the outFolder
-        shutil.move(logfile, outfolder)
-        shutil.move(alpha_plot, outfolder)
+        try:
+            # Copy the ade_config just used into the outFolder
+            shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
+            # Move the logging file into the outFolder
+            shutil.move(logfile, outfolder)
+            shutil.move(alpha_plot, outfolder)
+        except IOError as e:
+            logging.critical(e)
 
         # Save clusters in a copy of the original database with a new column
         ext_db = db_file.split(".")[-1]
