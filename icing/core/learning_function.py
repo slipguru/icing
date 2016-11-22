@@ -24,6 +24,7 @@ from sklearn import mixture
 
 from icing.core import cloning
 from icing.core import parallel_distance
+from icing.models.model import model_matrix
 from icing.utils import io, extra
 
 
@@ -83,11 +84,19 @@ def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
 
     sim_func_args['correct'] = False
     sim_func_args['tol'] = 1000
+    default_model = 'ham'
+    sim_func_args.setdefault('model', default_model)
+    sim_func_args.setdefault('dist_mat', model_matrix(default_model))
+    sim_func_args.setdefault(
+        'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
+
     dd = cloning.inverse_index(ig1 if is_intra else ig1 + ig2)
-    if sim_func_args.get('method', None) in ('pcc', 'hypergeometric'):
+    if sim_func_args.setdefault('method', 'jaccard') \
+            in ('pcc', 'hypergeometric'):
         sim_func_args['sim_score_params'] = {
             'nV': len([x for x in dd if 'V' in x]),
-            'nJ': len([x for x in dd if 'J' in x])}
+            'nJ': len([x for x in dd if 'J' in x])
+        }
     sim_func = partial(cloning.sim_function, **sim_func_args)
     logging.info("Computing %s", filename)
     if is_intra:
