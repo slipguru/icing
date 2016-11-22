@@ -117,7 +117,7 @@ def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
     plt.hist(dnearest, bins=bins, normed=True)
     plt.title("Distances between " +
               ("{}-{}".format(donor1, donor2) if donor2 else "") +
-              " {} {.3f}-{.3f}% and {.3f}-{.3f}%"
+              " {} {:.3f}-{:.3f}% and {:.3f}-{:.3f}%"
               .format(type_ig, lim_mut1[0], lim_mut1[1], *lim_mut2))
     plt.ylabel('Count')
     plt.xlim([0, 1])
