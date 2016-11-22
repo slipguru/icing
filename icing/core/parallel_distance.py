@@ -7,14 +7,14 @@ Author: Federico Tomasi
 Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
+import multiprocessing as mp
 import numpy as np
 import scipy
 import scipy.spatial
-import multiprocessing as mp
 
 from itertools import chain, ifilter
 
-from icing.utils.extra import _terminate, progressbar
+from icing.utils.extra import term_processes, progressbar
 
 
 def _min(generator, func):
@@ -51,30 +51,28 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
         for i in range(idx, n, nprocs):
             # if i % 100 == 0:
             #     progressbar(i, n)
-            shared_arr[i] = _min(ifilter(filt,
-                                 (dist_function(l1[i], el2) for el2 in l2)),
-                                 func)
+            shared_arr[i] = _min(
+                ifilter(filt, (dist_function(l1[i], el2) for el2 in l2)),
+                func)
 
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
     shared_array = mp.Array('d', [0.] * n)
-    ps = []
+    procs = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, l2, n, idx, nprocs, shared_array,
                                  dist_function))
             p.start()
-            ps.append(p)
+            procs.append(p)
 
-        for p in ps:
+        for p in procs:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        term_processes(procs, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        term_processes(procs, 'ERROR: %s\n' % e)
 
     # progressbar(n, n)
     return shared_array
@@ -109,23 +107,21 @@ def dnearest_intra_padding(l1, dist_function, filt=None, func=min):
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
     shared_array = mp.Array('d', [0.] * n)
-    ps = []
+    procs = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, n, idx, nprocs, shared_array,
                                  dist_function))
             p.start()
-            ps.append(p)
+            procs.append(p)
 
-        for p in ps:
+        for p in procs:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        term_processes(procs, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        term_processes(procs, 'ERROR: %s\n' % e)
 
     # progressbar(n, n)
     return shared_array
@@ -158,23 +154,21 @@ def dm_dense_inter_padding(l1, l2, dist_function, condensed=False):
     # index = mp.Value('i', 0)
     # lock = mp.Lock()
     shared_array = np.frombuffer(mp.Array('d', n*m).get_obj()).reshape((n, m))
-    ps = []
+    procs = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, l2, n, idx, nprocs, shared_array,
                                  dist_function))
             p.start()
-            ps.append(p)
+            procs.append(p)
 
-        for p in ps:
+        for p in procs:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        term_processes(procs, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        term_processes(procs, 'ERROR: %s\n' % e)
 
     # progressbar(n,n)
     return shared_array.flatten() if condensed else shared_array
@@ -209,23 +203,21 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     n = len(l1)
     nprocs = min(mp.cpu_count(), n)
     shared_array = np.frombuffer(mp.Array('d', n*n).get_obj()).reshape((n, n))
-    ps = []
+    procs = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, n, idx, nprocs, shared_array,
                                  dist_function))
             p.start()
-            ps.append(p)
+            procs.append(p)
 
-        for p in ps:
+        for p in procs:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        term_processes(procs, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        term_processes(procs, 'ERROR: %s\n' % e)
 
     # progressbar(n,n)
     dist_matrix = shared_array + shared_array.T
@@ -269,22 +261,20 @@ def dm_sparse_intra_padding(l1, dist_function, condensed=False):
     data = mp.Array('d', [0.] * c_length)
     rows = mp.Array('d', [0.] * c_length)
     cols = mp.Array('d', [0.] * c_length)
-    ps = []
+    procs = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, n, idx, nprocs, rows, cols, data,
                                  dist_function))
             p.start()
-            ps.append(p)
-        for p in ps:
+            procs.append(p)
+        for p in procs:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        _terminate(ps, 'Exit signal received\n')
+        term_processes(procs, 'Exit signal received\n')
     except Exception as e:
-        _terminate(ps, 'ERROR: %s\n' % e)
-    except:
-        _terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        term_processes(procs, 'ERROR: %s\n' % e)
 
     data = np.array(data)
     idx = data > 0

@@ -12,13 +12,13 @@ import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-import seaborn as sns; sns.set_context('poster')
+import seaborn as sns
 import six
 import warnings
 
 from functools import partial
 from itertools import chain
-from scipy.optimize import curve_fit
+# from scipy.optimize import curve_fit
 from scipy.optimize import least_squares
 from sklearn import mixture
 
@@ -350,6 +350,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
             poly = np.poly1d(np.polyfit(xvals, yvals, order))
 
     with sns.axes_style('whitegrid'):
+        sns.set_context('poster')
         xp = np.linspace(np.min(xvals), np.max(xvals), 1000)[:, None]
         plt.figure()
         plt.errorbar(xvals, yvals, errors, label='data', marker='s')

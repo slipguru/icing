@@ -10,11 +10,10 @@ output_root_folder = 'results'
 
 db_file = "/path/to/database_file.tab"
 dialect = "excel-tab"
-subsets = ('n', 'naive')
-mutation = (0, 0)
 
-apply_filter = lambda x: x.subset.lower() in subsets and mutation[0] <= x.mut <= mutation[1]
-sim_func_args = {'method': 'jaccard'}
+learning_function_quantity = 1
+learning_function_order = 3
+sim_func_args = {'method': 'jaccard', 'v_weight': 1, 'j_weight': 1}
 
 # Analysis options
 file_format = 'png'

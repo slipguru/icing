@@ -22,34 +22,19 @@ from functools import partial
 # from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
+from string_kernel import sum_string_kernel
 
 # from icing.core.distances import string_distance
 from icing.core.similarity_scores import similarity_score_tripartite as mwi
 from icing.externals import AffinityPropagation
 from icing.models.model import model_matrix
 from icing.utils import extra
-from string_kernel import sum_string_kernel
-
-
-def alpha_mut(ig1, ig2, fn='models/negexp_pars.npy'):
-    """Coefficient to balance distance according to mutation levels."""
-    try:
-        params_folder = os.path.abspath(os.path.join(os.path.dirname(
-            os.path.realpath(__file__)), os.pardir))
-        popt = np.load(os.path.join(params_folder, fn))
-        # return _neg_exp(np.max((ig1.mut, ig2.mut)), *popt)
-        return popt
-    except IOError:
-        logging.error("Correction coefficient file not found. "
-                      "No correction can be applied for mutation.")
-        # return np.exp(-np.max((ig1.mut, ig2.mut)) / 35.)
-        return (1, 0, 0)
 
 
 def sim_function(ig1, ig2, method='jaccard', model='ham',
                  dist_mat=None, tol=3, v_weight=1., j_weight=1.,
                  correction_function=(lambda _: 1), correct=True,
-                 sim_score_params=None):
+                 sim_score_params=None, ssk_params=None):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
@@ -78,9 +63,6 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
     if abs(ig1.junction_length - ig2.junction_length) > tol:
         return 0.
 
-    if dist_mat is None:
-        dist_mat = model_matrix(model)
-
     V_genes_ig1 = ig1.getVGene('set')
     V_genes_ig2 = ig2.getVGene('set')
     J_genes_ig1 = ig1.getJGene('set')
@@ -89,23 +71,23 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
     ss = mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method,
              r1=v_weight, r2=j_weight, sim_score_params=sim_score_params)
     if ss > 0.:
-        # print V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2
         junc1 = extra.junction_re(ig1.junction)
         junc2 = extra.junction_re(ig2.junction)
+
+        # Using alignment plus model
         # norm_by = min(len(junc1), len(junc2))
         # if model == 'hs1f':
         #     norm_by *= 2.08
+        # if dist_mat is None:
+        #     dist_mat = model_matrix(model)
         # dist = string_distance(junc1, junc2, dist_mat, norm_by, tol=tol)
         # ss *= (1 - dist)
 
-        min_kn = 1
-        max_kn = 8
-        lamda = .75
-        normalize = 1
+        # Using string kernel
         ss *= sum_string_kernel(
             [junc1, junc2],
-            min_kn=min_kn, max_kn=max_kn, lamda=lamda, verbose=False,
-            normalize=normalize, return_float=1)
+            verbose=False,
+            normalize=1, return_float=1, **ssk_params)
 
     if ss > 0 and correct:
         correction = correction_function(np.mean((ig1.mut, ig2.mut)))
@@ -182,7 +164,7 @@ def inverse_index_parallel(records):
     manager = mp.Manager()
     lock = mp.Lock()
     nprocs = min(n, mp.cpu_count())
-    ps = []
+    procs = []
 
     try:
         queue = manager.list()
@@ -190,11 +172,11 @@ def inverse_index_parallel(records):
             p = mp.Process(target=_get_v_j_padding,
                            args=(lock, queue, idx, nprocs, records, n))
             p.start()
-            ps.append(p)
-        for p in ps:
+            procs.append(p)
+        for p in procs:
             p.join()
     except:
-        extra.term_processes(ps)
+        extra.term_processes(procs)
 
     reverse_index = {}
     for dictionary in queue:
@@ -215,12 +197,12 @@ def _similar_elements_sequential(reverse_index, records, n,
     for k, v in reverse_index.iteritems():
         length = len(v)
         if length > 1:
-            for k in (range(int(length*(length-1)/2))):
-                j = k % (length-1)+1
-                i = int(k/(length-1))
+            for k in range(int(length * (length - 1) / 2)):
+                j = k % (length - 1) + 1
+                i = int(k / (length - 1))
                 if i >= j:
-                    i = length-i-1
-                    j = length-j
+                    i = length - i - 1
+                    j = length - j
                 i = v[i]
                 j = v[j]
                 indicator_matrix[i, j] = similarity_function(
@@ -240,7 +222,7 @@ def _similar_elements_job(
         v = reverse_index[key_list[ii]]
         length = len(v)
         if length > 1:
-            for k in (range(int(length * (length - 1) / 2))):
+            for k in range(int(length * (length - 1) / 2)):
                 j = k % (length - 1) + 1
                 i = int(k / (length - 1))
                 if i >= j:
@@ -286,20 +268,20 @@ def similar_elements(reverse_index, records, n, similarity_function,
     data = mp.Array('d', [0] * c_length)
     rows = mp.Array('d', [0] * c_length)
     cols = mp.Array('d', [0] * c_length)
-    ps = []
+    procs = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_similar_elements_job,
                            args=(reverse_index, records, n, idx, nprocs,
                                  data, rows, cols, similarity_function))
             p.start()
-            ps.append(p)
-        for p in ps:
+            procs.append(p)
+        for p in procs:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra.term_processes(ps, 'Exit signal received\n')
+        extra.term_processes(procs, 'Exit signal received\n')
     except Exception as e:
-        extra.term_processes(ps, 'ERROR: %s\n' % e)
+        extra.term_processes(procs, 'ERROR: %s\n' % e)
 
     data = np.array(data, dtype=float)
     idx = data > 0
@@ -335,21 +317,21 @@ def indicator_to_similarity(rows, cols, records, similarity_function):
     n = len(rows)
     nprocs = min(mp.cpu_count(), n)
     data = mp.Array('d', [0.] * n)
-    ps = []
+    procs = []
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_internal,
                            args=(data, rows, cols, n, records, idx, nprocs,
                                  similarity_function))
             p.start()
-            ps.append(p)
+            procs.append(p)
 
-        for p in ps:
+        for p in procs:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra.term_processes(ps, 'Exit signal received\n')
+        extra.term_processes(procs, 'Exit signal received\n')
     except Exception as e:
-        extra.term_processes(ps, 'ERROR: %s\n' % e)
+        extra.term_processes(procs, 'ERROR: %s\n' % e)
 
     return data
 
@@ -384,17 +366,15 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     n = len(igs)
 
     default_model = 'ham'
-    default_method = 'jaccard'
     sim_func_args.setdefault('model', default_model)
-    sim_func_args.setdefault('method', default_method)
+    sim_func_args.setdefault('dist_mat', model_matrix(default_model))
     sim_func_args.setdefault('tol', 3)
-    dist_mat = sim_func_args.get('dist_mat', None)
-    if dist_mat is None:
-        dist_mat = sim_func_args.setdefault('dist_mat',
-                                            model_matrix(default_model))
+    sim_func_args.setdefault(
+        'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
 
     dd = inverse_index(igs)
-    if sim_func_args.get('method', None) in ('pcc', 'hypergeometric'):
+    if sim_func_args.setdefault('method', 'jaccard') \
+            in ('pcc', 'hypergeometric'):
         sim_func_args['sim_score_params'] = {
             'nV': len([x for x in dd if 'V' in x]),
             'nJ': len([x for x in dd if 'J' in x])
@@ -443,18 +423,18 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
             sm = similarity_matrix[idxs][:, idxs]
-            # dm = 1. - similarity_matrix[idxs][:, idxs].toarray()
 
-            # # Hierarchical clustering
-            # links = linkage((dm), method='ward')
-            # clusters_ = fcluster(links, threshold, 'distance')
+            # Hierarchical clustering
+            # if method == 'hierarchical':
+            #     links = linkage(1. - sm.toarray(), method='ward')
+            #     clusters_ = fcluster(links, 1-threshold, 'distance')
 
             # DBSCAN
-            # db = DBSCAN(eps=threshold, min_samples=1,
-            #             metric='precomputed').fit(dm)
-            # # Number of clusters in labels, ignoring noise if present.
-            # n_clusters_ = len(set(clusters_)) - (1 if -1 in clusters_ else 0)
-            # print('Estimated number of clusters by DBSCAN: %d' % n_clusters_)
+            # if method == 'dbscan':
+            #     db = ap.fit(1. - sm.toarray())
+            #     # Number of clusters in labels, ignoring noise if present.
+            #     clusters_ = db.labels_ + 1
+            #     # n_clusters_ = len(set(clusters_)) - int(0 in clusters_)
 
             # AffinityPropagation
             db = ap.fit(sm)

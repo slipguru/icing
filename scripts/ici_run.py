@@ -52,31 +52,26 @@ def init_logger(filename, root, verbose):
 def main(config_file):
     """Run icing main features."""
     # Load the configuration file
-    config_path = os.path.abspath(config_file)
-    config = imp.load_source('config', config_path)
+    config_file = os.path.abspath(config_file)
+    config = imp.load_source('config', config_file)
 
     # Load input file
-    extra.set_module_defaults(config, {'subsets': (),
-                                       'mutation': (0, 0),
-                                       'apply_filter': None,
-                                       'max_records': None,
-                                       'dialect': 'excel-tab',
-                                       'exp_tag': 'debug',
-                                       'output_root_folder': 'results',
-                                       'force_silhouette': False,
-                                       'sim_func_args': {},
-                                       'threshold': 0.0536,
-                                       'verbose': False,
-                                       'learning_function_quantity': 0.15,
-                                       'learning_function_order': 3})
+    extra.set_module_defaults(config, {
+        'subsets': (), 'mutation': (0, 0), 'apply_filter': None,
+        'max_records': None, 'dialect': 'excel-tab', 'exp_tag': 'debug',
+        'output_root_folder': 'results', 'force_silhouette': False,
+        'sim_func_args': {}, 'threshold': 0.0536, 'verbose': False,
+        'learning_function_quantity': 0.15,
+        'learning_function_order': 3})
+
     # Define logging file
     root = config.output_root_folder
     if not os.path.exists(root):
         os.makedirs(root)
 
     for db_file, exp_tag in zip(
-        [config.db_file] if not isinstance(config.db_file, list)
-        else config.db_file, [config.exp_tag] if not
+            [config.db_file] if not isinstance(config.db_file, list)
+            else config.db_file, [config.exp_tag] if not
             isinstance(config.exp_tag, list) else config.exp_tag):
         filename = '_'.join(('icing', exp_tag, extra.get_time(True)))
         logfile = init_logger(filename, root, config.verbose)
@@ -92,36 +87,31 @@ def main(config_file):
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
                          record_quantity * 100)
-            (config.sim_func_args['correction_function'],
-             config.threshold,
+            (config.sim_func_args['correction_function'], config.threshold,
              alpha_plot) = generate_correction_function(
-                    db_file, quantity=record_quantity,
-                    sim_func_args=config.sim_func_args.copy(),
-                    order=config.learning_function_order,
-                    root=root)
+                 db_file, quantity=record_quantity,
+                 sim_func_args=config.sim_func_args.copy(),
+                 order=config.learning_function_order, root=root)
+
         logging.info("Start define_clones function ...")
         outfolder, clone_dict = define_clones(
             db_iter, exp_tag=filename, root=root,
             sim_func_args=config.sim_func_args,
-            threshold=config.threshold,
-            db_file=db_file)
+            threshold=config.threshold, db_file=db_file)
 
         try:
-            # Copy the ade_config just used into the outFolder
-            shutil.copy(config_path, os.path.join(outfolder, 'config.py'))
+            # Copy the config just used in the output folder
+            shutil.copy(config_file, os.path.join(outfolder, 'config.py'))
             # Move the logging file into the outFolder
             shutil.move(logfile, outfolder)
             shutil.move(alpha_plot, outfolder)
-        except IOError as e:
-            logging.critical(e)
+        except IOError as msg:
+            logging.critical(msg)
 
         # Save clusters in a copy of the original database with a new column
-        ext_db = db_file.split(".")[-1]
-        result_db = os.path.join(outfolder, 'db_file_clusters.' + ext_db)
-        # shutil.copy(config.db_file, result_db)
-
-        io.write_clusters_db(db_file, result_db,
-                             clone_dict, config.dialect)
+        result_db = os.path.join(
+            outfolder, 'db_file_clusters.' + db_file.split(".")[-1])
+        io.write_clusters_db(db_file, result_db, clone_dict, config.dialect)
         config.sim_func_args["correction_function"] = None  # bugfix
         logging.info("Clusters correctly created and written on file. "
                      "Now run ici_analysis.py on the results folder.")
@@ -143,12 +133,12 @@ def init_run():
 
     if args.create:
         std_config_path = os.path.join(icing.__path__[0], 'config.py')
-        # Check for .pyc
         if std_config_path.endswith('.pyc'):
             std_config_path = std_config_path[:-1]
-        # Check if the file already exists
+
         if os.path.exists(args.configuration_file):
             parser.error("icing configuration file already exists")
+
         # Copy the config file
         shutil.copy(std_config_path, args.configuration_file)
     else:
