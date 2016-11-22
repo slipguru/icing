@@ -44,7 +44,8 @@ def least_squares_jacobian(x, u, y):
     return J
 
 
-def _remove_duplicate_junctions(igs_list):
+def remove_duplicate_junctions(igs_list):
+    """Remove igs which have same junction."""
     igs, juncs = [], []
     for ig in igs_list:
         junc = extra.junction_re(ig.junction)
@@ -53,18 +54,19 @@ def _remove_duplicate_junctions(igs_list):
             juncs.append(junc)
     return igs, juncs
 
-# def _remove_duplicate_junctions(igs):
+# def remove_duplicate_junctions(igs):
 #     igs = list(igs)
 #     return igs, map(lambda x: extra.junction_re(x.junction), igs)
 
 
-def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem', mut=None,
-              donor1='B4', donor2=None, bins=100, max_seqs=1000, min_seqs=0,
-              ig1=None, ig2=None, is_intra=True, sim_func_args=None):
+def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
+              mut=None, donor1='B4', donor2=None, bins=100, max_seqs=1000,
+              min_seqs=0, ig1=None, ig2=None, is_intra=True,
+              sim_func_args=None):
     """Make histogram and main computation of nearest similarities."""
-    if os.path.exists(fn + '.npz'):
-        logging.critical(fn + '.npz esists.')
-        return fn
+    if os.path.exists(filename + '.npz'):
+        logging.critical(filename + '.npz esists.')
+        return filename
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
         return ''
 
@@ -87,7 +89,7 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem', mut=None,
             'nV': len([x for x in dd if 'V' in x]),
             'nJ': len([x for x in dd if 'J' in x])}
     sim_func = partial(cloning.sim_function, **sim_func_args)
-    logging.info("Computing %s", fn)
+    logging.info("Computing %s", filename)
     if is_intra:
         # dnearest = parallel_distance.dnearest_inter_padding(
         #     ig1, ig1, sim_func, filt=lambda x: 0 < x, func=max)
@@ -97,31 +99,25 @@ def make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig='Mem', mut=None,
     else:
         dnearest = parallel_distance.dnearest_inter_padding(
             ig1, ig2, sim_func, filt=lambda x: 0 < x < 1, func=max)
-    if not os.path.exists(fn.split('/')[0]):
-        os.makedirs(fn.split('/')[0])
-    np.savez(fn, X=dnearest, mut=mut)
-    # dnearest = np.array([np.min(r[r>0]) for r in X])
+    if not os.path.exists(filename.split('/')[0]):
+        os.makedirs(filename.split('/')[0])
+    np.savez(filename, X=dnearest, mut=mut)
+
+    # Plot distance distribution
     plt.figure(figsize=(20, 10))
     plt.hist(dnearest, bins=bins, normed=True)
-    try:
-        if not donor2:
-            plt.title("Distances between {} {}-{}% and {}-{}%"
-                      .format(type_ig, lim_mut1[0], lim_mut1[1],
-                              lim_mut2[0], lim_mut2[1]))
-        else:
-            plt.title("Distances between {}-{} {} {}-{}% and {}-{}%"
-                      .format(donor1, donor2, type_ig, lim_mut1[0],
-                              lim_mut1[1], lim_mut2[0], lim_mut2[1]))
-    except Exception:
-        pass
+    plt.title("Distances between " +
+              ("{}-{}".format(donor1, donor2) if donor2 else "") +
+              " {} {.3f}-{.3f}% and {.3f}-{.3f}%"
+              .format(type_ig, lim_mut1[0], lim_mut1[1], *lim_mut2))
     plt.ylabel('Count')
     plt.xlim([0, 1])
     plt.xticks(np.linspace(0, 1, 21))
     plt.xlabel('Ham distance (normalised)')
-    plt.savefig(fn + ".png")
+    plt.savefig(filename + ".png")
     plt.close()
     del dnearest
-    return fn
+    return filename
 
 
 def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
@@ -131,19 +127,20 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
 
     Subsets of Igs can be selected choosing two ranges of mutations.
     """
-    fn = "{0}/dist2nearest_{0}_{1}-{2}_vs_{3}-{4}_{5}bins_norm_{6}maxseqs" \
-         .format(donor, lim_mut1[0], lim_mut1[1], lim_mut2[0],
-                 lim_mut2[1], bins, max_seqs)
+    filename = \
+        "{0}/dist2nearest_{0}_{1}-{2}_vs_{3}-{4}_{5}bins_norm_{6}maxseqs" \
+        .format(donor, lim_mut1[0], lim_mut1[1], lim_mut2[0],
+                lim_mut2[1], bins, max_seqs)
     # mut = min(lim_mut1[0], lim_mut2[0])
-    if os.path.exists(fn + '.npz'):
-        logging.info("File %s exists.", fn + '.npz')
-        return fn, float(np.load(fn + '.npz')['mut'])
+    if os.path.exists(filename + '.npz'):
+        logging.info("File %s exists.", filename + '.npz')
+        return filename, float(np.load(filename + '.npz')['mut'])
 
     n_tot = io.get_num_records(f)
     if max(lim_mut1[1], lim_mut2[1]) == 0:
         igs = io.read_db(f, filt=(lambda x: x.mut == 0),
                          max_records=quantity * n_tot)
-        igs1, juncs1 = _remove_duplicate_junctions(igs)
+        igs1, juncs1 = remove_duplicate_junctions(igs)
         juncs2 = juncs1
         igs2 = igs1
         mut = 0
@@ -151,18 +148,19 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
         igs = io.read_db(f,
                          filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]),
                          max_records=quantity * n_tot)
-        igs1, juncs1 = _remove_duplicate_junctions(igs)
+        igs1, juncs1 = remove_duplicate_junctions(igs)
         igs = io.read_db(f,
                          filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]),
                          max_records=quantity * n_tot)
-        igs2, juncs2 = _remove_duplicate_junctions(igs)
+        igs2, juncs2 = remove_duplicate_junctions(igs)
         if not len(juncs1) or not len(juncs2):
             return '', 0
         mut = np.mean(list(chain((x.mut for x in igs1),
                                  (x.mut for x in igs2))))
-    return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, mut,
-                     donor, None, bins, max_seqs, min_seqs, ig1=igs1, ig2=igs2,
-                     sim_func_args=sim_func_args), mut
+    return make_hist(
+        juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig, mut,
+        donor, None, bins, max_seqs, min_seqs, ig1=igs1, ig2=igs2,
+        sim_func_args=sim_func_args), mut
 
 
 def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
@@ -173,45 +171,46 @@ def inter_donor_distance(f1='', f2='', lim_mut1=(0, 0), lim_mut2=(0, 0),
     Igs involved can be selected by choosing two possibly different ranges
     of mutations.
     """
-    fn = "{0}/dnearest_{0}_{1}_{2}-{3}_vs_{4}-{5}_{6}bins_norm_{7}maxseqs" \
-         .format(donor1, donor2, lim_mut1[0], lim_mut1[1],
-                 lim_mut2[0], lim_mut2[1], bins, max_seqs)
+    filename = \
+        "{0}/dnearest_{0}_{1}_{2}-{3}_vs_{4}-{5}_{6}bins_norm_{7}maxseqs" \
+        .format(donor1, donor2, lim_mut1[0], lim_mut1[1],
+                lim_mut2[0], lim_mut2[1], bins, max_seqs)
     # mut = min(lim_mut1[0], lim_mut2[0])
-    if os.path.exists(fn + '.npz'):
-        logging.info("File %s exists.", fn + '.npz')
-        return fn, float(np.load(fn + '.npz')['mut'])
+    if os.path.exists(filename + '.npz'):
+        logging.info("File %s exists.", filename + '.npz')
+        return filename, float(np.load(filename + '.npz')['mut'])
 
     if max(lim_mut1[1], lim_mut2[1]) == 0:
         igs = io.read_db(f1, filt=(lambda x: x.mut == 0))
-        _, juncs1 = _remove_duplicate_junctions(igs)
+        _, juncs1 = remove_duplicate_junctions(igs)
         igs = io.read_db(f2, filt=(lambda x: x.mut == 0))
-        _, juncs2 = _remove_duplicate_junctions(igs)
+        _, juncs2 = remove_duplicate_junctions(igs)
         mut = 0
     elif max(lim_mut1[1], lim_mut2[1]) < 0:
         # not specified: get at random
         igs = io.read_db(f1)
-        _, juncs1 = _remove_duplicate_junctions(igs)
+        _, juncs1 = remove_duplicate_junctions(igs)
         igs = io.read_db(f2)
-        _, juncs2 = _remove_duplicate_junctions(igs)
+        _, juncs2 = remove_duplicate_junctions(igs)
     else:
         igs = io.read_db(
             f1, filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
-        _, juncs1 = _remove_duplicate_junctions(igs)
+        _, juncs1 = remove_duplicate_junctions(igs)
         igs = io.read_db(
             f2, filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]))
-        _, juncs2 = _remove_duplicate_junctions(igs)
+        _, juncs2 = remove_duplicate_junctions(igs)
 
     juncs1 = juncs1[:int(quantity * len(juncs1))]
     juncs2 = juncs2[:int(quantity * len(juncs2))]
-    return make_hist(juncs1, juncs2, fn, lim_mut1, lim_mut2, type_ig, donor1,
-                     donor2, bins, max_seqs, sim_func_args=sim_func_args), mut
+    return make_hist(
+        juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig, donor1,
+        donor2, bins, max_seqs, sim_func_args=sim_func_args), mut
 
 
-def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
-                  sim_func_args=None):
-    """Create histograms and relative mutation levels."""
+def distr_muts(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
+               sim_func_args=None):
+    """Create histograms and relative mutation levels using intra groups."""
     logging.info("Analysing %s ...", db)
-    out_fles, mut_lvls = [], []
     try:
         max_mut = io.get_max_mut(db)
         # if max_mut < 1:
@@ -224,18 +223,17 @@ def all_intra_mut(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
             return None
         # sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
         #                       np.arange(step, max_mut + step, step))
-        for i, j in list(zip(sets, sets)):
-            o, mut = intra_donor_distance(
+        out_muts = [
+            intra_donor_distance(
                 db, i, j, quantity=quantity, donor=db.split('/')[-1],
                 bins=bins, max_seqs=max_seqs, min_seqs=min_seqs,
-                sim_func_args=sim_func_args)
-            out_fles.append(o)
-            mut_lvls.append(mut)
-    except Exception as e:
-        logging.critical(e)
+                sim_func_args=sim_func_args) for i, j in zip(sets, sets)]
+    except StandardError as msg:
+        logging.critical(msg)
+        out_muts = []
 
     d = dict()
-    for m, f in zip(mut_lvls, out_fles):
+    for f, m in out_muts:
         d.setdefault(m, []).append(f)
     return d
 
@@ -288,7 +286,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
     Parameters
     ----------
     mydict : dict
-        Organised as {mut: [mean_similarities]}. Calculated by `all_intra_mut`.
+        Organised as {mut: [mean_similarities]}. Calculated by `distr_muts`.
     order : int, optional, default: 3
         Order of the learning function (polynomial).
     alpha_plot : str, optional, default: 'alpha_plot.pdf'
@@ -383,7 +381,7 @@ def generate_correction_function(db, quantity, sim_func_args=None, order=3,
 
     # case 2: file not exists
     else:
-        my_dict = all_intra_mut(
+        my_dict = distr_muts(
             db, quantity=quantity, min_seqs=2, sim_func_args=sim_func_args)
         popt, threshold_naive = learning_function(my_dict, order, aplot)
         # save for later, in case of analysis on the same db

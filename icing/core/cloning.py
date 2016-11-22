@@ -280,8 +280,8 @@ def similar_elements(reverse_index, records, n, similarity_function,
             p.join()
     except (KeyboardInterrupt, SystemExit):
         extra.term_processes(procs, 'Exit signal received\n')
-    except Exception as e:
-        extra.term_processes(procs, 'ERROR: %s\n' % e)
+    except StandardError as msg:
+        extra.term_processes(procs, 'ERROR: %s\n' % msg)
 
     data = np.array(data, dtype=float)
     idx = data > 0
@@ -330,8 +330,8 @@ def indicator_to_similarity(rows, cols, records, similarity_function):
             p.join()
     except (KeyboardInterrupt, SystemExit):
         extra.term_processes(procs, 'Exit signal received\n')
-    except Exception as e:
-        extra.term_processes(procs, 'ERROR: %s\n' % e)
+    except StandardError as msg:
+        extra.term_processes(procs, 'ERROR: %s\n' % msg)
 
     return data
 
