@@ -14,10 +14,9 @@ from sklearn import mixture
 from changeo import newDefineClones as cl
 from icing.core import parallel_distance
 from icing.core import distances
+from icing.kernel import sum_string_kernel
 from icing.models import model
 from icing.utils import io, extra
-
-from string_kernel.core.src.sum_string_kernel import sum_string_kernel
 
 ham_model = model.model_matrix('ham')
 # ham_model['N'] = 1.50  # sara diviso per due

@@ -230,8 +230,6 @@ def distr_muts(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
         if len(sets) == 1:
             # no correction needs to be applied
             return None
-        # sets = [(0, 0)] + zip(np.arange(0, max_mut, step),
-        #                       np.arange(step, max_mut + step, step))
         out_muts = [
             intra_donor_distance(
                 db, i, j, quantity=quantity, donor=db.split('/')[-1],

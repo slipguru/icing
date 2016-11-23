@@ -71,8 +71,8 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
             p.join()
     except (KeyboardInterrupt, SystemExit):
         term_processes(procs, 'Exit signal received\n')
-    except Exception as e:
-        term_processes(procs, 'ERROR: %s\n' % e)
+    except BaseException as msg:
+        term_processes(procs, 'ERROR: %s\n' % msg)
 
     # progressbar(n, n)
     return shared_array
@@ -120,8 +120,8 @@ def dnearest_intra_padding(l1, dist_function, filt=None, func=min):
             p.join()
     except (KeyboardInterrupt, SystemExit):
         term_processes(procs, 'Exit signal received\n')
-    except Exception as e:
-        term_processes(procs, 'ERROR: %s\n' % e)
+    except BaseException as msg:
+        term_processes(procs, 'ERROR: %s\n' % msg)
 
     # progressbar(n, n)
     return shared_array
@@ -167,8 +167,8 @@ def dm_dense_inter_padding(l1, l2, dist_function, condensed=False):
             p.join()
     except (KeyboardInterrupt, SystemExit):
         term_processes(procs, 'Exit signal received\n')
-    except Exception as e:
-        term_processes(procs, 'ERROR: %s\n' % e)
+    except BaseException as msg:
+        term_processes(procs, 'ERROR: %s\n' % msg)
 
     # progressbar(n,n)
     return shared_array.flatten() if condensed else shared_array
@@ -216,8 +216,8 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
             p.join()
     except (KeyboardInterrupt, SystemExit):
         term_processes(procs, 'Exit signal received\n')
-    except Exception as e:
-        term_processes(procs, 'ERROR: %s\n' % e)
+    except BaseException as msg:
+        term_processes(procs, 'ERROR: %s\n' % msg)
 
     # progressbar(n,n)
     dist_matrix = shared_array + shared_array.T
@@ -264,17 +264,17 @@ def dm_sparse_intra_padding(l1, dist_function, condensed=False):
     procs = []
     try:
         for idx in range(nprocs):
-            p = mp.Process(target=_internal,
+            process = mp.Process(target=_internal,
                            args=(l1, n, idx, nprocs, rows, cols, data,
                                  dist_function))
-            p.start()
-            procs.append(p)
-        for p in procs:
-            p.join()
+            process.start()
+            procs.append(process)
+        for process in procs:
+            process.join()
     except (KeyboardInterrupt, SystemExit):
         term_processes(procs, 'Exit signal received\n')
-    except Exception as e:
-        term_processes(procs, 'ERROR: %s\n' % e)
+    except BaseException as msg:
+        term_processes(procs, 'ERROR: %s\n' % msg)
 
     data = np.array(data)
     idx = data > 0

@@ -22,11 +22,11 @@ from functools import partial
 # from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
-from string_kernel import sum_string_kernel
 
 # from icing.core.distances import string_distance
 from icing.core.similarity_scores import similarity_score_tripartite as mwi
 from icing.externals import AffinityPropagation
+from icing.kernel import sum_string_kernel
 from icing.models.model import model_matrix
 from icing.utils import extra
 
@@ -280,7 +280,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
             p.join()
     except (KeyboardInterrupt, SystemExit):
         extra.term_processes(procs, 'Exit signal received\n')
-    except StandardError as msg:
+    except BaseException as msg:
         extra.term_processes(procs, 'ERROR: %s\n' % msg)
 
     data = np.array(data, dtype=float)
@@ -330,7 +330,7 @@ def indicator_to_similarity(rows, cols, records, similarity_function):
             p.join()
     except (KeyboardInterrupt, SystemExit):
         extra.term_processes(procs, 'Exit signal received\n')
-    except StandardError as msg:
+    except BaseException as msg:
         extra.term_processes(procs, 'ERROR: %s\n' % msg)
 
     return data

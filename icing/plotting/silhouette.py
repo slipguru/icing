@@ -225,11 +225,11 @@ def multi_cut_dendrogram(dist_matrix, Z, threshold_arr, n, mode='clusters',
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra._terminate(ps, 'Exit signal received\n')
+        extra.term_processes(ps, 'Exit signal received\n')
     except Exception as e:
-        extra._terminate(ps, 'ERROR: %s\n' % e)
+        extra.term_processes(ps, 'ERROR: %s\n' % e)
     except:
-        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra.term_processes(ps, 'ERROR: Exiting with unknown exception\n')
     return queue_x, queue_y
 
 
@@ -400,11 +400,11 @@ def multi_cut_spectral(cluster_list, affinity_matrix, dist_matrix, n_jobs=-1,
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra._terminate(ps, 'Exit signal received\n')
+        extra.term_processes(ps, 'Exit signal received\n')
     except Exception as e:
-        extra._terminate(ps, 'ERROR: %s\n' % e)
+        extra.term_processes(ps, 'ERROR: %s\n' % e)
     except:
-        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra.term_processes(ps, 'ERROR: Exiting with unknown exception\n')
     return queue_y
 
 
@@ -530,11 +530,11 @@ def multi_cut_ap(preferences, affinity_matrix, dist_matrix, n_jobs=-1,
         for p in ps:
             p.join()
     except (KeyboardInterrupt, SystemExit):
-        extra._terminate(ps, 'Exit signal received\n')
+        extra.term_processes(ps, 'Exit signal received\n')
     except Exception as e:
-        extra._terminate(ps, 'ERROR: %s\n' % e)
+        extra.term_processes(ps, 'ERROR: %s\n' % e)
     except:
-        extra._terminate(ps, 'ERROR: Exiting with unknown exception\n')
+        extra.term_processes(ps, 'ERROR: Exiting with unknown exception\n')
     return queue_y
 
 

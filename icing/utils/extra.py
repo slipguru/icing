@@ -214,6 +214,7 @@ def set_module_defaults(module, dictionary):
         except AttributeError:
             setattr(module, k, v)
 
+
 # progress bar
 try:
     TERMINAL_COLS = struct.unpack('hh', fcntl.ioctl(
