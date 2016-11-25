@@ -117,9 +117,9 @@ def inverse_index(records):
     """
     r_index = dict()
     for i, ig in enumerate(records):
-        for v in ig.getVGene('set'):
+        for v in ig.getVGene('set') or ():
             r_index.setdefault(v, []).append(i)
-        for j in ig.getJGene('set'):
+        for j in ig.getJGene('set') or ():
             r_index.setdefault(j, []).append(i)
 
     # r_index = defaultdict(list)
