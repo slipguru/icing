@@ -84,6 +84,8 @@ def main(config_file):
         logging.info("Database loaded (%i records)", len(db_iter))
 
         local_sim_func_args = config.sim_func_args.copy()
+        alpha_plot = None
+
         if local_sim_func_args.get("correction_function", None) is None:
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
