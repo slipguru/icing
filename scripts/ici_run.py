@@ -84,7 +84,7 @@ def main(config_file):
         logging.info("Database loaded (%i records)", len(db_iter))
 
         local_sim_func_args = config.sim_func_args.copy()
-        alpha_plot = None
+        alpha_plot = ''
 
         if local_sim_func_args.get("correction_function", None) is None:
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
@@ -108,7 +108,7 @@ def main(config_file):
             # Move the logging file into the outFolder
             shutil.move(logfile, outfolder)
             shutil.move(alpha_plot, outfolder)
-        except IOError as msg:
+        except BaseException as msg:
             logging.critical(msg)
 
         # Save clusters in a copy of the original database with a new column

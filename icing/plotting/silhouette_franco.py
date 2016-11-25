@@ -696,9 +696,10 @@ def plot_average_silhouette_ap(
     fig.suptitle("Average silhouette for each number of clusters")
 
     # dampings = np.linspace(.5, 1, n+1)[:-1]
-    from sklearn.metrics.pairwise import pairwise_distances
-    S = -pairwise_distances(X, metric='precomputed', squared=True)
-    preferences = np.linspace(np.min(S), np.median(S), n)
+    # from sklearn.metrics.pairwise import pairwise_distances
+    # S = -pairwise_distances(X, metric='precomputed', squared=True)
+    preferences = np.append(np.linspace(np.min(A), np.median(A), n - 1),
+                            np.median(A))
     y = multi_cut_ap(preferences, A, X, n_jobs=n_jobs,
                      sample_names=sample_names)
     ax.plot(preferences, y, Tango.next(), marker='o', linestyle='-', label='')
