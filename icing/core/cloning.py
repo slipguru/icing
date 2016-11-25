@@ -217,6 +217,8 @@ def _similar_elements_sequential(reverse_index, records, n,
 def _similar_elements_job(
         reverse_index, records, n, idx, nprocs, data, rows, cols, sim_func):
     key_list = list(reverse_index)
+    data_local = []
+    row_local, col_local = [], []
     m = len(key_list)
     for ii in range(idx, m, nprocs):
         v = reverse_index[key_list[ii]]
@@ -230,10 +232,14 @@ def _similar_elements_job(
                     j = length - j
                 i = v[i]
                 j = v[j]
-                c_idx = n*(n-1)/2 - (n - i) * (n - i - 1) / 2 + j - i - 1
-                rows[c_idx] = int(i)
-                cols[c_idx] = int(j)
-                data[c_idx] = 1  # sim_func(records[i], records[j])
+                # c_idx = n*(n-1)/2 - (n - i) * (n - i - 1) / 2 + j - i - 1
+                # rows[c_idx] = int(i)
+                # cols[c_idx] = int(j)
+                # data[c_idx] = 1  # sim_func(records[i], records[j])
+                row_local.append(i)
+                col_local.append(j)
+                data_local.append(1)
+    return data_local, row_local, col_local
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
@@ -272,19 +278,28 @@ def similar_elements(reverse_index, records, n, similarity_function,
     cols = mp.Array('I', [0] * c_length)
     procs = []
     print("start parallel")
-    try:
-        for idx in range(nprocs):
-            p = mp.Process(target=_similar_elements_job,
-                           args=(reverse_index, records, n, idx, nprocs,
-                                 data, rows, cols, similarity_function))
-            p.start()
-            procs.append(p)
-        for p in procs:
-            p.join()
-    except (KeyboardInterrupt, SystemExit):
-        extra.term_processes(procs, 'Exit signal received\n')
-    except BaseException as msg:
-        extra.term_processes(procs, 'ERROR: %s\n' % msg)
+    # try:
+    #     for idx in range(nprocs):
+    #         p = mp.Process(target=_similar_elements_job,
+    #                        args=(reverse_index, records, n, idx, nprocs,
+    #                              data, rows, cols, similarity_function))
+    #         p.start()
+    #         procs.append(p)
+    #     for p in procs:
+    #         p.join()
+    # except (KeyboardInterrupt, SystemExit):
+    #     extra.term_processes(procs, 'Exit signal received\n')
+    # except BaseException as msg:
+    #     extra.term_processes(procs, 'ERROR: %s\n' % msg)
+    import joblib as jl
+    data, rows, cols = zip(*jl.Parallel(n_jobs=-1)
+                           (jl.delayed(_similar_elements_job)
+                            (reverse_index, records, n, idx, nprocs,
+                             data, rows, cols, similarity_function)
+                            for idx in range(nprocs)))
+    data = extra.flatten(list(data))
+    rows = extra.flatten(list(rows))
+    cols = extra.flatten(list(cols))
 
     data = np.array(data, dtype=int)
     idx = data > 0
