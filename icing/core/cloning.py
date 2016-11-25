@@ -265,9 +265,10 @@ def similar_elements(reverse_index, records, n, similarity_function,
                                             similarity_function)
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
     c_length = int(n * (n - 1) / 2)
-    data = mp.Array('d', [0] * c_length)
-    rows = mp.Array('d', [0] * c_length)
-    cols = mp.Array('d', [0] * c_length)
+
+    data = mp.Array('c', [0] * c_length)
+    rows = mp.Array('I', [0] * c_length)
+    cols = mp.Array('I', [0] * c_length)
     procs = []
     try:
         for idx in range(nprocs):
@@ -283,7 +284,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     except BaseException as msg:
         extra.term_processes(procs, 'ERROR: %s\n' % msg)
 
-    data = np.array(data, dtype=float)
+    data = np.array(data, dtype=int)
     idx = data > 0
     data = data[idx]
     rows = np.array(rows, dtype=int)[idx]

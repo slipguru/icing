@@ -7,15 +7,13 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 """
 from __future__ import print_function, division
 
-import logging
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
 import scipy
-import seaborn as sns; sns.set_context('notebook')
+import seaborn as sns
 import sys; sys.setrecursionlimit(10000)
 
 from scipy.cluster.hierarchy import linkage, fcluster
@@ -26,6 +24,7 @@ from sklearn.metrics import silhouette_samples  # , silhouette_score
 from icing.externals.spectral import SpectralClustering
 from icing.externals import Tango
 from icing.utils import extra
+from icing.plotting.silhouette import best_intersection, save_results_clusters
 
 # Prior sets to calculate how good are the clusters
 # df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
@@ -45,26 +44,6 @@ from icing.utils import extra
 # sset_L = set([x for x in list(df.columns) if x.endswith('_L')])
 # set_light_chain = sorted([sset_K, sset_L], key=lambda x: len(x), reverse=True)
 
-
-def best_intersection(id_list, cluster_dict):
-    """Compute jaccard index between id_list and each list in dict, take the best."""
-    set1 = set(id_list)
-    best_score = (0., 0., 0.)  # res, numerator, denominator
-    best_set = ()
-    best_key = -1
-    for k in cluster_dict:
-        set2 = set(cluster_dict[k])
-        numerator = len(set1 & set2)
-        denominator = len(set1 | set2)
-        score = numerator / denominator
-        if score > best_score[0] or best_key == -1:
-            best_score = (score, numerator, denominator)
-            best_set = set2.copy()
-            best_key = k
-    # print(set1, "and best", best_set, best_score)
-    if best_key != -1:
-        del cluster_dict[best_key]
-    return best_score, cluster_dict, best_set
 
 
 def calc_stability(clusts, other_clusts):
@@ -126,13 +105,8 @@ def calc_stability(clusts, other_clusts):
     print("\nstability: {:.3f}, {} clusts (light), {} nclusts -- "
           "[{:.2f}%] k[{:.2f}] l[{:.2f}] m[{:.2f}] u[{:.2f}]"
           .format(stability, len(other_clusts), nclusts,
-                  stability * 100., np.mean(km), np.mean(lm), np.mean(mm), np.mean(um)))
-
-
-def save_results_clusters(filename, sample_names, cluster_labels):
-    with open(filename, 'w') as f:
-        for a, b in zip(sample_names, cluster_labels):
-            f.write("{}, {}\n".format(a, b))
+                  stability * 100., np.mean(km), np.mean(lm),
+                  np.mean(mm), np.mean(um)))
 
 
 def single_silhouette_dendrogram(dist_matrix, Z, threshold, mode='clusters',
@@ -559,7 +533,7 @@ def multi_cut_ap(preferences, affinity_matrix, dist_matrix, n_jobs=-1,
                     silhouette_list = silhouette_samples(dist_matrix, ap.labels_,
                                                      metric="precomputed")
                     queue_y[i] = np.mean(silhouette_list)
-                except:
+                except BaseException:
                     print(dist_matrix.shape, ap.labels_.shape)
 
     n = len(preferences)
