@@ -292,7 +292,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     # except BaseException as msg:
     #     extra.term_processes(procs, 'ERROR: %s\n' % msg)
     import joblib as jl
-    data, rows, cols = zip(*jl.Parallel(n_jobs=-1)
+    data, rows, cols = zip(*jl.Parallel(n_jobs=mp.cpu_count())
                            (jl.delayed(_similar_elements_job)
                             (reverse_index, records, n, idx, nprocs,
                              None, None, None, similarity_function)
