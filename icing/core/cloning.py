@@ -266,10 +266,12 @@ def similar_elements(reverse_index, records, n, similarity_function,
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
     c_length = int(n * (n - 1) / 2)
 
+    print("start sim parallel")
     data = mp.Array('c', [0] * c_length)
     rows = mp.Array('I', [0] * c_length)
     cols = mp.Array('I', [0] * c_length)
     procs = []
+    print("start parallel")
     try:
         for idx in range(nprocs):
             p = mp.Process(target=_similar_elements_job,
