@@ -83,20 +83,21 @@ def main(config_file):
                                   max_records=config.max_records))
         logging.info("Database loaded (%i records)", len(db_iter))
 
-        if config.sim_func_args.pop("correction_function", None) is None:
+        local_sim_func_args = config.sim_func_args.copy()
+        if local_sim_func_args.get("correction_function", None) is None:
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
                          record_quantity * 100)
-            (config.sim_func_args['correction_function'], config.threshold,
+            (local_sim_func_args['correction_function'], config.threshold,
              alpha_plot) = generate_correction_function(
                  db_file, quantity=record_quantity,
-                 sim_func_args=config.sim_func_args.copy(),
+                 sim_func_args=local_sim_func_args.copy(),
                  order=config.learning_function_order, root=root)
 
         logging.info("Start define_clones function ...")
         outfolder, clone_dict = define_clones(
             db_iter, exp_tag=filename, root=root,
-            sim_func_args=config.sim_func_args,
+            sim_func_args=local_sim_func_args,
             threshold=config.threshold, db_file=db_file)
 
         try:
@@ -112,7 +113,7 @@ def main(config_file):
         result_db = os.path.join(
             outfolder, 'db_file_clusters.' + db_file.split(".")[-1])
         io.write_clusters_db(db_file, result_db, clone_dict, config.dialect)
-        config.sim_func_args["correction_function"] = None  # bugfix
+        # config.sim_func_args["correction_function"] = None  # bugfix
         logging.info("Clusters correctly created and written on file. "
                      "Now run ici_analysis.py on the results folder.")
     logging.info("Run completed in %s",
