@@ -295,7 +295,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     data, rows, cols = zip(*jl.Parallel(n_jobs=-1)
                            (jl.delayed(_similar_elements_job)
                             (reverse_index, records, n, idx, nprocs,
-                             data, rows, cols, similarity_function)
+                             None, None, None, similarity_function)
                             for idx in range(nprocs)))
     data = extra.flatten(list(data))
     rows = extra.flatten(list(rows))
