@@ -217,8 +217,8 @@ def _similar_elements_sequential(reverse_index, records, n,
 def _similar_elements_job(
         reverse_index, records, n, idx, nprocs, data, rows, cols, sim_func):
     key_list = list(reverse_index)
-    data_local = []
-    row_local, col_local = [], []
+    data_local = np.empty(0, dtype=bool)
+    row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
     m = len(key_list)
     for ii in range(idx, m, nprocs):
         v = reverse_index[key_list[ii]]
@@ -236,9 +236,9 @@ def _similar_elements_job(
                 # rows[c_idx] = int(i)
                 # cols[c_idx] = int(j)
                 # data[c_idx] = 1  # sim_func(records[i], records[j])
-                row_local.append(i)
-                col_local.append(j)
-                data_local.append(1)
+                row_local = np.append(row_local, i)
+                col_local = np.append(col_local, j)
+                data_local = np.append(data_local, True)
     return data_local, row_local, col_local
 
 
@@ -301,8 +301,8 @@ def similar_elements(reverse_index, records, n, similarity_function,
     rows = extra.flatten(list(rows))
     cols = extra.flatten(list(cols))
 
-    data = np.array(data, dtype=int)
-    idx = data > 0
+    data = np.array(data, dtype=bool)
+    idx = data
     data = data[idx]
     rows = np.array(rows, dtype=int)[idx]
     cols = np.array(cols, dtype=int)[idx]
