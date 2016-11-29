@@ -267,7 +267,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
     queue = mp.Queue()
     job = partial(
-        _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs
+        _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs,
         queue=queue)
     pool = mp.Pool(processes=nprocs)
     pool.map(job, range(nprocs))
