@@ -321,7 +321,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     g1 = MyIterator(gen)
     while True:
         # pool.map(job, range(nprocs))
-        pool.map(job, islice(g1, 5000))
+        pool.map(job, islice(g1, 1000))
         if queue.empty() and g1.ended():
             break
         while not queue.empty():
