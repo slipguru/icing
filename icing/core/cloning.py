@@ -237,6 +237,29 @@ def _similar_elements_sequential(values):
 #             # col_local = np.hstack((col_local, cols))
 #             queue.put((rows, cols))
 
+class MyIterator(object):
+    def __init__(self, iterable):
+        self._iterable = iter(iterable)
+        self._exhausted = False
+        self._cache_next_item()
+    def _cache_next_item(self):
+        try:
+            self._next_item = next(self._iterable)
+        except StopIteration:
+            self._exhausted = True
+    def __iter__(self):
+        return self
+    def next(self):
+        if self._exhausted:
+            raise StopIteration
+        next_item = self._next_item
+        self._cache_next_item()
+        return next_item
+    def __nonzero__(self):
+        return not self._exhausted
+    def ended(self):
+        return self._exhausted
+
 def _similar_elements_job(values, queue, nprocs):
     rows, cols = _similar_elements_sequential(values)
     queue.put((rows, cols))
@@ -278,33 +301,21 @@ def similar_elements(reverse_index, records, n, similarity_function,
     cols = np.empty(0, dtype=int)
     gen = (v for v in reverse_index.itervalues())
     from itertools import islice
-    class MyIterator(object):
-        def __init__(self, iterable):
-            self._iterable = iter(iterable)
-            self._exhausted = False
-            self._cache_next_item()
-        def _cache_next_item(self):
-            try:
-                self._next_item = next(self._iterable)
-            except StopIteration:
-                self._exhausted = True
-        def __iter__(self):
-            return self
-        def next(self):
-            if self._exhausted:
-                raise StopIteration
-            next_item = self._next_item
-            self._cache_next_item()
-            return next_item
-        def __nonzero__(self):
-            return not self._exhausted
-        def ended(self):
-            return self._exhausted
 
     g1 = MyIterator(gen)
+    def grouper_nofill(n, iterable):
+        '''list(grouper_nofill(3, 'ABCDEFG')) --> [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
+        '''
+        it=iter(iterable)
+        def take():
+            while 1: yield list(islice(it,n))
+        return iter(take().next,[])
+
     while True:
         # pool.map(job, range(nprocs))
-        pool.map(job, (islice(g1, 1000) for x in range(nprocs)))
+        pool.map(job, grouper_nofill(1000, g1))
+
+        # pool.map(job, (islice(g1, 1000) for _ in range(nprocs)))
         if queue.empty() and g1.ended():
             break
         while not queue.empty():
