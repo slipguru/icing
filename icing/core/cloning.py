@@ -265,6 +265,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
         return _similar_elements_sequential(reverse_index, records, n,
                                             similarity_function)[1:]
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
+    manager = mp.Manager()
     queue = mp.Queue()
     job = partial(
         _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs,
