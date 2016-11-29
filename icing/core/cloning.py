@@ -211,7 +211,7 @@ def _similar_elements_sequential(reverse_index, records, n,
     return data, rows, cols
 
 
-def _similar_elements_job(idx, reverse_index, nprocs):
+def _similar_elements_job(idx, reverse_index, nprocs, queue):
     key_list = list(reverse_index)
     row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
     m = len(key_list)
@@ -234,7 +234,7 @@ def _similar_elements_job(idx, reverse_index, nprocs):
                 cols[k] = j
             row_local = np.hstack((row_local, rows))
             col_local = np.hstack((col_local, cols))
-    return row_local, col_local
+    queue.put(row_local, col_local)
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
@@ -265,14 +265,23 @@ def similar_elements(reverse_index, records, n, similarity_function,
         return _similar_elements_sequential(reverse_index, records, n,
                                             similarity_function)[1:]
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
+    queue = mp.Queue()
     job = partial(
-        _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs)
+        _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs
+        queue=queue)
     pool = mp.Pool(processes=nprocs)
-    rows, cols = zip(*pool.map(job, range(nprocs)))
-    rows = extra.flatten(list(rows))
-    cols = extra.flatten(list(cols))
-    return np.array(rows, dtype=int), np.array(cols, dtype=int)
-
+    pool.map(job, range(nprocs))
+    # get from queue
+    rows = np.empty(0, dtype=int)
+    cols = np.empty(0, dtype=int)
+    for r, c in queue:
+        rows = np.hstack((rows, r))
+        cols = np.hstack((cols, c))
+    # rows = extra.flatten(list(rows))
+    # cols = extra.flatten(list(cols))
+    # return np.array(rows, dtype=int), np.array(cols, dtype=int)
+    print(rows, cols)
+    return rows, cols
 
 def indicator_to_similarity(rows, cols, records, similarity_function):
     """Given the position on a sparse matrix, compute the similarity.
