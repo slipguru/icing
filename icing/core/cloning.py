@@ -211,30 +211,51 @@ def _similar_elements_sequential(reverse_index, records, n,
     return data, rows, cols
 
 
-def _similar_elements_job(idx, queue, reverse_index, nprocs):
-    key_list = list(reverse_index)
-    row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
-    m = len(key_list)
-    for ii in range(idx, m, nprocs):
-        v = reverse_index[key_list[ii]]
-        length = len(v)
-        if length > 1:
-            combinations = int(length * (length - 1) / 2.)
-            rows = np.empty(combinations, dtype=int)
-            cols = np.empty(combinations, dtype=int)
-            for k in range(combinations):
-                j = k % (length - 1) + 1
-                i = int(k / (length - 1))
-                if i >= j:
-                    i = length - i - 1
-                    j = length - j
-                i = v[i]
-                j = v[j]
-                rows[k] = i
-                cols[k] = j
-            # row_local = np.hstack((row_local, rows))
-            # col_local = np.hstack((col_local, cols))
-            queue.put((rows, cols))
+# def _similar_elements_job(idx, queue, reverse_index, nprocs):
+#     key_list = list(reverse_index)
+#     row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
+#     m = len(key_list)
+#     for ii in range(idx, m, nprocs):
+#         v = reverse_index[key_list[ii]]
+#         length = len(v)
+#         if length > 1:
+#             combinations = int(length * (length - 1) / 2.)
+#             rows = np.empty(combinations, dtype=int)
+#             cols = np.empty(combinations, dtype=int)
+#             for k in range(combinations):
+#                 j = k % (length - 1) + 1
+#                 i = int(k / (length - 1))
+#                 if i >= j:
+#                     i = length - i - 1
+#                     j = length - j
+#                 i = v[i]
+#                 j = v[j]
+#                 rows[k] = i
+#                 cols[k] = j
+#             # row_local = np.hstack((row_local, rows))
+#             # col_local = np.hstack((col_local, cols))
+#             queue.put((rows, cols))
+
+def _similar_elements_job(value, queue, nprocs):
+    v = value
+    length = len(v)
+    if length > 1:
+        combinations = int(length * (length - 1) / 2.)
+        rows = np.empty(combinations, dtype=int)
+        cols = np.empty(combinations, dtype=int)
+        for k in range(combinations):
+            j = k % (length - 1) + 1
+            i = int(k / (length - 1))
+            if i >= j:
+                i = length - i - 1
+                j = length - j
+            i = v[i]
+            j = v[j]
+            rows[k] = i
+            cols[k] = j
+        # row_local = np.hstack((row_local, rows))
+        # col_local = np.hstack((col_local, cols))
+        queue.put((rows, cols))
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
@@ -268,16 +289,47 @@ def similar_elements(reverse_index, records, n, similarity_function,
     manager = mp.Manager()
     queue = manager.Queue()
     job = partial(
-        _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs,
-        queue=queue)
+        _similar_elements_job, nprocs=nprocs, queue=queue)
     pool = mp.Pool(processes=nprocs)
-    pool.map(job, range(nprocs))
     rows = np.empty(0, dtype=int)
     cols = np.empty(0, dtype=int)
-    while not queue.empty():
-        r, c = queue.get()
-        rows = np.hstack((rows, r))
-        cols = np.hstack((cols, c))
+    gen = (v for v in reverse_index.itervalues())
+    from itertools import islice
+    class MyIterator(object):
+        def __init__(self, iterable):
+            self._iterable = iter(iterable)
+            self._exhausted = False
+            self._cache_next_item()
+        def _cache_next_item(self):
+            try:
+                self._next_item = next(self._iterable)
+            except StopIteration:
+                self._exhausted = True
+        def __iter__(self):
+            return self
+        def next(self):
+            if self._exhausted:
+                raise StopIteration
+            next_item = self._next_item
+            self._cache_next_item()
+            return next_item
+        def __nonzero__(self):
+            return not self._exhausted
+        def ended(self):
+            return self._exhausted
+
+    g1 = MyIterator(gen)
+    while True:
+        # pool.map(job, range(nprocs))
+        pool.map(job, islice(g1, 5000))
+        if queue.empty() and g1.ended():
+            break
+        while not queue.empty():
+            r, c = queue.get()
+            rows = np.hstack((rows, r))
+            cols = np.hstack((cols, c))
+        if g1.ended():
+            break
     return rows, cols
 
 def indicator_to_similarity(rows, cols, records, similarity_function):
