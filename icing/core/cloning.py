@@ -313,7 +313,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
 
     while True:
         # pool.map(job, range(nprocs))
-        pool.map(job, grouper_nofill(1000, g1))
+        pool.imap(job, grouper_nofill(1000, g1))
 
         # pool.map(job, (islice(g1, 1000) for _ in range(nprocs)))
         if queue.empty() and g1.ended():
