@@ -207,16 +207,12 @@ def _similar_elements_sequential(reverse_index, records, n,
                 j = v[j]
                 indicator_matrix[i, j] = similarity_function(
                     records[i], records[j])
-                # If the distance function is not symmetric,
-                # then turn the following on:
-                # indicator_matrix[v[j][0], v[i][0]] = True
     rows, cols, data = map(list, scipy.sparse.find(indicator_matrix))
     return data, rows, cols
 
 
-def _similar_elements_job(reverse_index, idx, nprocs):
+def _similar_elements_job(idx, reverse_index, nprocs):
     key_list = list(reverse_index)
-    # data_local = np.empty(0, dtype=bool)
     row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
     m = len(key_list)
     for ii in range(idx, m, nprocs):
@@ -224,7 +220,6 @@ def _similar_elements_job(reverse_index, idx, nprocs):
         length = len(v)
         if length > 1:
             combinations = int(length * (length - 1) / 2.)
-            # data = np.empty(combinations, dtype=bool)
             rows = np.empty(combinations, dtype=int)
             cols = np.empty(combinations, dtype=int)
             for k in range(combinations):
@@ -235,17 +230,10 @@ def _similar_elements_job(reverse_index, idx, nprocs):
                     j = length - j
                 i = v[i]
                 j = v[j]
-                # c_idx = n*(n-1)/2 - (n - i) * (n - i - 1) / 2 + j - i - 1
-                # rows[c_idx] = int(i)
-                # cols[c_idx] = int(j)
-                # data[c_idx] = 1  # sim_func(records[i], records[j])
                 rows[k] = i
                 cols[k] = j
-                # data[k] = True
             row_local = np.hstack((row_local, rows))
             col_local = np.hstack((col_local, cols))
-            # data_local = np.hstack((data_local, data))
-    # return data_local, row_local, col_local
     return row_local, col_local
 
 
@@ -277,40 +265,12 @@ def similar_elements(reverse_index, records, n, similarity_function,
         return _similar_elements_sequential(reverse_index, records, n,
                                             similarity_function)[1:]
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
-    # c_length = int(n * (n - 1) / 2)
-
-    # data = mp.Array('c', [0] * c_length)
-    # rows = mp.Array('I', [0] * c_length)
-    # cols = mp.Array('I', [0] * c_length)
-    # procs = []
-    # try:
-    #     for idx in range(nprocs):
-    #         p = mp.Process(target=_similar_elements_job,
-    #                        args=(reverse_index, records, n, idx, nprocs,
-    #                              data, rows, cols, similarity_function))
-    #         p.start()
-    #         procs.append(p)
-    #     for p in procs:
-    #         p.join()
-    # except (KeyboardInterrupt, SystemExit):
-    #     extra.term_processes(procs, 'Exit signal received\n')
-    # except BaseException as msg:
-    #     extra.term_processes(procs, 'ERROR: %s\n' % msg)
-    import joblib as jl
-    rows, cols = zip(*jl.Parallel(n_jobs=mp.cpu_count())
-                     (jl.delayed(_similar_elements_job)
-                      (reverse_index, idx, nprocs)
-                      for idx in range(nprocs)))
-    # data = extra.flatten(list(data))
-    rows = extra.flatten(rows)
-    cols = extra.flatten(cols)
-
-    # data = np.array(data, dtype=bool)
-    # idx = data
-    # data = data[idx]
-    # rows = np.array(rows, dtype=int)[idx]
-    # cols = np.array(cols, dtype=int)[idx]
-    # return data, rows, cols
+    job = partial(
+        _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs)
+    pool = mp.Pool(processes=nprocs)
+    rows, cols = zip(*pool.map(job, range(nprocs)))
+    rows = extra.flatten(list(rows))
+    cols = extra.flatten(list(cols))
     return np.array(rows, dtype=int), np.array(cols, dtype=int)
 
 
@@ -406,7 +366,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     similarity_function = partial(sim_function, **sim_func_args)
 
     logging.info("Start similar_elements function ...")
-    _, rows, cols = similar_elements(dd, igs, n, similarity_function)
+    rows, cols = similar_elements(dd, igs, n, similarity_function)
 
     logging.info("Start parallel_sim_matrix function ...")
     data = indicator_to_similarity(rows, cols, igs, similarity_function)
