@@ -214,17 +214,20 @@ def _similar_elements_sequential(reverse_index, records, n,
     return data, rows, cols
 
 
-def _similar_elements_job(
-        reverse_index, records, n, idx, nprocs, data, rows, cols, sim_func):
+def _similar_elements_job(reverse_index, idx, nprocs):
     key_list = list(reverse_index)
-    data_local = np.empty(0, dtype=bool)
+    # data_local = np.empty(0, dtype=bool)
     row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
     m = len(key_list)
     for ii in range(idx, m, nprocs):
         v = reverse_index[key_list[ii]]
         length = len(v)
         if length > 1:
-            for k in range(int(length * (length - 1) / 2)):
+            combinations = int(length * (length - 1) / 2.)
+            # data = np.empty(combinations, dtype=bool)
+            rows = np.empty(combinations, dtype=int)
+            cols = np.empty(combinations, dtype=int)
+            for k in range(combinations):
                 j = k % (length - 1) + 1
                 i = int(k / (length - 1))
                 if i >= j:
@@ -236,10 +239,14 @@ def _similar_elements_job(
                 # rows[c_idx] = int(i)
                 # cols[c_idx] = int(j)
                 # data[c_idx] = 1  # sim_func(records[i], records[j])
-                row_local = np.append(row_local, i)
-                col_local = np.append(col_local, j)
-                data_local = np.append(data_local, True)
-    return data_local, row_local, col_local
+                rows[k] = i
+                cols[k] = j
+                # data[k] = True
+            row_local = np.hstack((row_local, rows))
+            col_local = np.hstack((col_local, cols))
+            # data_local = np.hstack((data_local, data))
+    # return data_local, row_local, col_local
+    return row_local, col_local
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
@@ -270,14 +277,12 @@ def similar_elements(reverse_index, records, n, similarity_function,
         return _similar_elements_sequential(reverse_index, records, n,
                                             similarity_function)
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
-    c_length = int(n * (n - 1) / 2)
+    # c_length = int(n * (n - 1) / 2)
 
-    print("start sim parallel")
     # data = mp.Array('c', [0] * c_length)
     # rows = mp.Array('I', [0] * c_length)
     # cols = mp.Array('I', [0] * c_length)
     # procs = []
-    print("start parallel")
     # try:
     #     for idx in range(nprocs):
     #         p = mp.Process(target=_similar_elements_job,
@@ -292,21 +297,21 @@ def similar_elements(reverse_index, records, n, similarity_function,
     # except BaseException as msg:
     #     extra.term_processes(procs, 'ERROR: %s\n' % msg)
     import joblib as jl
-    data, rows, cols = zip(*jl.Parallel(n_jobs=mp.cpu_count())
-                           (jl.delayed(_similar_elements_job)
-                            (reverse_index, None, n, idx, nprocs,
-                             None, None, None, None)
-                            for idx in range(nprocs)))
-    data = extra.flatten(list(data))
+    rows, cols = zip(*jl.Parallel(n_jobs=mp.cpu_count())
+                     (jl.delayed(_similar_elements_job)
+                      (reverse_index, idx, nprocs)
+                      for idx in range(nprocs)))
+    # data = extra.flatten(list(data))
     rows = extra.flatten(list(rows))
     cols = extra.flatten(list(cols))
 
-    data = np.array(data, dtype=bool)
-    idx = data
-    data = data[idx]
-    rows = np.array(rows, dtype=int)[idx]
-    cols = np.array(cols, dtype=int)[idx]
-    return data, rows, cols
+    # data = np.array(data, dtype=bool)
+    # idx = data
+    # data = data[idx]
+    # rows = np.array(rows, dtype=int)[idx]
+    # cols = np.array(cols, dtype=int)[idx]
+    # return data, rows, cols
+    return np.array(rows, dtype=int), np.array(cols, dtype=int)
 
 
 def indicator_to_similarity(rows, cols, records, similarity_function):

@@ -74,7 +74,7 @@ def get_max_mut(db_file, dialect='excel-tab'):
         sys.exit('ERROR:  File %s is invalid' % db_file)
 
 
-def get_num_records(db_file, dialect='excel-tab'):
+def get_num_records(db_file, filt=None, dialect='excel-tab'):
     """Get the number of records of a database file.
 
     Parameters
@@ -90,16 +90,10 @@ def get_num_records(db_file, dialect='excel-tab'):
         The number of records.
     """
     # Count records and check file
-    try:
-        with open(db_file) as f:
-            for i, __ in enumerate(csv.reader(f, dialect=dialect)):
-                pass
-            db_count = i
-    except IOError:
-        sys.exit('ERROR:  File %s cannot be read' % db_file)
-    except Exception:
-        sys.exit('ERROR:  File %s is invalid' % db_file)
-    return db_count
+    db = read_db(db_file, filt=filt, ig=True, dialect=dialect)
+    for i, _ in enumerate(db):
+        pass
+    return i + 1
 
 
 def write_clusters_db(db_file, result_db, clones, dialect='excel-tab'):
