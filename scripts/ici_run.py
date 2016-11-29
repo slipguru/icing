@@ -84,8 +84,7 @@ def main(config_file):
         logging.info("Database loaded (%i records)", len(db_iter))
 
         local_sim_func_args = config.sim_func_args.copy()
-        alpha_plot = ''
-
+        alpha_plot = None
         if local_sim_func_args.get("correction_function", None) is None:
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
@@ -107,7 +106,8 @@ def main(config_file):
             shutil.copy(config_file, os.path.join(outfolder, 'config.py'))
             # Move the logging file into the outFolder
             shutil.move(logfile, outfolder)
-            shutil.move(alpha_plot, outfolder)
+            if alpha_plot is not None:
+                shutil.move(alpha_plot, outfolder)
         except BaseException as msg:
             logging.critical(msg)
 
