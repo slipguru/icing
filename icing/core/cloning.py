@@ -232,9 +232,9 @@ def _similar_elements_job(idx, queue, reverse_index, nprocs):
                 j = v[j]
                 rows[k] = i
                 cols[k] = j
-            row_local = np.hstack((row_local, rows))
-            col_local = np.hstack((col_local, cols))
-    queue.put((row_local, col_local))
+            # row_local = np.hstack((row_local, rows))
+            # col_local = np.hstack((col_local, cols))
+            queue.put((rows, cols))
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
