@@ -211,7 +211,7 @@ def _similar_elements_sequential(reverse_index, records, n,
     return data, rows, cols
 
 
-def _similar_elements_job(idx, reverse_index, nprocs, queue):
+def _similar_elements_job(idx, queue, reverse_index, nprocs):
     key_list = list(reverse_index)
     row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
     m = len(key_list)
@@ -234,7 +234,7 @@ def _similar_elements_job(idx, reverse_index, nprocs, queue):
                 cols[k] = j
             row_local = np.hstack((row_local, rows))
             col_local = np.hstack((col_local, cols))
-    queue.put(row_local, col_local)
+    queue.put((row_local, col_local))
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
@@ -266,22 +266,18 @@ def similar_elements(reverse_index, records, n, similarity_function,
                                             similarity_function)[1:]
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
     manager = mp.Manager()
-    queue = mp.Queue()
+    queue = manager.Queue()
     job = partial(
         _similar_elements_job, reverse_index=reverse_index, nprocs=nprocs,
         queue=queue)
     pool = mp.Pool(processes=nprocs)
     pool.map(job, range(nprocs))
-    # get from queue
     rows = np.empty(0, dtype=int)
     cols = np.empty(0, dtype=int)
-    for r, c in queue:
+    while not queue.empty():
+        r, c = queue.get()
         rows = np.hstack((rows, r))
         cols = np.hstack((cols, c))
-    # rows = extra.flatten(list(rows))
-    # cols = extra.flatten(list(cols))
-    # return np.array(rows, dtype=int), np.array(cols, dtype=int)
-    print(rows, cols)
     return rows, cols
 
 def indicator_to_similarity(rows, cols, records, similarity_function):
