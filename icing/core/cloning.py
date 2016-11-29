@@ -187,17 +187,15 @@ def inverse_index_parallel(records):
     return reverse_index
 
 
-def _similar_elements_sequential(reverse_index, records, n,
-                                 similarity_function):
-    # To avoid memory problems, use a sparse matrix.
-    # lil_matrix is good to update
-    indicator_matrix = scipy.sparse.lil_matrix((n, n), dtype=float)
-    #    dtype=np.dtype('bool'))
-
-    for k, v in reverse_index.iteritems():
+def _similar_elements_sequential(values):
+    row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
+    for v in values:
         length = len(v)
         if length > 1:
-            for k in range(int(length * (length - 1) / 2)):
+            combinations = int(length * (length - 1) / 2.)
+            rows = np.empty(combinations, dtype=int)
+            cols = np.empty(combinations, dtype=int)
+            for k in range(combinations):
                 j = k % (length - 1) + 1
                 i = int(k / (length - 1))
                 if i >= j:
@@ -205,10 +203,13 @@ def _similar_elements_sequential(reverse_index, records, n,
                     j = length - j
                 i = v[i]
                 j = v[j]
-                indicator_matrix[i, j] = similarity_function(
-                    records[i], records[j])
-    rows, cols, data = map(list, scipy.sparse.find(indicator_matrix))
-    return data, rows, cols
+                # indicator_matrix[i, j] = similarity_function(
+                #     records[i], records[j])
+                rows[k] = i
+                cols[k] = j
+            row_local = np.hstack((row_local, rows))
+            col_local = np.hstack((col_local, cols))
+    return row_local, col_local
 
 
 # def _similar_elements_job(idx, queue, reverse_index, nprocs):
@@ -259,7 +260,7 @@ def _similar_elements_job(value, queue, nprocs):
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
-                     nprocs=-1):
+                     nprocs=1):
     """Return the sparse similarity matrix in form of data, rows and cols.
 
     Parameters
@@ -283,8 +284,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
         Set of pairs of elements on which further calculate the similarity.
     """
     if nprocs == 1:
-        return _similar_elements_sequential(reverse_index, records, n,
-                                            similarity_function)[1:]
+        return _similar_elements_sequential(reverse_index.itervalues())
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
     manager = mp.Manager()
     queue = manager.Queue()
