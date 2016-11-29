@@ -275,7 +275,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     """
     if nprocs == 1:
         return _similar_elements_sequential(reverse_index, records, n,
-                                            similarity_function)
+                                            similarity_function)[1:]
     nprocs = min(mp.cpu_count(), n) if nprocs == -1 else nprocs
     # c_length = int(n * (n - 1) / 2)
 
@@ -302,8 +302,8 @@ def similar_elements(reverse_index, records, n, similarity_function,
                       (reverse_index, idx, nprocs)
                       for idx in range(nprocs)))
     # data = extra.flatten(list(data))
-    rows = extra.flatten(list(rows))
-    cols = extra.flatten(list(cols))
+    rows = extra.flatten(rows)
+    cols = extra.flatten(cols)
 
     # data = np.array(data, dtype=bool)
     # idx = data
