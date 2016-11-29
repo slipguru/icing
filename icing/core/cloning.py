@@ -237,30 +237,13 @@ def _similar_elements_sequential(values):
 #             # col_local = np.hstack((col_local, cols))
 #             queue.put((rows, cols))
 
-def _similar_elements_job(value, queue, nprocs):
-    v = value
-    length = len(v)
-    if length > 1:
-        combinations = int(length * (length - 1) / 2.)
-        rows = np.empty(combinations, dtype=int)
-        cols = np.empty(combinations, dtype=int)
-        for k in range(combinations):
-            j = k % (length - 1) + 1
-            i = int(k / (length - 1))
-            if i >= j:
-                i = length - i - 1
-                j = length - j
-            i = v[i]
-            j = v[j]
-            rows[k] = i
-            cols[k] = j
-        # row_local = np.hstack((row_local, rows))
-        # col_local = np.hstack((col_local, cols))
-        queue.put((rows, cols))
+def _similar_elements_job(values, queue, nprocs):
+    rows, cols = _similar_elements_sequential(values)
+    queue.put((rows, cols))
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
-                     nprocs=1):
+                     nprocs=-1):
     """Return the sparse similarity matrix in form of data, rows and cols.
 
     Parameters
@@ -321,7 +304,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     g1 = MyIterator(gen)
     while True:
         # pool.map(job, range(nprocs))
-        pool.map(job, islice(g1, 1000))
+        pool.map(job, (islice(g1, 1000) for x in range(nprocs)))
         if queue.empty() and g1.ended():
             break
         while not queue.empty():
