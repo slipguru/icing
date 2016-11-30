@@ -438,8 +438,11 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     # rows, cols = similar_elements(dd, igs, n, similarity_function)
 
     logging.info("Start parallel_sim_matrix function ...")
-    # data = indicator_to_similarity(rows, cols, igs, similarity_function)
-    data, rows, cols = sm_sparse(np.array(igs), similarity_function)
+    from icing.externals import neighbors
+    sp = neighbors.radius_neighbors_graph(np.array(igs))
+    rows, cols, _ = map(list, scipy.sparse.find(sp))
+    data = indicator_to_similarity(rows, cols, igs, similarity_function)
+    # data, rows, cols = sm_sparse(np.array(igs), similarity_function)
     #
     # data = np.array(data, dtype=float)
     # idx = data > 0

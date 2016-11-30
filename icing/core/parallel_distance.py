@@ -248,9 +248,7 @@ def sm_sparse(X, metric):
         cols = np.empty(0, dtype=int)
         for i, j in iterator:
             res = metric(X[i], X[j])
-            if i == 0 and j == 1:
-                print (res)
-            if res > 0:
+            if res > 0:  # np.random.ranf(1)[0] / 10:
                 data = np.append(data, res)
                 rows = np.append(rows, i)
                 cols = np.append(cols, j)
@@ -261,7 +259,6 @@ def sm_sparse(X, metric):
     from itertools import combinations, islice
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
-    print("using %d procs" % nprocs)
     iterator = combinations(range(X.shape[0]), 2)
     procs = []
     manager = mp.Manager()
