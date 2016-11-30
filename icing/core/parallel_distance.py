@@ -261,6 +261,7 @@ def sm_sparse(X, metric):
     from itertools import combinations, islice
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
+    print("using %d procs" % nprocs)
     iterator = combinations(range(X.shape[0]), 2)
     procs = []
     manager = mp.Manager()
