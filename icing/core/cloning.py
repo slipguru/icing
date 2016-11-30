@@ -25,6 +25,7 @@ from sklearn.utils.sparsetools import connected_components
 
 # from icing.core.distances import string_distance
 from icing.core.similarity_scores import similarity_score_tripartite as mwi
+from icing.core.parallel_distance import sm_sparse
 from icing.externals import AffinityPropagation
 from icing.kernel import sum_string_kernel
 from icing.models.model import model_matrix
@@ -264,7 +265,11 @@ class MyIterator(object):
 def _similar_elements_job(values, queue, nprocs):
     rows, cols = _similar_elements_sequential([values])
     # queue.put((rows, cols))
-    return (rows, cols)
+    d = {}
+    for i in np.unique(rows):
+        idx = rows == i
+        d[i] = cols[idx]
+    return d
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
@@ -329,9 +334,13 @@ def similar_elements(reverse_index, records, n, similarity_function,
     chunksize = 256
     for finput in grouper_nofill(chunksize, g1):
         res = pool.map_async(job, finput).get()
-        for r, c in res:
-            rows = np.hstack((rows, r))
-            cols = np.hstack((cols, c))
+        # for r, c in res:
+        #     rows = np.hstack((rows, r))
+        #     cols = np.hstack((cols, c))
+        for d in res:
+            for k, v in d.iteritems():
+                rows = np.hstack((rows, k * np.ones(v.shape[0], dtype=int)))
+                cols = np.hstack((cols, v))
     return rows, cols
 
 def indicator_to_similarity(rows, cols, records, similarity_function):
@@ -415,27 +424,28 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     sim_func_args.setdefault(
         'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
 
-    dd = inverse_index(igs)
-    if sim_func_args.setdefault('method', 'jaccard') \
-            in ('pcc', 'hypergeometric'):
-        sim_func_args['sim_score_params'] = {
-            'nV': len([x for x in dd if 'V' in x]),
-            'nJ': len([x for x in dd if 'J' in x])
-        }
+    # dd = inverse_index(igs)
+    # if sim_func_args.setdefault('method', 'jaccard') \
+    #         in ('pcc', 'hypergeometric'):
+    #     sim_func_args['sim_score_params'] = {
+    #         'nV': len([x for x in dd if 'V' in x]),
+    #         'nJ': len([x for x in dd if 'J' in x])
+    #     }
     logging.info("Similarity function parameters: %s", sim_func_args)
     similarity_function = partial(sim_function, **sim_func_args)
 
-    logging.info("Start similar_elements function ...")
-    rows, cols = similar_elements(dd, igs, n, similarity_function)
+    # logging.info("Start similar_elements function ...")
+    # rows, cols = similar_elements(dd, igs, n, similarity_function)
 
     logging.info("Start parallel_sim_matrix function ...")
-    data = indicator_to_similarity(rows, cols, igs, similarity_function)
-
-    data = np.array(data, dtype=float)
-    idx = data > 0
-    data = data[idx]
-    rows = np.array(rows, dtype=int)[idx]
-    cols = np.array(cols, dtype=int)[idx]
+    # data = indicator_to_similarity(rows, cols, igs, similarity_function)
+    data, rows, cols = sm_sparse(np.array(igs), similarity_function)
+    #
+    # data = np.array(data, dtype=float)
+    # idx = data > 0
+    # data = data[idx]
+    # rows = np.array(rows, dtype=int)[idx]
+    # cols = np.array(cols, dtype=int)[idx]
 
     # tic = time.time()
     # data, rows, cols = similar_elements(dd, igs, n, similarity_function)

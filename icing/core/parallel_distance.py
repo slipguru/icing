@@ -226,6 +226,72 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     return dist_matrix
 
 
+def sm_sparse(X, metric):
+    """Compute in a parallel way a sim matrix for a 1-d array.
+
+    Parameters
+    ----------
+    l1 : array_like
+        1-dimensional arrays. Compute the distance matrix for each couple of
+        elements of l1.
+    dist_function : function
+        Function to use for the distance computation.
+
+    Returns
+    -------
+    dist_matrix : array_like
+        Symmetric NxN distance matrix for each input_array element.
+    """
+    def _internal(X, metric, iterator, idx, return_queue):
+        data = np.empty(0, dtype=float)
+        rows = np.empty(0, dtype=int)
+        cols = np.empty(0, dtype=int)
+        for i, j in iterator:
+            res = metric(X[i], X[j])
+            if i == 0 and j == 1:
+                print (res)
+            if res > 0:
+                data = np.append(data, res)
+                rows = np.append(rows, i)
+                cols = np.append(cols, j)
+        # if return_queue.full():
+        #     print("full")
+        return_queue.put((data, rows, cols))
+
+    from itertools import combinations, islice
+    n = X.shape[0]
+    nprocs = min(mp.cpu_count(), n)
+    iterator = combinations(range(X.shape[0]), 2)
+    procs = []
+    manager = mp.Manager()
+    return_queue = manager.Queue()
+    try:
+        for idx in range(nprocs):
+            itera = list(islice(iterator, int(n * (n - 1) / 2. / nprocs) + 1))
+            p = mp.Process(
+                target=_internal,
+                args=(X, metric, itera, idx, return_queue))
+            p.start()
+            procs.append(p)
+
+        for p in procs:
+            p.join()
+    except (KeyboardInterrupt, SystemExit):
+        term_processes(procs, 'Exit signal received\n')
+    except BaseException as msg:
+        term_processes(procs, 'ERROR: %s\n' % msg)
+
+    data = np.empty(0, dtype=float)
+    rows = np.empty(0, dtype=int)
+    cols = np.empty(0, dtype=int)
+    while not return_queue.empty():
+        v = return_queue.get()
+        data = np.hstack((data, v[0]))
+        rows = np.hstack((rows, v[1]))
+        cols = np.hstack((cols, v[2]))
+    return data, rows, cols
+
+
 def dm_sparse_intra_padding(l1, dist_function, condensed=False):
     """Compute in a parallel way a distance matrix for a 1-d input array.
 
