@@ -12,8 +12,7 @@ import numpy as np
 import scipy
 import scipy.spatial
 
-from itertools import chain, ifilter
-
+from itertools import chain, ifilter, combinations, islice
 from icing.utils.extra import term_processes, progressbar
 
 
@@ -226,7 +225,7 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     return dist_matrix
 
 
-def sm_sparse(X, metric):
+def sm_sparse(X, metric, junction_length_constraint=False):
     """Compute in a parallel way a sim matrix for a 1-d array.
 
     Parameters
@@ -256,10 +255,13 @@ def sm_sparse(X, metric):
         #     print("full")
         return_queue.put((data, rows, cols))
 
-    from itertools import combinations, islice
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
     iterator = combinations(range(X.shape[0]), 2)
+    if junction_length_constraint:
+        # allows fast and lighter computation
+        iterator = ((i, j) for i, j in iterator if
+                    X[i].junction_length == X[j].junction_length)
     procs = []
     manager = mp.Manager()
     return_queue = manager.Queue()
