@@ -69,7 +69,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
     J_genes_ig1 = ig1.getJGene('set')
     J_genes_ig2 = ig2.getJGene('set')
 
-    ss = mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method,
+    ss = .5 * mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method,
              r1=v_weight, r2=j_weight, sim_score_params=sim_score_params)
     if ss > 0.:
         junc1 = extra.junction_re(ig1.junction)
@@ -85,7 +85,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         # ss *= (1 - dist)
 
         # Using string kernel
-        ss *= sum_string_kernel(
+        ss += .5 * sum_string_kernel(
             [junc1, junc2],
             verbose=False,
             normalize=1, return_float=1, **ssk_params)
