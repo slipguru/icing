@@ -34,6 +34,7 @@ from icing.utils import extra
 
 def sim_function(ig1, ig2, method='jaccard', model='ham',
                  dist_mat=None, tol=3, v_weight=1., j_weight=1.,
+                 vj_weight=.5, sk_weight=.5,
                  correction_function=(lambda _: 1), correct=True,
                  sim_score_params=None, ssk_params=None):
     """Calculate a distance between two input immunoglobulins.
@@ -69,8 +70,9 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
     J_genes_ig1 = ig1.getJGene('set')
     J_genes_ig2 = ig2.getJGene('set')
 
-    ss = .5 * mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2, method=method,
-             r1=v_weight, r2=j_weight, sim_score_params=sim_score_params)
+    ss = vj_weight * mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2,
+                         method=method, r1=v_weight, r2=j_weight,
+                         sim_score_params=sim_score_params)
     if ss > 0.:
         junc1 = extra.junction_re(ig1.junction)
         junc2 = extra.junction_re(ig2.junction)
@@ -85,7 +87,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         # ss *= (1 - dist)
 
         # Using string kernel
-        ss += .5 * sum_string_kernel(
+        ss += sk_weight * sum_string_kernel(
             [junc1, junc2],
             verbose=False,
             normalize=1, return_float=1, **ssk_params)
