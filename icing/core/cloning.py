@@ -260,9 +260,11 @@ class MyIterator(object):
     def ended(self):
         return self._exhausted
 
+
 def _similar_elements_job(values, queue, nprocs):
-    rows, cols = _similar_elements_sequential(values)
-    queue.put((rows, cols))
+    rows, cols = _similar_elements_sequential([values])
+    # queue.put((rows, cols))
+    return (rows, cols)
 
 
 def similar_elements(reverse_index, records, n, similarity_function,
@@ -300,7 +302,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
     rows = np.empty(0, dtype=int)
     cols = np.empty(0, dtype=int)
     gen = (v for v in reverse_index.itervalues())
-    from itertools import islice
+    from itertools import islice, izip
 
     g1 = MyIterator(gen)
     def grouper_nofill(n, iterable):
@@ -311,19 +313,25 @@ def similar_elements(reverse_index, records, n, similarity_function,
             while 1: yield list(islice(it,n))
         return iter(take().next,[])
 
-    while True:
-        # pool.map(job, range(nprocs))
-        pool.imap(job, grouper_nofill(1000, g1))
-
-        # pool.map(job, (islice(g1, 1000) for _ in range(nprocs)))
-        if queue.empty() and g1.ended():
-            break
-        while not queue.empty():
-            r, c = queue.get()
+    # while True:
+    #     # pool.map(job, range(nprocs))
+    #     pool.imap(job, grouper_nofill(1000, g1))
+    #
+    #     # pool.map(job, (islice(g1, 1000) for _ in range(nprocs)))
+    #     if queue.empty() and g1.ended():
+    #         break
+    #     while not queue.empty():
+    #         r, c = queue.get()
+    #         rows = np.hstack((rows, r))
+    #         cols = np.hstack((cols, c))
+    #     if g1.ended():
+    #         break
+    chunksize = 256
+    for finput in grouper_nofill(chunksize, g1):
+        res = pool.map_async(job, finput).get()
+        for r, c in res:
             rows = np.hstack((rows, r))
             cols = np.hstack((cols, c))
-        if g1.ended():
-            break
     return rows, cols
 
 def indicator_to_similarity(rows, cols, records, similarity_function):
