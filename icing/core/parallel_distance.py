@@ -225,7 +225,7 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     return dist_matrix
 
 
-def sm_sparse(X, metric, junction_length_constraint=False):
+def sm_sparse(X, metric, tol):
     """Compute in a parallel way a sim matrix for a 1-d array.
 
     Parameters
@@ -257,11 +257,10 @@ def sm_sparse(X, metric, junction_length_constraint=False):
 
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
-    iterator = combinations(range(X.shape[0]), 2)
-    if junction_length_constraint:
-        # allows fast and lighter computation
-        iterator = ((i, j) for i, j in iterator if
-                    X[i].junction_length == X[j].junction_length)
+    # allows fast and lighter computation
+    iterator = ((i, j) for i, j in combinations(range(X.shape[0]), 2) if
+                len(X[i].setV & X[j].setV) > 0 and
+                abs(X[i].junction_length - X[j].junction_length) < tol)
     procs = []
     manager = mp.Manager()
     return_queue = manager.Queue()

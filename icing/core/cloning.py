@@ -65,12 +65,7 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
     if abs(ig1.junction_length - ig2.junction_length) > tol:
         return 0.
 
-    V_genes_ig1 = ig1.getVGene('set')
-    V_genes_ig2 = ig2.getVGene('set')
-    J_genes_ig1 = ig1.getJGene('set')
-    J_genes_ig2 = ig2.getJGene('set')
-
-    ss = vj_weight * mwi(V_genes_ig1, V_genes_ig2, J_genes_ig1, J_genes_ig2,
+    ss = vj_weight * mwi(ig1.setV, ig2.setV, ig1.setJ, ig2.setJ,
                          method=method, r1=v_weight, r2=j_weight,
                          sim_score_params=sim_score_params)
     if ss > 0.:
@@ -120,16 +115,16 @@ def inverse_index(records):
     """
     r_index = dict()
     for i, ig in enumerate(records):
-        for v in ig.getVGene('set') or ():
+        for v in ig.setV or ():
             r_index.setdefault(v, []).append(i)
-        for j in ig.getJGene('set') or ():
+        for j in ig.setJ or ():
             r_index.setdefault(j, []).append(i)
 
     # r_index = defaultdict(list)
     # for i, ig in enumerate(list(records)):
-    #     for v in ig.getVGene('set'):
+    #     for v in ig.setV:
     #         r_index[v].append(i)
-    #     for j in ig.getJGene('set'):
+    #     for j in ig.setJ:
     #         r_index[j].append(i)
 
     return r_index
@@ -156,9 +151,9 @@ def inverse_index_parallel(records):
         local_dict = defaultdict(list)
         for i in range(idx, n, nprocs):
             ig = igs_arr[i]
-            for _ in ig.getVGene('set'):
+            for _ in ig.setV:
                 local_dict[_].append(i)
-            for _ in ig.getJGene('set'):
+            for _ in ig.setJ:
                 local_dict[_].append(i)
         with lock:
             queue.append(dict(local_dict))
@@ -345,6 +340,7 @@ def similar_elements(reverse_index, records, n, similarity_function,
                 cols = np.hstack((cols, v))
     return rows, cols
 
+
 def indicator_to_similarity(rows, cols, records, similarity_function):
     """Given the position on a sparse matrix, compute the similarity.
 
@@ -422,17 +418,17 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     default_model = 'ham'
     sim_func_args.setdefault('model', default_model)
     sim_func_args.setdefault('dist_mat', model_matrix(default_model))
-    sim_func_args.setdefault('tol', 3)
+    tol = sim_func_args.setdefault('tol', 3)
     sim_func_args.setdefault(
         'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
 
-    # dd = inverse_index(igs)
-    # if sim_func_args.setdefault('method', 'jaccard') \
-    #         in ('pcc', 'hypergeometric'):
-    #     sim_func_args['sim_score_params'] = {
-    #         'nV': len([x for x in dd if 'V' in x]),
-    #         'nJ': len([x for x in dd if 'J' in x])
-    #     }
+    if sim_func_args.setdefault('method', 'jaccard') \
+            in ('pcc', 'hypergeometric'):
+        dd = inverse_index(igs)
+        sim_func_args['sim_score_params'] = {
+            'nV': len([x for x in dd if 'V' in x]),
+            'nJ': len([x for x in dd if 'J' in x])
+        }
     logging.info("Similarity function parameters: %s", sim_func_args)
     similarity_function = partial(sim_function, **sim_func_args)
 
@@ -444,7 +440,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     # sp = neighbors.radius_neighbors_graph(np.array(igs))
     # rows, cols, _ = map(list, scipy.sparse.find(sp))
     # data = indicator_to_similarity(rows, cols, igs, similarity_function)
-    data, rows, cols = sm_sparse(np.array(igs), similarity_function)
+    data, rows, cols = sm_sparse(np.array(igs), similarity_function, tol)
     #
     # data = np.array(data, dtype=float)
     # idx = data > 0

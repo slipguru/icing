@@ -203,6 +203,8 @@ class IgRecord:
 
         # Add remaining elements as annotations dictionary
         self.annotations = row
+        self.setV = set(self.getVGene('set'))
+        self.setJ = set(self.getJGene('set'))
 
     # Get a field value by column name and return it as a string
     #
@@ -225,7 +227,7 @@ class IgRecord:
         # _seq_vdj = self.getField('SEQUENCE_VDJ')
         _seq_vdj = self.getField('SEQUENCE_IMGT')
         # _idx_v = int(self.getField('V_SEQ_LENGTH'))
-        return _seq_vdj[:312] # 312: V length without cdr3
+        return _seq_vdj[:312]  # 312: V length without cdr3
 
     # Get a field value converted to a Seq object by column name
     #
