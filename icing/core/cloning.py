@@ -62,7 +62,8 @@ def sim_function(ig1, ig2, method='jaccard', model='ham',
         1: ig1 and ig2 are the same.
     """
     # nmer = 5 if model == 'hs5f' else 1
-    if abs(ig1.junction_length - ig2.junction_length) > tol:
+    if abs(ig1.junction_length - ig2.junction_length) > tol or \
+            len(ig1.setV & ig2.setV) < 1:
         return 0.
 
     ss = vj_weight * mwi(ig1.setV, ig2.setV, ig1.setJ, ig2.setJ,

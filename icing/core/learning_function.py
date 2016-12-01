@@ -90,9 +90,9 @@ def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
     sim_func_args.setdefault(
         'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
 
-    dd = cloning.inverse_index(ig1 if is_intra else ig1 + ig2)
     if sim_func_args.setdefault('method', 'jaccard') \
             in ('pcc', 'hypergeometric'):
+        dd = cloning.inverse_index(ig1 if is_intra else ig1 + ig2)
         sim_func_args['sim_score_params'] = {
             'nV': len([x for x in dd if 'V' in x]),
             'nJ': len([x for x in dd if 'J' in x])
