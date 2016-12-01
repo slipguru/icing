@@ -492,6 +492,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             #     # n_clusters_ = len(set(clusters_)) - int(0 in clusters_)
 
             # AffinityPropagation
+            # ap = AffinityPropagation(affinity='precomputed')
             db = ap.fit(sm)
             clusters_ = db.labels_ + 1
 
