@@ -242,21 +242,17 @@ def sm_sparse(X, metric, tol):
         Symmetric NxN distance matrix for each input_array element.
     """
     def _internal(X, metric, iterator, idx, return_queue):
-        # print("Started proc n", idx)
-        # data = np.empty(0, dtype=float)
-        # rows = np.empty(0, dtype=int)
-        # cols = np.empty(0, dtype=int)
+        data = np.empty(0, dtype=float)
+        rows = np.empty(0, dtype=int)
+        cols = np.empty(0, dtype=int)
         for i, j in iterator:
-            # print("i, j, idx", i, j, idx)
             res = metric(X[i], X[j])
             if res > 0:  # np.random.ranf(1)[0] / 10:
-                # data = np.append(data, res)
-                # rows = np.append(rows, i)
-                # cols = np.append(cols, j)
-                return_queue.put((res, i, j), False)
-        # if return_queue.full():
-        #     print("full")
-        # return_queue.put((data, rows, cols), False)
+                data = np.append(data, res)
+                rows = np.append(rows, i)
+                cols = np.append(cols, j)
+                # return_queue.put((res, i, j), False)
+        return_queue.put((data, rows, cols), False)
         return_queue.put(None, True)
 
     n = X.shape[0]
@@ -292,12 +288,12 @@ def sm_sparse(X, metric, tol):
                 count += 1
                 continue
             # print("v", v)
-            # data = np.hstack((data, v[0]))
-            # rows = np.hstack((rows, v[1]))
-            # cols = np.hstack((cols, v[2]))
-            data = np.append(data, v[0])
-            rows = np.append(rows, v[1])
-            cols = np.append(cols, v[2])
+            data = np.hstack((data, v[0]))
+            rows = np.hstack((rows, v[1]))
+            cols = np.hstack((cols, v[2]))
+            # data = np.append(data, v[0])
+            # rows = np.append(rows, v[1])
+            # cols = np.append(cols, v[2])
 
         for p in procs:
             p.join()
