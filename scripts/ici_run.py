@@ -118,8 +118,8 @@ def main(config_file):
         # config.sim_func_args["correction_function"] = None  # bugfix
         logging.info("Clusters correctly created and written on file. "
                      "Now run ici_analysis.py on the results folder.")
-    logging.info("Run completed in %s",
-                 extra.get_time_from_seconds(time.time() - tic))
+        logging.info("Run completed in %s",
+                     extra.get_time_from_seconds(time.time() - tic))
 
 
 def init_run():

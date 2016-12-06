@@ -299,7 +299,7 @@ def sm_sparse(X, metric, tol):
             rows = np.append(rows, v[1])
             cols = np.append(cols, v[2])
 
-        for e, p in enumerate(procs):
+        for p in procs:
             p.join()
         assert return_queue.empty()
 
