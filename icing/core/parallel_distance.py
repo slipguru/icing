@@ -242,52 +242,72 @@ def sm_sparse(X, metric, tol):
         Symmetric NxN distance matrix for each input_array element.
     """
     def _internal(X, metric, iterator, idx, return_queue):
-        data = np.empty(0, dtype=float)
-        rows = np.empty(0, dtype=int)
-        cols = np.empty(0, dtype=int)
+        # print("Started proc n", idx)
+        # data = np.empty(0, dtype=float)
+        # rows = np.empty(0, dtype=int)
+        # cols = np.empty(0, dtype=int)
         for i, j in iterator:
+            # print("i, j, idx", i, j, idx)
             res = metric(X[i], X[j])
             if res > 0:  # np.random.ranf(1)[0] / 10:
-                data = np.append(data, res)
-                rows = np.append(rows, i)
-                cols = np.append(cols, j)
+                # data = np.append(data, res)
+                # rows = np.append(rows, i)
+                # cols = np.append(cols, j)
+                return_queue.put((res, i, j), False)
         # if return_queue.full():
         #     print("full")
-        return_queue.put((data, rows, cols))
+        # return_queue.put((data, rows, cols), False)
+        return_queue.put(None, True)
 
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
     # allows fast and lighter computation
-    iterator = ((i, j) for i, j in combinations(range(X.shape[0]), 2) if
-                len(X[i].setV & X[j].setV) > 0 and
-                abs(X[i].junction_length - X[j].junction_length) < tol)
+    iterator = list(
+        (i, j) for i, j in combinations(range(X.shape[0]), 2) if
+        len(X[i].setV & X[j].setV) > 0 and
+        abs(X[i].junction_length - X[j].junction_length) < tol)
+    len_it = len(iterator)
     procs = []
     manager = mp.Manager()
     return_queue = manager.Queue()
+    data = np.empty(0, dtype=float)
+    rows = np.empty(0, dtype=int)
+    cols = np.empty(0, dtype=int)
     try:
         for idx in range(nprocs):
-            itera = list(islice(iterator, int(n * (n - 1) / 2. / nprocs) + 1))
+            num_elem = int(len_it / nprocs) + 1
+            itera = iterator[:num_elem]
+            iterator = iterator[num_elem:]
+            # itera = list(islice(iterator, int(n * (n - 1) / (2. * nprocs)) + 1))
             p = mp.Process(
                 target=_internal,
                 args=(X, metric, itera, idx, return_queue))
             p.start()
             procs.append(p)
 
-        for p in procs:
+        count = 0
+        while count < nprocs:
+            v = return_queue.get(True)
+            if v is None:
+                count += 1
+                continue
+            # print("v", v)
+            # data = np.hstack((data, v[0]))
+            # rows = np.hstack((rows, v[1]))
+            # cols = np.hstack((cols, v[2]))
+            data = np.append(data, v[0])
+            rows = np.append(rows, v[1])
+            cols = np.append(cols, v[2])
+
+        for e, p in enumerate(procs):
             p.join()
+        assert return_queue.empty()
+
     except (KeyboardInterrupt, SystemExit):
         term_processes(procs, 'Exit signal received\n')
     except BaseException as msg:
         term_processes(procs, 'ERROR: %s\n' % msg)
 
-    data = np.empty(0, dtype=float)
-    rows = np.empty(0, dtype=int)
-    cols = np.empty(0, dtype=int)
-    while not return_queue.empty():
-        v = return_queue.get()
-        data = np.hstack((data, v[0]))
-        rows = np.hstack((rows, v[1]))
-        cols = np.hstack((cols, v[2]))
     return data, rows, cols
 
 
