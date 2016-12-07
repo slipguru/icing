@@ -15,6 +15,11 @@ import scipy.spatial
 from itertools import chain, ifilter, combinations, islice
 from icing.utils.extra import term_processes, progressbar
 
+try:
+    xrange
+except NameError:  # python3
+    xrange = range
+
 
 def _min(generator, func):
     try:
@@ -47,7 +52,7 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
         1-D array
     """
     def _internal(l1, l2, n, idx, nprocs, shared_arr, dist_function):
-        for i in range(idx, n, nprocs):
+        for i in xrange(idx, n, nprocs):
             # if i % 100 == 0:
             #     progressbar(i, n)
             shared_arr[i] = _min(
@@ -59,7 +64,7 @@ def dnearest_inter_padding(l1, l2, dist_function, filt=None, func=min):
     shared_array = mp.Array('d', [0.] * n)
     procs = []
     try:
-        for idx in range(nprocs):
+        for idx in xrange(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, l2, n, idx, nprocs, shared_array,
                                  dist_function))
@@ -95,12 +100,12 @@ def dnearest_intra_padding(l1, dist_function, filt=None, func=min):
         1-D array
     """
     def _internal(l1, n, idx, nprocs, shared_arr, dist_function):
-        for i in range(idx, n, nprocs):
+        for i in xrange(idx, n, nprocs):
             # if i % 100 == 0:
             #     progressbar(i, n)
             shared_arr[i] = _min(ifilter(filt, chain(
-                (dist_function(l1[i], l1[j]) for j in range(0, i)),
-                (dist_function(l1[i], l1[j]) for j in range(i + 1, n))
+                (dist_function(l1[i], l1[j]) for j in xrange(0, i)),
+                (dist_function(l1[i], l1[j]) for j in xrange(i + 1, n))
             )), func)
 
     n = len(l1)
@@ -108,7 +113,7 @@ def dnearest_intra_padding(l1, dist_function, filt=None, func=min):
     shared_array = mp.Array('d', [0.] * n)
     procs = []
     try:
-        for idx in range(nprocs):
+        for idx in xrange(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, n, idx, nprocs, shared_array,
                                  dist_function))
@@ -143,7 +148,7 @@ def dm_dense_inter_padding(l1, l2, dist_function, condensed=False):
         Symmetric NxN distance matrix for each input_array element.
     """
     def _internal(l1, l2, n, idx, nprocs, shared_arr, dist_function):
-        for i in range(idx, n, nprocs):
+        for i in xrange(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
             shared_arr[i] = [dist_function(l1[i], el2) for el2 in l2]
@@ -155,7 +160,7 @@ def dm_dense_inter_padding(l1, l2, dist_function, condensed=False):
     shared_array = np.frombuffer(mp.Array('d', n*m).get_obj()).reshape((n, m))
     procs = []
     try:
-        for idx in range(nprocs):
+        for idx in xrange(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, l2, n, idx, nprocs, shared_array,
                                  dist_function))
@@ -190,11 +195,11 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
         Symmetric NxN distance matrix for each input_array element.
     """
     def _internal(l1, n, idx, nprocs, shared_arr, dist_function):
-        for i in range(idx, n, nprocs):
+        for i in xrange(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
             # shared_arr[i, i:] = [dist_function(l1[i], el2) for el2 in l2]
-            for j in range(i + 1, n):
+            for j in xrange(i + 1, n):
                 shared_arr[idx, j] = dist_function(l1[i], l1[j])
                 # if shared_arr[idx, j] == 0:
                 # print l1[i].junction, '\n', l1[j].junction, '\n----------'
@@ -204,7 +209,7 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     shared_array = np.frombuffer(mp.Array('d', n*n).get_obj()).reshape((n, n))
     procs = []
     try:
-        for idx in range(nprocs):
+        for idx in xrange(nprocs):
             p = mp.Process(target=_internal,
                            args=(l1, n, idx, nprocs, shared_array,
                                  dist_function))
@@ -245,13 +250,35 @@ def sm_sparse(X, metric, tol):
         data = np.empty(0, dtype=float)
         rows = np.empty(0, dtype=int)
         cols = np.empty(0, dtype=int)
+        append = np.append
+        for i, j in iterator:
+            res = metric(X[i], X[j])
+            if res > 0:
+                data = append(data, res)
+                rows = append(rows, i)
+                cols = append(cols, j)
+        return_queue.put((data, rows, cols), False)
+        return_queue.put(None, True)
+
+    def _internal_deque(X, metric, iterator, idx, return_queue):
+        from collections import deque
+        deq = deque()
+        appendleft = deq.appendleft
+        popleft = deq.popleft
         for i, j in iterator:
             res = metric(X[i], X[j])
             if res > 0:  # np.random.ranf(1)[0] / 10:
-                data = np.append(data, res)
-                rows = np.append(rows, i)
-                cols = np.append(cols, j)
-                # return_queue.put((res, i, j), False)
+                appendleft((res, i, j))
+
+        len_d = len(deq)
+        data = np.empty(len_d, dtype=float)
+        rows = np.empty(len_d, dtype=int)
+        cols = np.empty(len_d, dtype=int)
+        for i in xrange(len_d):
+            res = popleft()
+            data[i] = res[0]
+            rows[i] = res[1]
+            cols[i] = res[2]
         return_queue.put((data, rows, cols), False)
         return_queue.put(None, True)
 
@@ -259,7 +286,7 @@ def sm_sparse(X, metric, tol):
     nprocs = min(mp.cpu_count(), n)
     # allows fast and lighter computation
     iterator = list(
-        (i, j) for i, j in combinations(range(X.shape[0]), 2) if
+        (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
         len(X[i].setV & X[j].setV) > 0 and
         abs(X[i].junction_length - X[j].junction_length) < tol)
     len_it = len(iterator)
@@ -270,13 +297,13 @@ def sm_sparse(X, metric, tol):
     rows = np.empty(0, dtype=int)
     cols = np.empty(0, dtype=int)
     try:
-        for idx in range(nprocs):
+        for idx in xrange(nprocs):
             num_elem = int(len_it / nprocs) + 1
             itera = iterator[:num_elem]
             iterator = iterator[num_elem:]
             # itera = list(islice(iterator, int(n * (n - 1) / (2. * nprocs)) + 1))
             p = mp.Process(
-                target=_internal,
+                target=_internal_deque,
                 args=(X, metric, itera, idx, return_queue))
             p.start()
             procs.append(p)
@@ -287,13 +314,9 @@ def sm_sparse(X, metric, tol):
             if v is None:
                 count += 1
                 continue
-            # print("v", v)
             data = np.hstack((data, v[0]))
             rows = np.hstack((rows, v[1]))
             cols = np.hstack((cols, v[2]))
-            # data = np.append(data, v[0])
-            # rows = np.append(rows, v[1])
-            # cols = np.append(cols, v[2])
 
         for p in procs:
             p.join()
@@ -303,7 +326,6 @@ def sm_sparse(X, metric, tol):
         term_processes(procs, 'Exit signal received\n')
     except BaseException as msg:
         term_processes(procs, 'ERROR: %s\n' % msg)
-
     return data, rows, cols
 
 
@@ -323,11 +345,11 @@ def dm_sparse_intra_padding(l1, dist_function, condensed=False):
         Sparse symmetric NxN distance matrix for each input_array element.
     """
     def _internal(l1, n, idx, nprocs, rows, cols, data, dist_function):
-        for i in range(idx, n, nprocs):
+        for i in xrange(idx, n, nprocs):
             if i % 100 == 0:
                 progressbar(i, n)
             # shared_arr[i, i:] = [dist_function(l1[i], el2) for el2 in l2]
-            for j in range(i + 1, n):
+            for j in xrange(i + 1, n):
                 # shared_arr[idx, j] = dist_function(l1[i], l1[j])
                 _res = dist_function(l1[i], l1[j])
                 if _res > 0:
@@ -344,7 +366,7 @@ def dm_sparse_intra_padding(l1, dist_function, condensed=False):
     cols = mp.Array('d', [0.] * c_length)
     procs = []
     try:
-        for idx in range(nprocs):
+        for idx in xrange(nprocs):
             process = mp.Process(target=_internal,
                            args=(l1, n, idx, nprocs, rows, cols, data,
                                  dist_function))
