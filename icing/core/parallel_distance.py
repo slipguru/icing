@@ -288,8 +288,8 @@ def sm_sparse(X, metric, tol):
     def _job(n):
         i, j = n
         if len(X[i].setV & X[j].setV) > 0 and \
-            abs(X[i].junction_length - X[j].junction_length) < tol:
-        return (i,j)
+                abs(X[i].junction_length - X[j].junction_length) < tol:
+            return (i,j)
     pool = mp.Pool(processes=nprocs)
     iterator = filter(lambda x: x is not None,
                       pool.map(_job, combinations(xrange(X.shape[0]), 2)))
