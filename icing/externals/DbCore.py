@@ -203,8 +203,8 @@ class IgRecord:
 
         # Add remaining elements as annotations dictionary
         self.annotations = row
-        self.setV = set(self.getVGene('set'))
-        self.setJ = set(self.getJGene('set'))
+        self.setV = set(self.getVGene('set') or ())
+        self.setJ = set(self.getJGene('set') or ())
 
     # Get a field value by column name and return it as a string
     #
