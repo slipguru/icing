@@ -265,7 +265,7 @@ def distr_muts(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
         max_mut = io.get_max_mut(db)
         # if max_mut < 1:
         n_tot = io.get_num_records(db)
-        lin = np.linspace(0, max_mut, min(n_tot / 20., 20))
+        lin = np.linspace(0, max_mut, min(n_tot / 10., 20))
         # lin = np.linspace(0, max_mut, 10.)
         sets = [(0, 0)] + zip(lin[:-1], lin[1:])
         # sets = [(0, 0)] + [(i - 1, i) for i in range(1, int(max_mut) + 1)]
@@ -361,6 +361,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         return m, m - h, m + h, h
 
     if my_dict is None:
+        logging.critical("Cannot learn function with empty dict")
         return lambda _: 1, 0
     d_dict = dict()
     samples, thresholds = [], []
@@ -388,11 +389,12 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
     mask = ydata > 0
     xdata = xdata[mask]
     if xdata.shape[0] < 2:
+        logging.critical("Too few points to learn function")
         # no correction can be applied
         return lambda _: 1, 0
 
     ydata = ydata[mask]
-    # ydata = np.min(ydata) / ydata  # normalise
+    ydata = np.mean(ydata) / ydata  # normalise
     yerr = yerr[mask]
 
     res = least_squares(
@@ -401,6 +403,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         jac=least_squares_jacobian, bounds=(0, 100), args=(xdata, ydata),
         ftol=1e-12, loss='soft_l1')
 
+    order = min(order, xdata.shape[0] - 1)
     warnings.filterwarnings("ignore")
     with warnings.catch_warnings():
         warnings.filterwarnings('error')
@@ -408,6 +411,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
             poly = np.poly1d(np.polyfit(
                 xdata, ydata, order, w=1. / (yerr + 1e-15)))
         except np.RankWarning:
+            logging.critical("Cannot fit polynomial with degree %d, npoints %d", order, xdata.shape[0])
             return lambda _: 1, 0
 
     with sns.axes_style('whitegrid'):

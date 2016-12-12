@@ -32,11 +32,11 @@ from icing.models.model import model_matrix
 from icing.utils import extra
 
 
-def sim_function(ig1, ig2, method='jaccard', model='ham',
-                 dist_mat=None, tol=3, v_weight=1., j_weight=1.,
-                 vj_weight=.5, sk_weight=.5,
-                 correction_function=(lambda _: 1), correct=True,
-                 sim_score_params=None, ssk_params=None):
+def sim_function(
+    ig1, ig2, method='jaccard', model='ham', dist_mat=None, tol=3,
+    v_weight=1., j_weight=1., vj_weight=.5, sk_weight=.5,
+    correction_function=(lambda _: 1), correct=True,
+        sim_score_params=None, ssk_params=None):
     """Calculate a distance between two input immunoglobulins.
 
     Parameters
