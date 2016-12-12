@@ -196,7 +196,7 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     """
     def _internal(l1, n, idx, nprocs, shared_arr, dist_function):
         for i in xrange(idx, n, nprocs):
-            if i % 100 == 0:
+            if i % 2 == 0:
                 progressbar(i, n)
             # shared_arr[i, i:] = [dist_function(l1[i], el2) for el2 in l2]
             for j in xrange(i + 1, n):
@@ -223,7 +223,7 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     except BaseException as msg:
         term_processes(procs, 'ERROR: %s\n' % msg)
 
-    # progressbar(n,n)
+    progressbar(n,n)
     dist_matrix = shared_array + shared_array.T
     if condensed:
         dist_matrix = scipy.spatial.distance.squareform(dist_matrix)
@@ -295,8 +295,8 @@ def sm_sparse(X, metric, tol):
     pool = mp.Pool(processes=nprocs)
     from functools import partial
     job = partial(_job, X=X, tol=tol)
-    iterator = list(x for x in pool.imap(
-        job, combinations(xrange(len(X)), 2)) if x is not None)
+    iterator = list(x for x in pool.imap_unordered(
+        job, combinations(xrange(len(X)), 2), 256) if x is not None)
     # iterator = list(
     #     (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
     #     len(X[i].setV & X[j].setV) > 0 and

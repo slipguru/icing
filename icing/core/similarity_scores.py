@@ -92,7 +92,11 @@ def _balance_contribution(common_V, common_J, tot_V, tot_J, r1, r2):
         w1 = r1 * (tot_V + tot_J) / (r1 * tot_V + r2 * tot_J)
         # w2 = 1. + tot_V / tot_J * (1. - w1)
         w2 = r2 / r1 * w1
-    return (w1 * common_V + w2 * common_J) / (tot_V + tot_J)
+    try:
+        result = (w1 * common_V + w2 * common_J) / (tot_V + tot_J)
+    except ZeroDivisionError:
+        result = 0
+    return result
 
 
 def similarity_score_tripartite(V_genes_A, V_genes_B, J_genes_A, J_genes_B,
