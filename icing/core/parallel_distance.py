@@ -285,18 +285,18 @@ def sm_sparse(X, metric, tol):
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
     # allows fast and lighter computation
-    # def _job(n):
-    #     i, j = n
-    #     if len(X[i].setV & X[j].setV) > 0 and \
-    #             abs(X[i].junction_length - X[j].junction_length) < tol:
-    #         return (i,j)
-    # pool = mp.Pool(processes=nprocs)
-    # iterator = filter(lambda x: x is not None,
-    #                   pool.map(_job, combinations(xrange(X.shape[0]), 2)))
-    iterator = list(
-        (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
-        len(X[i].setV & X[j].setV) > 0 and
-        abs(X[i].junction_length - X[j].junction_length) < tol)
+    def _job(n):
+        i, j = n
+        if len(X[i].setV & X[j].setV) > 0 and \
+                abs(X[i].junction_length - X[j].junction_length) < tol:
+            return (i, j)
+    pool = mp.Pool(processes=nprocs)
+    iterator = list(x for x in pool.imap(
+        _job, combinations(xrange(len(X)), 2)) if x is not None)
+    # iterator = list(
+    #     (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
+    #     len(X[i].setV & X[j].setV) > 0 and
+    #     abs(X[i].junction_length - X[j].junction_length) < tol)
     len_it = len(iterator)
     procs = []
     manager = mp.Manager()
