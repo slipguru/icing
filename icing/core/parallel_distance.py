@@ -230,6 +230,13 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     return dist_matrix
 
 
+def _job(n, X, tol):
+    i, j = n
+    if len(X[i].setV & X[j].setV) > 0 and \
+            abs(X[i].junction_length - X[j].junction_length) < tol:
+        return (i, j)
+
+
 def sm_sparse(X, metric, tol):
     """Compute in a parallel way a sim matrix for a 1-d array.
 
@@ -285,14 +292,11 @@ def sm_sparse(X, metric, tol):
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
     # allows fast and lighter computation
-    def _job(n):
-        i, j = n
-        if len(X[i].setV & X[j].setV) > 0 and \
-                abs(X[i].junction_length - X[j].junction_length) < tol:
-            return (i, j)
     pool = mp.Pool(processes=nprocs)
+    from functools import partial
+    job = partial(_job, X=X, tol=tol)
     iterator = list(x for x in pool.imap(
-        _job, combinations(xrange(len(X)), 2)) if x is not None)
+        job, combinations(xrange(len(X)), 2)) if x is not None)
     # iterator = list(
     #     (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
     #     len(X[i].setV & X[j].setV) > 0 and
