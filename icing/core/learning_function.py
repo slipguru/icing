@@ -397,11 +397,11 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
     ydata = np.mean(ydata) / ydata  # normalise
     yerr = yerr[mask]
 
-    res = least_squares(
-        lambda x, u, y: least_squares_mdl(x, u) - y,
-        x0=np.array([2.5, 3.9, 4.15, 3.9]),
-        jac=least_squares_jacobian, bounds=(0, 100), args=(xdata, ydata),
-        ftol=1e-12, loss='soft_l1')
+    # res = least_squares(
+    #     lambda x, u, y: least_squares_mdl(x, u) - y,
+    #     x0=np.array([2.5, 3.9, 4.15, 3.9]),
+    #     jac=least_squares_jacobian, bounds=(0, 100), args=(xdata, ydata),
+    #     ftol=1e-12, loss='soft_l1')
 
     order = min(order, xdata.shape[0] - 1)
     warnings.filterwarnings("ignore")
@@ -411,7 +411,9 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
             poly = np.poly1d(np.polyfit(
                 xdata, ydata, order, w=1. / (yerr + 1e-15)))
         except np.RankWarning:
-            logging.critical("Cannot fit polynomial with degree %d, npoints %d", order, xdata.shape[0])
+            logging.critical(
+                "Cannot fit polynomial with degree %d, npoints %d",
+                order, xdata.shape[0])
             return lambda _: 1, 0
 
     with sns.axes_style('whitegrid'):
@@ -420,12 +422,11 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         plt.figure()
         plt.errorbar(xdata, ydata, yerr, label='data', marker='s')
         plt.plot(xp, poly(xp), '-', label='order ' + str(order))
-        # plt.plot(xp, fff(xp), '-', label='interpolate')
-        plt.plot(xp, least_squares_mdl(res.x, xp), '-', label='least squares')
+        # plt.plot(xp, least_squares_mdl(res.x, xp), '-', label='least squares')
         plt.xlabel(r'Igs mutation level')
         plt.ylabel(r'Average similarity')
         plt.legend(loc='lower left')
-        plt.savefig(alpha_plot, transparent=True)
+        plt.savefig(alpha_plot, transparent=True, bbox_inches='tight')
         plt.close()
 
     # poly = partial(model, res.x)
