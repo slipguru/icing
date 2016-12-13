@@ -80,7 +80,7 @@ def init_analysis():
     if not filename:
         raise IOError("No .pkl file found in %s. Aborting...\n" % root_folder)
 
-    main(os.path.join(os.path.abspath(root_folder), filename))
+    main(os.path.join(os.path.abspath(root_folder), filename[0]))
 
 
 if __name__ == '__main__':

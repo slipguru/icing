@@ -295,8 +295,11 @@ def sm_sparse(X, metric, tol):
     pool = mp.Pool(processes=nprocs)
     from functools import partial
     job = partial(_job, X=X, tol=tol)
-    iterator = list(x for x in pool.imap_unordered(
-        job, combinations(xrange(len(X)), 2), 1048576) if x is not None)
+    # iterator = list(x for x in pool.imap_unordered(
+    #     job, combinations(xrange(len(X)), 2), 1048576) if x is not None)
+
+    iterator = list(filter(lambda x: x is not None, pool.imap_unordered(
+        job, combinations(xrange(len(X)), 2), 1048576)))
     # iterator = list(
     #     (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
     #     len(X[i].setV & X[j].setV) > 0 and
