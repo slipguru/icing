@@ -532,10 +532,13 @@ def define_clones(db_iter, exp_tag='debug', root=None,
     os.makedirs(output_folder)
 
     sm_filename = output_filename + '_similarity_matrix.pkl.tz'
-    with gzip.open(os.path.join(output_folder, sm_filename), 'w+') as f:
-        pkl.dump(similarity_matrix, f)
-    logging.info("Dumped similarity matrix: %s",
-                 os.path.join(output_folder, sm_filename))
+    try:
+        with gzip.open(os.path.join(output_folder, sm_filename), 'w+') as f:
+            pkl.dump(similarity_matrix, f)
+        logging.info("Dumped similarity matrix: %s",
+                     os.path.join(output_folder, sm_filename))
+    except OverflowError:
+        logging.error("Cannot dump similarity matrix")
 
     logging.info("Start define_clusts function ...")
     clusters = define_clusts(similarity_matrix, threshold=threshold)
