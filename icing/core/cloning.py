@@ -33,9 +33,9 @@ from icing.utils import extra
 
 
 def sim_function(
-    ig1, ig2, method='jaccard', model='ham', dist_mat=None, tol=3,
-    v_weight=1., j_weight=1., vj_weight=.5, sk_weight=.5,
-    correction_function=(lambda _: 1), correct=True,
+        ig1, ig2, method='jaccard', model='ham', dist_mat=None, tol=3,
+        v_weight=1., j_weight=1., vj_weight=.5, sk_weight=.5,
+        correction_function=(lambda _: 1), correct=True,
         sim_score_params=None, ssk_params=None):
     """Calculate a distance between two input immunoglobulins.
 
@@ -66,13 +66,12 @@ def sim_function(
             len(ig1.setV & ig2.setV) < 1:
         return 0.
 
-    ss = vj_weight * mwi(ig1.setV, ig2.setV, ig1.setJ, ig2.setJ,
-                         method=method, r1=v_weight, r2=j_weight,
-                         sim_score_params=sim_score_params)
-    if ss > 0.:
-        junc1 = extra.junction_re(ig1.junction)
-        junc2 = extra.junction_re(ig2.junction)
+    similarity = vj_weight * mwi(
+        ig1.setV, ig2.setV, ig1.setJ, ig2.setJ,
+        method=method, r1=v_weight, r2=j_weight,
+        sim_score_params=sim_score_params)
 
+    if similarity > 0.:
         # Using alignment plus model
         # norm_by = min(len(junc1), len(junc2))
         # if model == 'hs1f':
@@ -80,23 +79,23 @@ def sim_function(
         # if dist_mat is None:
         #     dist_mat = model_matrix(model)
         # dist = string_distance(junc1, junc2, dist_mat, norm_by, tol=tol)
-        # ss *= (1 - dist)
+        # similarity *= (1 - dist)
 
         # Using string kernel
-        ss += sk_weight * sum_string_kernel(
-            [junc1, junc2],
+        similarity += sk_weight * sum_string_kernel(
+            [ig1.junc, ig2.junc],
             verbose=False,
             normalize=1, return_float=1, **ssk_params)
 
-    if ss > 0 and correct:
+    if similarity > 0 and correct:
         correction = correction_function(np.mean((ig1.mut, ig2.mut)))
         # correction = min(correction_function(ig1.mut),
         #                  correction_function(ig2.mut))
-        # ss = 1 - ((1 - ss) * max(correction, 0))
-        # ss = 1 - ((1 - ss) * correction)
-        ss *= np.clip(correction, 0, 1)
-    # return min(max(ss, 0), 1)
-    return max(ss, 0)
+        # similarity = 1 - ((1 - similarity) * max(correction, 0))
+        # similarity = 1 - ((1 - similarity) * correction)
+        similarity *= np.clip(correction, 0, 1)
+    # return min(max(similarity, 0), 1)
+    return max(similarity, 0)
 
 
 def inverse_index(records):
@@ -116,10 +115,10 @@ def inverse_index(records):
     """
     r_index = dict()
     for i, ig in enumerate(records):
-        for v in ig.setV or ():
-            r_index.setdefault(v, []).append(i)
-        for j in ig.setJ or ():
-            r_index.setdefault(j, []).append(i)
+        for vcall in ig.setV or ():
+            r_index.setdefault(vcall, []).append(i)
+        for jcall in ig.setJ or ():
+            r_index.setdefault(jcall, []).append(i)
 
     # r_index = defaultdict(list)
     # for i, ig in enumerate(list(records)):
@@ -211,55 +210,6 @@ def _similar_elements_sequential(values):
     return row_local, col_local
 
 
-# def _similar_elements_job(idx, queue, reverse_index, nprocs):
-#     key_list = list(reverse_index)
-#     row_local, col_local = np.empty(0, dtype=int), np.empty(0, dtype=int)
-#     m = len(key_list)
-#     for ii in range(idx, m, nprocs):
-#         v = reverse_index[key_list[ii]]
-#         length = len(v)
-#         if length > 1:
-#             combinations = int(length * (length - 1) / 2.)
-#             rows = np.empty(combinations, dtype=int)
-#             cols = np.empty(combinations, dtype=int)
-#             for k in range(combinations):
-#                 j = k % (length - 1) + 1
-#                 i = int(k / (length - 1))
-#                 if i >= j:
-#                     i = length - i - 1
-#                     j = length - j
-#                 i = v[i]
-#                 j = v[j]
-#                 rows[k] = i
-#                 cols[k] = j
-#             # row_local = np.hstack((row_local, rows))
-#             # col_local = np.hstack((col_local, cols))
-#             queue.put((rows, cols))
-
-class MyIterator(object):
-    def __init__(self, iterable):
-        self._iterable = iter(iterable)
-        self._exhausted = False
-        self._cache_next_item()
-    def _cache_next_item(self):
-        try:
-            self._next_item = next(self._iterable)
-        except StopIteration:
-            self._exhausted = True
-    def __iter__(self):
-        return self
-    def next(self):
-        if self._exhausted:
-            raise StopIteration
-        next_item = self._next_item
-        self._cache_next_item()
-        return next_item
-    def __nonzero__(self):
-        return not self._exhausted
-    def ended(self):
-        return self._exhausted
-
-
 def _similar_elements_job(values, queue, nprocs):
     rows, cols = _similar_elements_sequential([values])
     # queue.put((rows, cols))
@@ -305,16 +255,52 @@ def similar_elements(reverse_index, records, n, similarity_function,
     rows = np.empty(0, dtype=int)
     cols = np.empty(0, dtype=int)
     gen = (v for v in reverse_index.itervalues())
-    from itertools import islice, izip
+    from itertools import islice
+
+    class MyIterator(object):
+        def __init__(self, iterable):
+            self._iterable = iter(iterable)
+            self._exhausted = False
+            self._cache_next_item()
+
+        def _cache_next_item(self):
+            try:
+                self._next_item = next(self._iterable)
+            except StopIteration:
+                self._exhausted = True
+
+        def __iter__(self):
+            return self
+
+        def next(self):
+            if self._exhausted:
+                raise StopIteration
+            next_item = self._next_item
+            self._cache_next_item()
+            return next_item
+
+        def __nonzero__(self):
+            return not self._exhausted
+
+        def ended(self):
+            return self._exhausted
 
     g1 = MyIterator(gen)
+
     def grouper_nofill(n, iterable):
-        '''list(grouper_nofill(3, 'ABCDEFG')) --> [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
-        '''
-        it=iter(iterable)
+        """Group an iterable with n elements max for each chunk.
+
+        Example
+        -------
+        list(grouper_nofill(3, 'ABCDEFG')) -->
+            [['A', 'B', 'C'], ['D', 'E', 'F'], ['G']]
+        """
+        it = iter(iterable)
+
         def take():
-            while 1: yield list(islice(it,n))
-        return iter(take().next,[])
+            while 1:
+                yield list(islice(it, n))
+        return iter(take().next, [])
 
     # while True:
     #     # pool.map(job, range(nprocs))
@@ -437,11 +423,12 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     # rows, cols = similar_elements(dd, igs, n, similarity_function)
 
     logging.info("Start parallel_sim_matrix function ...")
+    data, rows, cols = sm_sparse(np.array(igs), similarity_function, tol)
+
     # from icing.externals import neighbors
     # sp = neighbors.radius_neighbors_graph(np.array(igs))
     # rows, cols, _ = map(list, scipy.sparse.find(sp))
     # data = indicator_to_similarity(rows, cols, igs, similarity_function)
-    data, rows, cols = sm_sparse(np.array(igs), similarity_function, tol)
     #
     # data = np.array(data, dtype=float)
     # idx = data > 0

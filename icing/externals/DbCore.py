@@ -205,6 +205,8 @@ class IgRecord:
         self.annotations = row
         self.setV = set(self.getVGene('set') or ())
         self.setJ = set(self.getJGene('set') or ())
+        from icing.utils.extra import junction_re
+        self.junc = junction_re(self.junction)
 
     # Get a field value by column name and return it as a string
     #
