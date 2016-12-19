@@ -226,4 +226,4 @@ def model_matrix(model, n_score=0, gap_score=0):
         hs5f_model = pd.read_csv(hs5f_file, sep='\t', index_col=0)
         return hs5f_model
     else:
-        logging.critical('Unrecognized distance model: %s.\n' % model)
+        logging.critical('Unrecognized distance model: %s.\n', model)

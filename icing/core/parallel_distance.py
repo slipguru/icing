@@ -223,7 +223,7 @@ def dm_dense_intra_padding(l1, dist_function, condensed=False):
     except BaseException as msg:
         term_processes(procs, 'ERROR: %s\n' % msg)
 
-    progressbar(n,n)
+    progressbar(n, n)
     dist_matrix = shared_array + shared_array.T
     if condensed:
         dist_matrix = scipy.spatial.distance.squareform(dist_matrix)
@@ -292,22 +292,23 @@ def sm_sparse(X, metric, tol):
     n = X.shape[0]
     nprocs = min(mp.cpu_count(), n)
     # allows fast and lighter computation
-    #pool = mp.Pool(processes=4)
-    #from functools import partial
-    #job = partial(_job, X=X, tol=tol)
-    #import time
-    #tic = time.time()
-    #iterator = list(x for x in pool.imap_unordered(
-    #    job, combinations(xrange(len(X)), 2), int(n * (n - 1) / 2 / nprocs)) if x is not None)
-    #print(time.time() - tic)
-    #iterator = filter(lambda x: x is not None, pool.imap_unordered(
+    # pool = mp.Pool(processes=4)
+    # from functools import partial
+    # job = partial(_job, X=X, tol=tol)
+    # import time
+    # tic = time.time()
+    # iterator = list(x for x in pool.imap_unordered(
+    #    job, combinations(xrange(len(X)), 2), int(n * (n - 1) / 2 / nprocs))
+    #    if x is not None)
+    # print(time.time() - tic)
+    # iterator = filter(lambda x: x is not None, pool.imap_unordered(
     #     job, combinations(xrange(len(X)), 2), int(n * (n - 1) / 2 / 4)))
     # tic = time.time()
 
     iterator = list(
-       (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
-       len(X[i].setV & X[j].setV) > 0 and
-       abs(X[i].junction_length - X[j].junction_length) < tol)
+        (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
+        len(X[i].setV & X[j].setV) > 0 and
+        abs(X[i].junction_length - X[j].junction_length) < tol)
     # print(time.time() - tic)
     # pool.close()
     len_it = len(iterator)
@@ -388,9 +389,9 @@ def dm_sparse_intra_padding(l1, dist_function, condensed=False):
     procs = []
     try:
         for idx in xrange(nprocs):
-            process = mp.Process(target=_internal,
-                           args=(l1, n, idx, nprocs, rows, cols, data,
-                                 dist_function))
+            process = mp.Process(
+                target=_internal,
+                args=(l1, n, idx, nprocs, rows, cols, data, dist_function))
             process.start()
             procs.append(process)
         for process in procs:
