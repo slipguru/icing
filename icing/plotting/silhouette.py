@@ -8,6 +8,7 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 from __future__ import print_function, division
 
 import logging
+import matplotlib; matplotlib.use("Agg")
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import multiprocessing as mp

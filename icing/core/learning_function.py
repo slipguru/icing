@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import seaborn as sns
+import scipy.stats
 import six
 import warnings
 
@@ -21,6 +22,7 @@ from itertools import chain
 # from scipy.optimize import curve_fit
 from scipy.optimize import least_squares
 from sklearn import mixture
+from sklearn.utils import shuffle
 
 from icing.core import cloning
 from icing.core import parallel_distance
@@ -66,7 +68,7 @@ def remove_duplicate_junctions(igs):
 
 
 def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
-              mut=None, donor1='B4', donor2=None, bins=100, max_seqs=1000,
+              mut=None, donor1='B4', donor2=None, bins=100,
               min_seqs=0, ig1=None, ig2=None, is_intra=True,
               sim_func_args=None, correction=False):
     """Make histogram and main computation of nearest similarities."""
@@ -76,37 +78,17 @@ def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
         return ''
 
-    # sample if length is exceeded (for computational costs)
-    from sklearn.utils import shuffle
-    if len(juncs1) > max_seqs:
-        ig1, juncs1 = shuffle(ig1, juncs1)
-        ig1 = ig1[:max_seqs]
-        juncs1 = juncs1[:max_seqs]
-    if len(juncs2) > max_seqs:
-        ig2, juncs2 = shuffle(ig2, juncs2)
-        ig2 = ig2[:max_seqs]
-        juncs2 = juncs2[:max_seqs]
-
     sim_func_args_2 = sim_func_args.copy()
+    cloning.set_defaults_sim_func(
+        sim_func_args_2, ig1 if is_intra else ig1 + ig2)
+
     sim_func_args_2['correct'] = correction
+    sim_func_args_2['rm_duplicates'] = True
     if not correction:
         sim_func_args_2['tol'] = 1000
     else:
         sim_func_args_2['correction_function'] = correction
 
-    default_model = 'ham'
-    sim_func_args_2.setdefault('model', default_model)
-    sim_func_args_2.setdefault('dist_mat', model_matrix(default_model))
-    sim_func_args_2.setdefault(
-        'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
-
-    if sim_func_args_2.setdefault('method', 'jaccard') \
-            in ('pcc', 'hypergeometric'):
-        dd = cloning.inverse_index(ig1 if is_intra else ig1 + ig2)
-        sim_func_args_2['sim_score_params'] = {
-            'nV': len([x for x in dd if 'V' in x]),
-            'nJ': len([x for x in dd if 'J' in x])
-        }
     sim_func = partial(cloning.sim_function, **sim_func_args_2)
     logging.info("Computing %s", filename)
     if is_intra:
@@ -130,7 +112,7 @@ def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
               " {} {:.3f}-{:.3f}% and {:.3f}-{:.3f}%"
               .format(type_ig, lim_mut1[0], lim_mut1[1], *lim_mut2))
     plt.ylabel('Count')
-    plt.xlim([0, 1])
+    # plt.xlim([0, 1])
     plt.xticks(np.linspace(0, 1, 21))
     # plt.xlabel('Ham distance (normalised)')
     plt.savefig(filename + ".png")
@@ -138,7 +120,15 @@ def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
     return filename
 
 
-def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
+def shuffle_ig(igs, juncs, max_seqs):
+    if len(juncs) > max_seqs:
+        igs, juncs = shuffle(igs, juncs)
+        igs = igs[:max_seqs]
+        juncs = juncs[:max_seqs]
+    return igs, juncs
+
+
+def intra_donor_distance(db='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
                          quantity=.15, donor='B4', bins=100, max_seqs=1000,
                          n_tot=0,
                          min_seqs=100, sim_func_args=None, correction=False):
@@ -170,46 +160,45 @@ def intra_donor_distance(f='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
         plt.close()
         return filename, float(np.load(filename + '.npz')['mut'])
 
+    readdb = partial(io.read_db, db, max_records=quantity * n_tot)
     if max(lim_mut1[1], lim_mut2[1]) == 0:
-        igs = io.read_db(f, filt=(lambda x: x.mut == 0),
-                         max_records=quantity * n_tot)
+        igs = readdb(filt=(lambda x: x.mut == 0))
         igs1, juncs1 = remove_duplicate_junctions(igs)
         if len(igs1) < 2:
             return '', 0
-        juncs2 = juncs1
+        igs1, juncs1 = shuffle_ig(igs1, juncs1, max_seqs)
         igs2 = igs1
+        juncs2 = juncs1
         mut = 0
     elif (lim_mut1[0] == lim_mut2[0] and lim_mut1[1] == lim_mut2[1]):
-        igs = io.read_db(f,
-                         filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]),
-                         max_records=quantity * n_tot)
+        igs = readdb(filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
         igs1, juncs1 = remove_duplicate_junctions(igs)
         if len(igs1) < 2:
             return '', 0
+        igs1, juncs1 = shuffle_ig(igs1, juncs1, max_seqs)
         igs2 = igs1
         juncs2 = juncs1
         mut = np.mean(list(chain((x.mut for x in igs1),
                                  (x.mut for x in igs2))))
     else:
-        igs = io.read_db(f,
-                         filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]),
-                         max_records=quantity * n_tot)
+        igs = readdb(filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
         igs1, juncs1 = remove_duplicate_junctions(igs)
         if len(igs1) < 2:
             return '', 0
-        igs = io.read_db(f,
-                         filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]),
-                         max_records=quantity * n_tot)
+        igs = readdb(filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]))
         igs2, juncs2 = remove_duplicate_junctions(igs)
         if len(igs2) < 2:
             return '', 0
         if not len(juncs1) or not len(juncs2):
             return '', 0
+        igs1, juncs1 = shuffle_ig(igs1, juncs1, max_seqs)
+        igs2, juncs2 = shuffle_ig(igs2, juncs2, max_seqs)
         mut = np.mean(list(chain((x.mut for x in igs1),
                                  (x.mut for x in igs2))))
+    print(len(juncs1))
     return make_hist(
         juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig, mut,
-        donor, None, bins, max_seqs, min_seqs, ig1=igs1, ig2=igs2,
+        donor, None, bins, min_seqs, ig1=igs1, ig2=igs2,
         sim_func_args=sim_func_args, correction=correction), mut
 
 
@@ -262,10 +251,9 @@ def distr_muts(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
     """Create histograms and relative mutation levels using intra groups."""
     logging.info("Analysing %s ...", db)
     try:
-        max_mut = io.get_max_mut(db)
+        max_mut, n_tot = io.get_max_mut(db)
         # if max_mut < 1:
-        n_tot = io.get_num_records(db)
-        lin = np.linspace(0, max_mut, min(n_tot / 10., 20))
+        lin = np.linspace(0, max_mut, min(n_tot / 10., 12))
         # lin = np.linspace(0, max_mut, 10.)
         sets = [(0, 0)] + zip(lin[:-1], lin[1:])
         # sets = [(0, 0)] + [(i - 1, i) for i in range(1, int(max_mut) + 1)]
@@ -330,7 +318,15 @@ def _gaussian_fit(array):
     return threshold
 
 
-def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
+def mean_confidence_interval(data, confidence=0.95):
+    """Return mean and confidence interval."""
+    data = np.array(data, dtype=float)
+    mean, se = np.mean(data), scipy.stats.sem(data)
+    h = se * scipy.stats.t._ppf((1 + confidence) / 2., data.shape[0] - 1)
+    return mean, mean - h, mean + h, h
+
+
+def learning_function(my_dict, order=3, aplot='alphaplot.pdf'):
     """Learn the correction function given data in a dictionary.
 
     Parameters
@@ -339,7 +335,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         Organised as {mut: [mean_similarities]}. Calculated by `distr_muts`.
     order : int, optional, default: 3
         Order of the learning function (polynomial).
-    alpha_plot : str, optional, default: 'alpha_plot.pdf'
+    aplot : str, optional, default: 'alpha_plot.pdf'
         Filename where to save the correction function plot.
 
     Returns
@@ -351,15 +347,6 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         Deprecated. Returns the threshold for methods like Hierarchical
         clustering to work in defining clones.
     """
-    import scipy.stats
-
-    def mean_confidence_interval(data, confidence=0.95):
-        a = 1.0*np.array(data)
-        n = len(a)
-        m, se = np.mean(a), scipy.stats.sem(a)
-        h = se * scipy.stats.t._ppf((1+confidence)/2., n-1)
-        return m, m - h, m + h, h
-
     if my_dict is None:
         logging.critical("Cannot learn function with empty dict")
         return lambda _: 1, 0
@@ -373,7 +360,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
             if var == 0:
                 continue
             med = np.median(dnearest)
-            m, _, _, h = mean_confidence_interval(dnearest)
+            mean, _, _, h = mean_confidence_interval(dnearest)
             samples.append(dnearest.shape[0])
             d_dict.setdefault(o.split('/')[0], dict()).setdefault(k, [med, h])
 
@@ -394,7 +381,7 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
         return lambda _: 1, 0
 
     ydata = ydata[mask]
-    ydata = np.mean(ydata) / ydata  # normalise
+    ydata = ydata[0] / ydata  # normalise
     yerr = yerr[mask]
 
     # res = least_squares(
@@ -417,16 +404,18 @@ def learning_function(my_dict, order=3, alpha_plot='alphaplot.pdf'):
             return lambda _: 1, 0
 
     with sns.axes_style('whitegrid'):
-        sns.set_context('poster')
+        sns.set_context('paper')
         xp = np.linspace(np.min(xdata), np.max(xdata), 1000)[:, None]
         plt.figure()
-        plt.errorbar(xdata, ydata, yerr, label='data', marker='s')
-        plt.plot(xp, poly(xp), '-', label='order ' + str(order))
+        plt.errorbar(xdata, ydata, yerr,
+                     label='Nearest similarity', marker='s')
+        plt.plot(xp, poly(xp), '-',
+                 label='Learning function (poly of order {})'.format(order))
         # plt.plot(xp, least_squares_mdl(res.x, xp), '-', label='least squares')
-        plt.xlabel(r'Igs mutation level')
-        plt.ylabel(r'Average similarity')
+        plt.xlabel(r'Mutation level')
+        plt.ylabel(r'Average similarity (not normalised)')
         plt.legend(loc='lower left')
-        plt.savefig(alpha_plot, transparent=True, bbox_inches='tight')
+        plt.savefig(aplot, transparent=True, bbox_inches='tight')
         plt.close()
 
     # poly = partial(model, res.x)

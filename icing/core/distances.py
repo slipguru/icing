@@ -201,8 +201,8 @@ def junction_distance(seq1, seq2, n, dist_mat, norm, sym, tol=3, c=35.,
                 for c1, c2, n1, n2 in izip(seqq1, seqq2, nmer1, nmer2)]) / (norm_by)
 
 
-def string_distance(seq1, seq2, dist_mat, norm_by=1, tol=3,
-                    length_constraint=True):
+def string_distance(seq1, seq2, len_seq1, len_seq2, dist_mat, dist_mat_max,
+                    tol=3, length_constraint=True):
     """Calculate a distance between two input sequences.
 
     Parameters
@@ -227,15 +227,16 @@ def string_distance(seq1, seq2, dist_mat, norm_by=1, tol=3,
         A normalised distance between seq1 and seq2. Values are in [0,1].
     """
     if length_constraint:
-        l1, l2 = len(seq1), len(seq2)
-        if abs(l1 - l2) > tol:
-            return 1.  # min(l1, l2) / norm_by  # should be 1
+        if abs(len_seq1 - len_seq2) > tol:
+            return 1.  # min(len_seq1, len_seq2) / norm_by  # should be 1
 
-        if 0 < abs(l1 - l2) <= tol:
+        if 0 < abs(len_seq1 - len_seq2) <= tol:
             # different lengths, seqs alignment
-            seq1, seq2 = map(extra.junction_re, align.globalxx(seq1, seq2)[0][:2])
+            seq1, seq2 = map(extra.junction_re, align.globalms(
+                seq1, seq2, 5, -4, -3, -.1)[0][:2])
+            len_seq1 = len(seq1)
             # print 'befor align:\n', seq1, '\n', seq2, '\n--------------'
             # seq1, seq2 = map(extra.junction_re, igalign.alignment(seq1, seq2))
             # print 'after align:\n', seq1, '\n', seq2, '\n--------------'
-    norm_by = len(seq1) * np.max(dist_mat.as_matrix())
+    norm_by = len_seq1 * dist_mat_max
     return sum([np.mean((float(dist_mat.at[c1, c2]), float(dist_mat.at[c2, c1]))) for c1, c2 in izip(list(seq1), list(seq2))]) / norm_by

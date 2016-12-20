@@ -49,7 +49,7 @@ def read_db(db_file, filt=None, ig=True, dialect='excel-tab',
     return db_iter
 
 
-def get_max_mut(db_file, dialect='excel-tab'):
+def get_max_mut(db_file, dialect='excel-tab', return_num_records=True):
     """Get the maximum amount of mutations in a database file.
 
     Parameters
@@ -67,7 +67,17 @@ def get_max_mut(db_file, dialect='excel-tab'):
     try:
         f = open(db_file, 'rb')
         db_reader = csv.DictReader(f, dialect=dialect)
-        return max(float(row['MUT']) for row in db_reader)
+        max_mut = -1
+        num_records = 0
+        for row in db_reader:
+            num_records += 1
+            aux = float(row['MUT'])
+            if max_mut < aux:
+                max_mut = aux
+
+        if return_num_records:
+            return max_mut, num_records
+        return max_mut
     except IOError:
         sys.exit('ERROR:  File %s cannot be read' % db_file)
     except Exception:
@@ -90,7 +100,7 @@ def get_num_records(db_file, filt=None, dialect='excel-tab'):
         The number of records.
     """
     # Count records and check file
-    db = read_db(db_file, filt=filt, ig=True, dialect=dialect)
+    db = read_db(db_file, filt=filt, ig=False, dialect=dialect)
     for i, _ in enumerate(db):
         pass
     return i + 1

@@ -23,17 +23,19 @@ from functools import partial
 # from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
 
-# from icing.core.distances import string_distance
+from icing.core.distances import string_distance
 from icing.core.similarity_scores import similarity_score_tripartite as mwi
 from icing.core.parallel_distance import sm_sparse
 from icing.externals import AffinityPropagation
 from icing.kernel import sum_string_kernel
 from icing.models.model import model_matrix
+from icing.validation import scores
 from icing.utils import extra
 
 
 def sim_function(
-        ig1, ig2, method='jaccard', model='ham', dist_mat=None, tol=3,
+        ig1, ig2, method='jaccard', model='ham', dist_mat=None, dist_mat_max=1,
+        tol=3, rm_duplicates=False,
         v_weight=1., j_weight=1., vj_weight=.5, sk_weight=.5,
         correction_function=(lambda _: 1), correct=True,
         sim_score_params=None, ssk_params=None):
@@ -45,7 +47,7 @@ def sim_function(
         Instances of two immunoglobulins.
     method : ('jaccard', 'simpson'), optional
         Graph-based index.
-    model : ('ham', 'hs1f'), optional
+    model : ('sk', 'ham', 'hs1f'), optional
         Model for the distance between strings.
     dist_mat : pandas.DataFrame, optional
         Matrix which define the distance between the single characters.
@@ -62,6 +64,9 @@ def sim_function(
         1: ig1 and ig2 are the same.
     """
     # nmer = 5 if model == 'hs5f' else 1
+    if rm_duplicates and ig1.junc == ig2.junc:
+        return 0.
+
     if abs(ig1.junction_length - ig2.junction_length) > tol or \
             len(ig1.setV & ig2.setV) < 1:
         return 0.
@@ -71,21 +76,23 @@ def sim_function(
         method=method, r1=v_weight, r2=j_weight,
         sim_score_params=sim_score_params)
 
-    if similarity > 0.:
-        # Using alignment plus model
-        # norm_by = min(len(junc1), len(junc2))
-        # if model == 'hs1f':
-        #     norm_by *= 2.08
-        # if dist_mat is None:
-        #     dist_mat = model_matrix(model)
-        # dist = string_distance(junc1, junc2, dist_mat, norm_by, tol=tol)
-        # similarity *= (1 - dist)
-
-        # Using string kernel
-        similarity += sk_weight * sum_string_kernel(
-            [ig1.junc, ig2.junc],
-            verbose=False,
-            normalize=1, return_float=1, **ssk_params)
+    if sk_weight > 0.:
+        if model == 'sk':
+            # Using string kernel
+            similarity += sk_weight * sum_string_kernel(
+                [ig1.junc, ig2.junc],
+                verbose=False,
+                normalize=1, return_float=1, **ssk_params)
+        elif model in ('ham', 'hs1f'):
+            # Using alignment plus model
+            if dist_mat is None:
+                dist_mat = model_matrix(model)
+            dist = string_distance(
+                ig1.junc, ig2.junc, ig1.junction_length, ig2.junction_length,
+                dist_mat, dist_mat_max=dist_mat_max, tol=tol)
+            similarity += sk_weight * (1 - dist)
+        else:
+            raise ValueError("model '%s' not understood" % model)
 
     if similarity > 0 and correct:
         correction = correction_function(np.mean((ig1.mut, ig2.mut)))
@@ -119,14 +126,6 @@ def inverse_index(records):
             r_index.setdefault(vcall, []).append(i)
         for jcall in ig.setJ or ():
             r_index.setdefault(jcall, []).append(i)
-
-    # r_index = defaultdict(list)
-    # for i, ig in enumerate(list(records)):
-    #     for v in ig.setV:
-    #         r_index[v].append(i)
-    #     for j in ig.setJ:
-    #         r_index[j].append(i)
-
     return r_index
 
 
@@ -373,6 +372,24 @@ def indicator_to_similarity(rows, cols, records, similarity_function):
     return data
 
 
+def set_defaults_sim_func(sim_func_args, igs):
+    model = sim_func_args.setdefault('model', 'sk')
+    if model != 'sk':
+        dm = sim_func_args.setdefault('dist_mat', model_matrix(model))
+        sim_func_args.setdefault('dist_mat_max', np.max(dm.as_matrix()))
+    tol = sim_func_args.setdefault('tol', 3)
+    sim_func_args.setdefault(
+        'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
+
+    if sim_func_args.setdefault('method', 'jaccard') \
+            in ('pcc', 'hypergeometric'):
+        dd = inverse_index(igs)
+        sim_func_args['sim_score_params'] = {
+            'nV': len([x for x in dd if 'V' in x]),
+            'nJ': len([x for x in dd if 'J' in x])
+        }
+
+
 def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     """Compute the similarity matrix from a database iterator.
 
@@ -402,20 +419,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     igs = list(db_iter)
     n = len(igs)
 
-    default_model = 'ham'
-    sim_func_args.setdefault('model', default_model)
-    sim_func_args.setdefault('dist_mat', model_matrix(default_model))
-    tol = sim_func_args.setdefault('tol', 3)
-    sim_func_args.setdefault(
-        'ssk_params', {'min_kn': 1, 'max_kn': 8, 'lamda': .75})
-
-    if sim_func_args.setdefault('method', 'jaccard') \
-            in ('pcc', 'hypergeometric'):
-        dd = inverse_index(igs)
-        sim_func_args['sim_score_params'] = {
-            'nV': len([x for x in dd if 'V' in x]),
-            'nJ': len([x for x in dd if 'J' in x])
-        }
+    set_defaults_sim_func(sim_func_args, igs)
     logging.info("Similarity function parameters: %s", sim_func_args)
     similarity_function = partial(sim_function, **sim_func_args)
 
@@ -423,7 +427,8 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     # rows, cols = similar_elements(dd, igs, n, similarity_function)
 
     logging.info("Start parallel_sim_matrix function ...")
-    data, rows, cols = sm_sparse(np.array(igs), similarity_function, tol)
+    data, rows, cols = sm_sparse(
+        np.array(igs), similarity_function, sim_func_args['tol'])
 
     # from icing.externals import neighbors
     # sp = neighbors.radius_neighbors_graph(np.array(igs))
