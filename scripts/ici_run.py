@@ -99,6 +99,7 @@ def main(config_file):
         outfolder, clone_dict = define_clones(
             db_iter, exp_tag=filename, root=root,
             sim_func_args=local_sim_func_args,
+            method=local_sim_func_args.pop('clustering', 'ap'),
             threshold=config.threshold, db_file=db_file)
 
         try:

@@ -38,7 +38,7 @@ def get_clones_real_estimated(filename):
     return clone_ids, found_ids
 
 
-def order_cm(cm):
+def order_cm(cm, rows, cols):
     """Reorder a multiclass confusion matrix."""
     # reorder rows
     idx_rows = np.max(cm, axis=1).argsort()[::-1]
@@ -77,7 +77,8 @@ def order_cm(cm):
                           np.argwhere(max_idxs).T[0])  # residuals
 
     idx = np.argsort(idx_rows)
-    return b[idx_rows2, :], idx_rows2[idx], idx_cols
+    # return b[idx_rows2, :], idx_rows2[idx], idx_cols
+    return b[idx_rows2, :], rows[idx_rows][idx_rows2], cols[idx_cols]
 
 
 def confusion_matrix(true_labels, estimated_labels, ordered=True):
@@ -101,13 +102,13 @@ def confusion_matrix(true_labels, estimated_labels, ordered=True):
 
     cols = np.append(cols, ['pad'] * (cm.shape[1] - cols.shape[0]))
     if ordered:
-        cm, rr, cc = order_cm(cm)
-        rows, cols = rows[rr], cols[cc]
+        cm, rows, cols = order_cm(cm, rows, cols)
+        # rows, cols = rows[rr], cols[cc]
     return cm, rows, cols
 
 
 def precision_recall_fscore(a, method='micro', beta=1.):
-    """Return a precision / recall value for multiclass confuison matrix cm.
+    """Return a precision / recall value for multiclass confusion matrix cm.
 
     See
     http://stats.stackexchange.com/questions/44261/how-to-determine-the-quality-of-a-multiclass-classifier

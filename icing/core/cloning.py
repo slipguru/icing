@@ -17,7 +17,7 @@ import scipy
 
 from collections import defaultdict
 from functools import partial
-# from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.cluster.hierarchy import fcluster, linkage
 # from scipy.spatial.distance import squareform
 # from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
@@ -458,7 +458,8 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
     return similarity_matrix
 
 
-def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
+def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
+                  method='ap'):
     """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix, directed=False)
     prev_max_clust = 0
@@ -472,22 +473,25 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
             sm = similarity_matrix[idxs][:, idxs]
 
             # Hierarchical clustering
-            # if method == 'hierarchical':
-            #     links = linkage(1. - sm.toarray(), method='ward')
-            #     clusters_ = fcluster(links, 1-threshold, 'distance')
+            if method == 'hierarchical':
+                links = linkage(1. - sm.toarray(), method='ward')
+                clusters_ = fcluster(links, 1 - threshold, 'distance')
 
             # DBSCAN
-            # if method == 'dbscan':
-            #     db = ap.fit(1. - sm.toarray())
-            #     # Number of clusters in labels, ignoring noise if present.
-            #     clusters_ = db.labels_ + 1
-            #     # n_clusters_ = len(set(clusters_)) - int(0 in clusters_)
+            if method == 'dbscan':
+                db = ap.fit(1. - sm.toarray())
+                # Number of clusters in labels, ignoring noise if present.
+                clusters_ = db.labels_
+                # n_clusters_ = len(set(clusters_)) - int(0 in clusters_)
 
             # AffinityPropagation
             # ap = AffinityPropagation(affinity='precomputed')
-            db = ap.fit(sm)
-            clusters_ = db.labels_ + 1
+            if method == 'ap':
+                db = ap.fit(sm)
+                clusters_ = db.labels_
 
+            if np.min(clusters_) == 0:
+                clusters_ += 1
             clusters_ += prev_max_clust
             clusters[idxs] = clusters_
             prev_max_clust = max(clusters_)
@@ -504,7 +508,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200):
 #     return np.array(extra.flatten(clusters))
 
 
-def define_clones(db_iter, exp_tag='debug', root=None,
+def define_clones(db_iter, exp_tag='debug', root=None, method='ap',
                   sim_func_args=None, threshold=0.05, db_file=None):
     """Run the pipeline of icing."""
     if not os.path.exists(root):
@@ -533,7 +537,8 @@ def define_clones(db_iter, exp_tag='debug', root=None,
         logging.error("Cannot dump similarity matrix")
 
     logging.info("Start define_clusts function ...")
-    clusters = define_clusts(similarity_matrix, threshold=threshold)
+    clusters = define_clusts(similarity_matrix, threshold=threshold,
+                             method=method)
     n_clones = np.max(clusters) - np.min(clusters) + 1
     logging.critical("Number of clones: %i, threshold %.3f", n_clones,
                      threshold)
