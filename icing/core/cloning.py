@@ -480,7 +480,11 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
             if method == 'hc':
                 dists = squareform(1 - sm.toarray())
                 links = linkage(dists, method='ward')
-                clusters_ = fcluster(links, 1 - threshold, 'distance')
+                try:
+                    clusters_ = fcluster(links, 1 - threshold, 'distance')
+                except ValueError as err:
+                    logging.critical(err)
+                    clusters_ = np.zeros(1)
 
             # DBSCAN
             elif method == 'dbscan':
