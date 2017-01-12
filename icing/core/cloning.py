@@ -18,7 +18,7 @@ import scipy
 from collections import defaultdict
 from functools import partial
 from scipy.cluster.hierarchy import fcluster, linkage
-# from scipy.spatial.distance import squareform
+from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
@@ -478,7 +478,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
 
             # Hierarchical clustering
             if method == 'hc':
-                links = linkage(1. - sm.toarray(), method='ward')
+                dists = squareform(1 - sm.toarray())
+                links = linkage(dists, method='ward')
                 clusters_ = fcluster(links, 1 - threshold, 'distance')
 
             # DBSCAN
