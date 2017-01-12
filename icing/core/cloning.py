@@ -19,7 +19,7 @@ from collections import defaultdict
 from functools import partial
 from scipy.cluster.hierarchy import fcluster, linkage
 # from scipy.spatial.distance import squareform
-# from sklearn.cluster import DBSCAN
+from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
 
@@ -465,8 +465,12 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
     prev_max_clust = 0
     clusters = labels.copy()
 
-    ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
-                             preference='median')
+    if method == 'dbscan':
+        ap = DBSCAN(metric='precomputed', min_samples=1, eps=.2, n_jobs=-1)
+    if method == 'ap':
+        ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
+                                 preference='median')
+
     for i in range(n):
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:

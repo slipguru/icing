@@ -98,8 +98,8 @@ def main(config_file):
         logging.info("Start define_clones function ...")
         outfolder, clone_dict = define_clones(
             db_iter, exp_tag=filename, root=root,
-            sim_func_args=local_sim_func_args,
             method=local_sim_func_args.pop('clustering', 'ap'),
+            sim_func_args=local_sim_func_args,
             threshold=config.threshold, db_file=db_file)
 
         try:
