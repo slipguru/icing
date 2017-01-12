@@ -89,16 +89,19 @@ def main(config_file):
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
                          record_quantity * 100)
+            func_args_copy = local_sim_func_args.copy()
+            func_args_copy.pop('clustering', 'ap')
             (local_sim_func_args['correction_function'], config.threshold,
              alpha_plot) = generate_correction_function(
                  db_file, quantity=record_quantity,
-                 sim_func_args=local_sim_func_args.copy(),
+                 sim_func_args=func_args_copy,
                  order=config.learning_function_order, root=root)
 
         logging.info("Start define_clones function ...")
+        clustering = local_sim_func_args.pop('clustering', 'ap')
         outfolder, clone_dict = define_clones(
             db_iter, exp_tag=filename, root=root,
-            method=local_sim_func_args.pop('clustering', 'ap'),
+            method=clustering,
             sim_func_args=local_sim_func_args,
             threshold=config.threshold, db_file=db_file)
 
