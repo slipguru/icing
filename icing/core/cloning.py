@@ -482,7 +482,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
                 clusters_ = fcluster(links, 1 - threshold, 'distance')
 
             # DBSCAN
-            if method == 'dbscan':
+            elif method == 'dbscan':
                 db = ap.fit(1. - sm.toarray())
                 # Number of clusters in labels, ignoring noise if present.
                 clusters_ = db.labels_
@@ -490,9 +490,11 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
 
             # AffinityPropagation
             # ap = AffinityPropagation(affinity='precomputed')
-            if method == 'ap':
+            elif method == 'ap':
                 db = ap.fit(sm)
                 clusters_ = db.labels_
+            else:
+                raise ValueError("clustering method %s unknown" % method)
 
             if np.min(clusters_) == 0:
                 clusters_ += 1
