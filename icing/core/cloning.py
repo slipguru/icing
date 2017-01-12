@@ -477,7 +477,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
             sm = similarity_matrix[idxs][:, idxs]
 
             # Hierarchical clustering
-            if method == 'hierarchical':
+            if method == 'hc':
                 links = linkage(1. - sm.toarray(), method='ward')
                 clusters_ = fcluster(links, 1 - threshold, 'distance')
 
