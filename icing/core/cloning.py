@@ -484,7 +484,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
                     clusters_ = fcluster(links, 1 - threshold, 'distance')
                 except ValueError as err:
                     logging.critical(err)
-                    clusters_ = np.zeros(1)
+                    clusters_ = np.zeros(1, dtype=int)
 
             # DBSCAN
             elif method == 'dbscan':
