@@ -14,10 +14,11 @@ import multiprocessing as mp
 import numpy as np
 import os
 import scipy
+import fastcluster
 
 from collections import defaultdict
 from functools import partial
-from scipy.cluster.hierarchy import fcluster, linkage
+from scipy.cluster.hierarchy import fcluster
 from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
@@ -479,7 +480,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
             # Hierarchical clustering
             if method == 'hc':
                 dists = squareform(1 - sm.toarray())
-                links = linkage(dists, method='ward')
+                links = fastcluster.linkage(dists, method='ward')
                 try:
                     clusters_ = fcluster(links, 1 - threshold, 'distance')
                 except ValueError as err:
