@@ -308,16 +308,16 @@ def sm_sparse(X, metric, tol):
     def opt_iterator():
         lengths = np.array([x.junction_length for x in X])
         keys = np.arange(X.shape[0])
-        lst = dict(zip(keys, lengths))
+        # lst = dict(zip(keys, lengths))
         ss = dict()
         for k in keys:
-            jl = lst[k]
+            jl = lengths[k]
             # ss[l] = set(lst[abs(lst-l) <= tol])
             _ss_l = set(keys[abs(lengths - jl) <= tol])
             insert = True
             to_remove = None
             for a in _ss_l:
-                s = lst[a]
+                s = lengths[a]
                 try:
                     _ss_l_old = ss[s]
                     l1 = len(_ss_l.difference(_ss_l_old))
