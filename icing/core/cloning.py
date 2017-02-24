@@ -48,7 +48,7 @@ def sim_function(
         Instances of two immunoglobulins.
     method : ('jaccard', 'simpson'), optional
         Graph-based index.
-    model : ('sk', 'ham', 'hs1f'), optional
+    model : ('sk', 'ham', 'hs1f', 'aa', 'smith96' or 'm1n', 'hs5f'), optional
         Model for the distance between strings.
     dist_mat : pandas.DataFrame, optional
         Matrix which define the distance between the single characters.
@@ -84,7 +84,7 @@ def sim_function(
                 [ig1.junc, ig2.junc],
                 verbose=False,
                 normalize=1, return_float=1, **ssk_params)
-        elif model in ('ham', 'hs1f'):
+        else:
             # Using alignment plus model
             if dist_mat is None:
                 dist_mat = model_matrix(model)
