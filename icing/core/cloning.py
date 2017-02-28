@@ -92,8 +92,8 @@ def sim_function(
                 ig1.junc, ig2.junc, ig1.junction_length, ig2.junction_length,
                 dist_mat, dist_mat_max=dist_mat_max, tol=tol)
             similarity += sk_weight * (1 - dist)
-        else:
-            raise ValueError("model '%s' not understood" % model)
+        # else:
+        #     raise ValueError("model '%s' not understood" % model)
 
     if similarity > 0 and correct:
         correction = correction_function(np.mean((ig1.mut, ig2.mut)))
@@ -482,7 +482,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
                 dists = squareform(1 - sm.toarray())
                 links = fastcluster.linkage(dists, method='ward')
                 try:
-                    clusters_ = fcluster(links, 1 - threshold, 'distance')
+                    clusters_ = fcluster(links, threshold, 'distance')
                 except ValueError as err:
                     logging.critical(err)
                     clusters_ = np.zeros(1, dtype=int)
@@ -552,8 +552,12 @@ def define_clones(db_iter, exp_tag='debug', root=None, method='ap',
     clusters = define_clusts(similarity_matrix, threshold=threshold,
                              method=method)
     n_clones = np.max(clusters) - np.min(clusters) + 1
-    logging.critical("Number of clones: %i, threshold %.3f", n_clones,
-                     threshold)
+    if method.lower() == 'ap':
+        # log only number of clones
+        logging.critical("Number of clones: %i", n_clones)
+    else:
+        logging.critical("Number of clones: %i, threshold %.3f", n_clones,
+                         threshold)
     with open(os.path.join(output_folder, 'summary.txt'), 'w') as f:
         f.write("filename: %s\n" % db_file)
         f.write("clones: %i\n" % n_clones)

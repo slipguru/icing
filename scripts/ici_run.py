@@ -60,8 +60,8 @@ def main(config_file):
         'subsets': (), 'mutation': (0, 0), 'apply_filter': None,
         'max_records': None, 'dialect': 'excel-tab', 'exp_tag': 'debug',
         'output_root_folder': 'results', 'force_silhouette': False,
-        'sim_func_args': {}, 'threshold': 0.0536, 'verbose': False,
-        'learning_function_quantity': 0.15,
+        'sim_func_args': {}, 'threshold': None, 'verbose': False,
+        'learning_function_quantity': 0.3,
         'learning_function_order': 3})
 
     # Define logging file
@@ -84,26 +84,31 @@ def main(config_file):
         logging.info("Database loaded (%i records)", len(db_iter))
 
         local_sim_func_args = config.sim_func_args.copy()
-        alpha_plot = None
+        alpha_plot, threshold = None, None
         if local_sim_func_args.get("correction_function", None) is None:
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
                          record_quantity * 100)
             func_args_copy = local_sim_func_args.copy()
             func_args_copy.pop('clustering', 'ap')
-            (local_sim_func_args['correction_function'], config.threshold,
+            (local_sim_func_args['correction_function'], threshold,
              alpha_plot) = generate_correction_function(
                  db_file, quantity=record_quantity,
                  sim_func_args=func_args_copy,
                  order=config.learning_function_order, root=root)
 
+        if config.threshold is None and threshold is None:
+            # no correction function and no threshold specified in config
+            threshold = .05
+        elif config.threshold is not None:
+            threshold = config.threshold
         logging.info("Start define_clones function ...")
         clustering = local_sim_func_args.pop('clustering', 'ap')
         outfolder, clone_dict = define_clones(
             db_iter, exp_tag=filename, root=root,
             method=clustering,
             sim_func_args=local_sim_func_args,
-            threshold=config.threshold, db_file=db_file)
+            threshold=threshold, db_file=db_file)
 
         try:
             # Copy the config just used in the output folder

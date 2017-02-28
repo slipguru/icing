@@ -195,7 +195,7 @@ def intra_donor_distance(db='', lim_mut1=(0, 0), lim_mut2=(0, 0), type_ig='Mem',
         igs2, juncs2 = shuffle_ig(igs2, juncs2, max_seqs)
         mut = np.mean(list(chain((x.mut for x in igs1),
                                  (x.mut for x in igs2))))
-    print(len(juncs1))
+    # logging.info("Computing similarity ")
     return make_hist(
         juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig, mut,
         donor, None, bins, min_seqs, ig1=igs1, ig2=igs2,
@@ -253,7 +253,7 @@ def distr_muts(db, quantity=0.15, bins=50, max_seqs=4000, min_seqs=100,
     try:
         max_mut, n_tot = io.get_max_mut(db)
         # if max_mut < 1:
-        lin = np.linspace(0, max_mut, min(n_tot / 10., 12))
+        lin = np.linspace(0, max_mut, min(n_tot / 15., 12))
         # lin = np.linspace(0, max_mut, 10.)
         sets = [(0, 0)] + zip(lin[:-1], lin[1:])
         # sets = [(0, 0)] + [(i - 1, i) for i in range(1, int(max_mut) + 1)]
@@ -419,7 +419,7 @@ def learning_function(my_dict, order=3, aplot='alphaplot.pdf'):
         plt.close()
 
     # poly = partial(model, res.x)
-    return poly, (filter(
+    return poly, 1 - (filter(
         lambda x: x > 0,
         np.array(thresholds)[np.array(samples).argsort()[::-1]]) or [0])[0]
 
@@ -440,7 +440,7 @@ def generate_correction_function(db, quantity, sim_func_args=None, order=3,
     # case 2: file not exists
     else:
         my_dict = distr_muts(
-            db, quantity=quantity, min_seqs=4, max_seqs=1000,
+            db, quantity=quantity, min_seqs=10, max_seqs=1000,
             sim_func_args=sim_func_args)
         popt, threshold_naive = learning_function(my_dict, order, aplot)
         # save for later, in case of analysis on the same db
