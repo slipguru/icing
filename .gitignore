@@ -6,7 +6,7 @@ __pycache__/
 .ftpconfig
 
 # C extensions
-*.so
+# *.so
 
 # Distribution / packaging
 .Python
