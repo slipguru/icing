@@ -1,2 +1,2 @@
 # TODO integrate in icing
-from . import sum_string_kernel
+from .sum_string_kernel import sum_string_kernel
