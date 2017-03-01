@@ -10,7 +10,7 @@ from setuptools import setup, Extension
 
 # Package Version
 from icing import __version__ as version
-alignment_module = Extension('icing.align.align', sources=['icing/align/alignment.c'])
+# alignment_module = Extension('icing.align.align', sources=['icing/align/alignment.c'])
 setup(
     name='icing',
     version=version,
@@ -47,5 +47,5 @@ setup(
               'matplotlib (>=1.5.1)',
               'seaborn (>=0.7.0)'],
     scripts=['scripts/ici_run.py', 'scripts/ici_analysis.py'],
-    ext_modules=[alignment_module]
+    # ext_modules=[alignment_module]
 )
