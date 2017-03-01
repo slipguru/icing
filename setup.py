@@ -6,7 +6,7 @@ Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
-from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 # Package Version
 from icing import __version__ as version
@@ -22,7 +22,8 @@ setup(
     maintainer='Federico Tomasi',
     maintainer_email='federico.tomasi@dibris.unige.it',
     url='https://github.com/slipguru/icing',
-    download_url='https://github.com/slipguru/icing/tarball/'+version,
+    download_url='https://github.com/slipguru/icing/archive/'+version+'.tar.gz',
+    keywords=['IG', 'immunoglobulins', 'clonotypes'],
     classifiers=[
         'Development Status :: 4 - Beta',
         'Environment :: Console',
@@ -39,7 +40,7 @@ setup(
     license='FreeBSD',
     packages=['icing', 'icing.core', 'icing.utils', 'icing.align',
               'icing.externals', 'icing.models', 'icing.parallel',
-              'icing.plotting'],
+              'icing.plotting', 'icing.kernel', 'icing.validation'],
     requires=['numpy (>=1.10.1)',
               'scipy (>=0.16.1)',
               'sklearn (>=0.17)',
