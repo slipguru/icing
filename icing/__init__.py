@@ -5,4 +5,4 @@ Copyright (c) 2016, Federico Tomasi.
 Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
