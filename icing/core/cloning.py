@@ -541,8 +541,8 @@ def define_clones(db_iter, exp_tag='debug', root=None, method='ap',
 
     sm_filename = output_filename + '_similarity_matrix.pkl.tz'
     try:
-        with gzip.open(os.path.join(output_folder, sm_filename), 'w+') as f:
-            pkl.dump(similarity_matrix, f)
+        pkl.dump(similarity_matrix, gzip.open(
+            os.path.join(output_folder, sm_filename), 'w+'))
         logging.info("Dumped similarity matrix: %s",
                      os.path.join(output_folder, sm_filename))
     except OverflowError:
@@ -563,8 +563,8 @@ def define_clones(db_iter, exp_tag='debug', root=None, method='ap',
         f.write("clones: %i\n" % n_clones)
 
     cl_filename = output_filename + '_clusters.pkl.tz'
-    with gzip.open(os.path.join(output_folder, cl_filename), 'w+') as f:
-        pkl.dump([clusters, threshold], f)
+    pkl.dump([clusters, threshold], gzip.open(
+        os.path.join(output_folder, cl_filename), 'w+'))
     logging.info("Dumped clusters and threshold: %s",
                  os.path.join(output_folder, cl_filename))
 
