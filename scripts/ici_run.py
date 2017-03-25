@@ -22,6 +22,7 @@ from icing.utils import extra
 from icing.utils import io
 
 from icing.clonal_inference import DefineClones
+from icing.learner import LearningFunction
 
 __author__ = 'Federico Tomasi'
 
@@ -85,19 +86,29 @@ def main(config_file):
                                   max_records=config.max_records))
         logging.info("Database loaded (%i records)", len(db_iter))
 
-        local_sim_func_args = config.sim_func_args.copy()
+        import copy
+        igsimilarity_local = copy.deepcopy(igsimilarity)
+        # local_sim_func_args = config.sim_func_args.copy()
         alpha_plot, threshold = None, None
-        if local_sim_func_args.get("correction_function", None) is None:
+        if igsimilarity_local.correction_function is None:
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
                          record_quantity * 100)
             func_args_copy = local_sim_func_args.copy()
             func_args_copy.pop('clustering', 'ap')
-            (local_sim_func_args['correction_function'], threshold,
-             alpha_plot) = generate_correction_function(
-                 db_file, quantity=record_quantity,
-                 sim_func_args=func_args_copy,
-                 order=config.learning_function_order, root=root)
+            # (local_sim_func_args['correction_function'], threshold,
+            #  alpha_plot) = generate_correction_function(
+            #      db_file, quantity=record_quantity,
+            #      sim_func_args=func_args_copy,
+            #      order=config.learning_function_order, root=root)
+            learner = LearningFunction(
+                db_file, quantity=record_quantity,
+                igsimilarity=igsimilarity,
+                order=config.learning_function_order, root=root).fit()
+            learning_function = learner.learning_function
+
+            threshold = learner.threshold_naive
+
 
         if config.threshold is None and threshold is None:
             # no correction function and no threshold specified in config
