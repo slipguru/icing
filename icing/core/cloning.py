@@ -570,9 +570,3 @@ def define_clones(db_iter, exp_tag='debug', root=None, method='ap',
 
     clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
     return output_folder, clone_dict
-
-
-if __name__ == '__main__':
-    print("This file cannot be launched directly. "
-          "Please run the script located in `icing/scripts/ici_run.py` "
-          "with its configuration file. ")

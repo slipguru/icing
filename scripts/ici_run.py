@@ -21,6 +21,8 @@ from icing.core.learning_function import generate_correction_function
 from icing.utils import extra
 from icing.utils import io
 
+from icing.clonal_inference import DefineClones
+
 __author__ = 'Federico Tomasi'
 
 
@@ -103,12 +105,17 @@ def main(config_file):
         elif config.threshold is not None:
             threshold = config.threshold
         logging.info("Start define_clones function ...")
-        clustering = local_sim_func_args.pop('clustering', 'ap')
-        outfolder, clone_dict = define_clones(
-            db_iter, exp_tag=filename, root=root,
-            method=clustering,
-            sim_func_args=local_sim_func_args,
-            threshold=threshold, db_file=db_file)
+        # clustering = local_sim_func_args.pop('clustering', 'ap')
+        # outfolder, clone_dict = define_clones(
+        #     db_iter, exp_tag=filename, root=root,
+        #     method=clustering,
+        #     sim_func_args=local_sim_func_args,
+        #     threshold=threshold, db_file=db_file)
+        clones = DefineClones(
+            tag=filename, root=root, cluster=clustering,
+            igsimilarity=igsimilarity, threshold=threshold).fit(
+                db_iter, db_name=db_file)
+        outfolder, clone_dict = clones.output_folder_, clones.clone_dict_
 
         try:
             # Copy the config just used in the output folder
