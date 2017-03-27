@@ -304,58 +304,58 @@ def sm_sparse(X, metric, tol):
     # iterator = filter(lambda x: x is not None, pool.imap_unordered(
     #     job, combinations(xrange(len(X)), 2), int(n * (n - 1) / 2 / 4)))
     # tic = time.time()
+    #
+    # def opt_iterator():
+    #     lengths = np.array([x.junction_length for x in X])
+    #     keys = np.arange(X.shape[0])
+    #     # lst = dict(zip(keys, lengths))
+    #     ss = dict()
+    #     for k in keys:
+    #         jl = lengths[k]
+    #         # ss[l] = set(lst[abs(lst-l) <= tol])
+    #         _ss_l = set(keys[abs(lengths - jl) <= tol])
+    #         insert = True
+    #         to_remove = None
+    #         for a in _ss_l:
+    #             s = lengths[a]
+    #             try:
+    #                 _ss_l_old = ss[s]
+    #                 l1 = len(_ss_l.difference(_ss_l_old))
+    #                 l2 = len(_ss_l_old.difference(_ss_l))
+    #                 if l1 == 0 and l2 == 0:
+    #                     # they are equal, i can avoid the insertion
+    #                     insert = False
+    #                     break
+    #                 elif l1 == 0:
+    #                     # old is bigger, i avoid the insertion
+    #                     insert = False
+    #                     break
+    #                 elif l2 == 0:
+    #                     # new is bigger, i insert and remove the old
+    #                     insert = True
+    #                     to_remove = s
+    #                     break
+    #                 else:
+    #                     # they are different, continue
+    #                     continue
+    #             except KeyError:
+    #                 continue
+    #         if insert:
+    #             if to_remove is not None:
+    #                 del ss[to_remove]
+    #             ss[jl] = _ss_l
+    #     comb = []
+    #     for k in ss:
+    #         comb += list((i, j) for i, j in combinations(ss[k], 2)
+    #                      if len(X[i].setV & X[j].setV) > 0)
+    #     return list(set(comb))
+    #
+    # iterator = opt_iterator()
 
-    def opt_iterator():
-        lengths = np.array([x.junction_length for x in X])
-        keys = np.arange(X.shape[0])
-        # lst = dict(zip(keys, lengths))
-        ss = dict()
-        for k in keys:
-            jl = lengths[k]
-            # ss[l] = set(lst[abs(lst-l) <= tol])
-            _ss_l = set(keys[abs(lengths - jl) <= tol])
-            insert = True
-            to_remove = None
-            for a in _ss_l:
-                s = lengths[a]
-                try:
-                    _ss_l_old = ss[s]
-                    l1 = len(_ss_l.difference(_ss_l_old))
-                    l2 = len(_ss_l_old.difference(_ss_l))
-                    if l1 == 0 and l2 == 0:
-                        # they are equal, i can avoid the insertion
-                        insert = False
-                        break
-                    elif l1 == 0:
-                        # old is bigger, i avoid the insertion
-                        insert = False
-                        break
-                    elif l2 == 0:
-                        # new is bigger, i insert and remove the old
-                        insert = True
-                        to_remove = s
-                        break
-                    else:
-                        # they are different, continue
-                        continue
-                except KeyError:
-                    continue
-            if insert:
-                if to_remove is not None:
-                    del ss[to_remove]
-                ss[jl] = _ss_l
-        comb = []
-        for k in ss:
-            comb += list((i, j) for i, j in combinations(ss[k], 2)
-                         if len(X[i].setV & X[j].setV) > 0)
-        return list(set(comb))
-
-    iterator = opt_iterator()
-
-    # iterator = list(
-    #     (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
-    #     len(X[i].setV & X[j].setV) > 0 and
-    #     abs(X[i].junction_length - X[j].junction_length) < tol)
+    iterator = list(
+        (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
+        len(X[i].setV & X[j].setV) > 0 and
+        abs(X[i].junction_length - X[j].junction_length) < tol)
     # print(time.time() - tic)
     # pool.close()
     len_it = len(iterator)

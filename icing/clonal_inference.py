@@ -11,7 +11,7 @@ import gzip
 
 from scipy import sparse
 from six.moves import cPickle as pkl
-
+from sklearn.base import BaseEstimator
 
 import icing
 from icing import __version__
@@ -32,7 +32,7 @@ from icing.utils import extra
 from icing.core.cloning import define_clusts
 
 
-class StringKernel(object):
+class StringKernel(BaseEstimator):
     """Utility class for string kernel"""
 
     def __init__(self, min_kn=1, max_kn=2, lamda=.5,
@@ -51,7 +51,7 @@ class StringKernel(object):
             hard_matching=self.hard_matching)
 
 
-class StringSimilarity(object):
+class StringSimilarity(BaseEstimator):
     """Utility class for string distance."""
 
     def __init__(self, model='ham', dist_mat=None, tol=3):
@@ -65,11 +65,12 @@ class StringSimilarity(object):
 
     def pairwise(self, x1, x2):
         return 1 - string_distance(
-            x1, x2, dist_mat=self.dist_mat, dist_mat_max=self.dist_mat_max,
+            x1, x2, len(x1), len(x2), dist_mat=self.dist_mat,
+            dist_mat_max=self.dist_mat_max,
             tol=self.tol)
 
 
-class IgSimilarity(object):
+class IgSimilarity(BaseEstimator):
 
     # def __init__(self, method='jaccard', model='ham', dist_mat=None, dist_mat_max=1,
     #     tol=3, rm_duplicates=False,
@@ -125,7 +126,7 @@ class IgSimilarity(object):
         return max(similarity, 0)
 
 
-class DefineClones(object):
+class DefineClones(BaseEstimator):
     """todo."""
 
     def __init__(
@@ -138,11 +139,15 @@ class DefineClones(object):
         self.igsimilarity = igsimilarity
         self.threshold = threshold
 
+    @property
+    def save_results(self):
+        return self.root is not None
+
     def fit(self, records, db_name=None):
         """Run docstings."""
-        if not os.path.exists(self.root):
+        if self.save_results and not os.path.exists(self.root):
             if self.root is None:
-                self.root = 'results_' + self.exp_tag + extra.get_time()
+                self.root = 'results_' + self.tag + extra.get_time()
             os.makedirs(self.root)
             logging.warn("No root folder supplied, folder %s "
                          "created", os.path.abspath(self.root))
@@ -151,20 +156,21 @@ class DefineClones(object):
             records, sparse_mode=True,
             igsimilarity=self.igsimilarity)
 
-        output_filename = self.exp_tag
-        output_folder = os.path.join(self.root, output_filename)
+        if self.save_results:
+            output_filename = self.tag
+            output_folder = os.path.join(self.root, output_filename)
 
-        # Create exp folder into the root folder
-        os.makedirs(output_folder)
+            # Create exp folder into the root folder
+            os.makedirs(output_folder)
 
-        sm_filename = output_filename + '_similarity_matrix.pkl.tz'
-        try:
-            pkl.dump(similarity_matrix, gzip.open(
-                os.path.join(output_folder, sm_filename), 'w+'))
-            logging.info("Dumped similarity matrix: %s",
-                         os.path.join(output_folder, sm_filename))
-        except OverflowError:
-            logging.error("Cannot dump similarity matrix")
+            sm_filename = output_filename + '_similarity_matrix.pkl.tz'
+            try:
+                pkl.dump(similarity_matrix, gzip.open(
+                    os.path.join(output_folder, sm_filename), 'w+'))
+                logging.info("Dumped similarity matrix: %s",
+                             os.path.join(output_folder, sm_filename))
+            except OverflowError:
+                logging.error("Cannot dump similarity matrix")
 
         logging.info("Start define_clusts function ...")
         clusters = define_clusts(
@@ -177,19 +183,20 @@ class DefineClones(object):
             logging.critical(
                 "Number of clones: %i, threshold %.3f", n_clones,
                 self.threshold)
-        with open(os.path.join(output_folder, 'summary.txt'), 'w') as f:
-            f.write("filename: %s\n" % db_name)
-            f.write("clones: %i\n" % n_clones)
+        if self.save_results:
+            with open(os.path.join(output_folder, 'summary.txt'), 'w') as f:
+                f.write("filename: %s\n" % db_name)
+                f.write("clones: %i\n" % n_clones)
 
-        cl_filename = output_filename + '_clusters.pkl.tz'
-        pkl.dump([clusters, self.threshold], gzip.open(
-            os.path.join(output_folder, cl_filename), 'w+'))
-        logging.info("Dumped clusters and threshold: %s",
-                     os.path.join(output_folder, cl_filename))
+            cl_filename = output_filename + '_clusters.pkl.tz'
+            pkl.dump([clusters, self.threshold], gzip.open(
+                os.path.join(output_folder, cl_filename), 'w+'))
+            logging.info("Dumped clusters and threshold: %s",
+                         os.path.join(output_folder, cl_filename))
+            self.output_folder_ = output_folder
 
         clone_dict = {k.id: v for k, v in zip(records, clusters)}
 
-        self.output_folder_ = output_folder
         self.clone_dict_ = clone_dict
 
 
@@ -234,8 +241,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, igsimilarity=None):
         np.array(igs), igsimilarity.pairwise, igsimilarity.tol)
 
     sparse_mat = sparse.csr_matrix((data, (rows, cols)), shape=(n, n))
-    similarity_matrix = sparse_mat + sparse_mat.T + sparse.eye(
-        sparse_mat.shape[0])
+    similarity_matrix = sparse_mat  # connected components works well
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
 

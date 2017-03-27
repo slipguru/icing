@@ -14,7 +14,9 @@ import sys
 
 from Bio.Seq import Seq
 from Bio.Alphabet import IUPAC
+from sklearn.base import BaseEstimator
 
+from icing.utils.extra import junction_re
 
 # Regular expression globals
 allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])([VDJ][A-Z0-9]+[-/\w]*[-\*][\.\w]+))')
@@ -28,7 +30,7 @@ j_allele_regex = re.compile(r'((IG[HLK]|TR[ABGD])J[A-Z0-9]+[-/\w]*[-\*][\.\w]+)'
 
 # TODO:  might be better to just use the lower case column name as the member
 # variable name. can use getattr and setattr.
-class IgRecord:
+class IgRecord(BaseEstimator):
     """A class defining a V(D)J germline sequence alignment."""
 
     # Mapping of member variables to column names
@@ -205,7 +207,6 @@ class IgRecord:
         self.annotations = row
         self.setV = set(self.getVGene('set') or ())
         self.setJ = set(self.getJGene('set') or ())
-        from icing.utils.extra import junction_re
         self.junc = junction_re(self.junction)
 
     # Get a field value by column name and return it as a string

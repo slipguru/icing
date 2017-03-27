@@ -451,8 +451,9 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
 
     sparse_mat = scipy.sparse.csr_matrix((data, (rows, cols)),
                                          shape=(n, n))
-    similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
-        sparse_mat.shape[0])
+    # similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
+    #     sparse_mat.shape[0])
+    similarity_matrix = sparse_mat  # connected components works well
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
 
@@ -476,6 +477,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
             sm = similarity_matrix[idxs][:, idxs]
+            # make symmetric
+            sm += sm.T + scipy.sparse.eye(sm.shape[0])
 
             # Hierarchical clustering
             if method == 'hc':
