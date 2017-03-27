@@ -465,6 +465,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
     """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix, directed=False)
     prev_max_clust = 0
+    print("connected components: %d" % n) 
     clusters = labels.copy()
 
     if method == 'dbscan':
