@@ -79,7 +79,7 @@ class IgSimilarity(BaseEstimator):
     #     sim_score_params=None, ssk_params=None):
     #     pass
     def __init__(
-        self, junction_sim, tol=3, rm_duplicates=False,
+            self, junction_sim, tol=3, rm_duplicates=False,
             correct=True, correct_by=None):
         """Calculate a similarity between two input immunoglobulins.
 
