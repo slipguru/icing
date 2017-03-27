@@ -464,6 +464,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
                   method='ap'):
     """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix, directed=False)
+    print("connected components: %d" % n)
     prev_max_clust = 0
     clusters = labels.copy()
 

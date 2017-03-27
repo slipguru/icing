@@ -196,8 +196,9 @@ class DefineClones(BaseEstimator):
             self.output_folder_ = output_folder
 
         clone_dict = {k.id: v for k, v in zip(records, clusters)}
-
         self.clone_dict_ = clone_dict
+
+        return self
 
 
 def compute_similarity_matrix(db_iter, sparse_mode=True, igsimilarity=None):
