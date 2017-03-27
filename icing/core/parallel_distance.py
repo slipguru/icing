@@ -355,7 +355,7 @@ def sm_sparse(X, metric, tol):
     iterator = list(
         (i, j) for i, j in combinations(xrange(X.shape[0]), 2) if
         len(X[i].setV & X[j].setV) > 0 and
-        abs(X[i].junction_length - X[j].junction_length) < tol)
+        abs(X[i].junction_length - X[j].junction_length) <= tol)
     # print(time.time() - tic)
     # pool.close()
     len_it = len(iterator)
