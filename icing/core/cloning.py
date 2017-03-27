@@ -478,7 +478,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
         if idxs.shape[0] > 1:
             sm = similarity_matrix[idxs][:, idxs]
             # make symmetric
-            sm += sm.T + scipy.sparse.eye(sm.shape[0])
+            sm += sm.T + scipy.sparse.eye(idxs.shape[0])
 
             # Hierarchical clustering
             if method == 'hc':
