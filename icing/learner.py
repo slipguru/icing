@@ -1,6 +1,7 @@
 """Learning function sklearn-like."""
 from __future__ import division, print_function
 
+import copy
 import logging
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ from itertools import chain
 # from scipy.optimize import curve_fit
 from scipy.optimize import least_squares
 from sklearn import mixture
+from sklearn.base import BaseEstimator
 from sklearn.utils import shuffle
 
 from icing.core import cloning
@@ -28,7 +30,7 @@ from icing.core.learning_function import mean_confidence_interval
 from icing.core.learning_function import _gaussian_fit
 
 
-class LearningFunction(object):
+class LearningFunction(BaseEstimator):
 
     def __init__(self, database, quantity=1, igsimilarity=None, order=3,
                  root='', min_seqs=10, max_seqs=1000, bins=50):
@@ -121,7 +123,7 @@ class LearningFunction(object):
 
     def distributions(self):
         """Create histograms and relative mutation levels using intra groups."""
-        db = self.db
+        db = self.database
         logging.info("Analysing %s ...", db)
         try:
             max_mut, n_tot = io.get_max_mut(db)
@@ -157,6 +159,8 @@ class LearningFunction(object):
         self.learning_function = learning_function
         self.threshold_naive = threshold_naive
 
+        return self
+
 
 def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
               mut=None, donor1='B4', donor2=None, bins=100,
@@ -169,7 +173,6 @@ def make_hist(juncs1, juncs2, filename, lim_mut1, lim_mut2, type_ig='Mem',
     if len(juncs1) < min_seqs or len(juncs2) < min_seqs:
         return ''
 
-    import copy
     igsimilarity_learn = copy.deepcopy(igsimilarity)
     # cloning.set_defaults_sim_func(
     #     sim_func_args_2, ig1 if is_intra else ig1 + ig2)

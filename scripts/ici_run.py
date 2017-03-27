@@ -67,7 +67,8 @@ def main(config_file):
         'learning_function_quantity': 0.3,
         'learning_function_order': 3,
         'igsimilarity': None,
-        'clustering': 'ap'})
+        'clustering': 'ap',
+        'correct_by': None})
 
     # Define logging file
     root = config.output_root_folder
@@ -108,7 +109,7 @@ def main(config_file):
                 igsimilarity=igsimilarity_local,
                 order=config.learning_function_order, root=root).fit()
             learning_function = learner.learning_function
-
+            igsimilarity_local.correct_by = learning_function
             threshold = learner.threshold_naive
 
         if config.threshold is None and threshold is None:
@@ -125,7 +126,7 @@ def main(config_file):
         #     threshold=threshold, db_file=db_file)
         clones = DefineClones(
             tag=filename, root=root, cluster=config.clustering,
-            igsimilarity=config.igsimilarity, threshold=threshold).fit(
+            igsimilarity=igsimilarity_local, threshold=threshold).fit(
                 db_iter, db_name=db_file)
         outfolder, clone_dict = clones.output_folder_, clones.clone_dict_
 
