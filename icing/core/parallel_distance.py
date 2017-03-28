@@ -304,7 +304,6 @@ def sm_sparse(X, metric, tol):
     # iterator = filter(lambda x: x is not None, pool.imap_unordered(
     #     job, combinations(xrange(len(X)), 2), int(n * (n - 1) / 2 / 4)))
     # tic = time.time()
-    #
     # def opt_iterator():
     #     lengths = np.array([x.junction_length for x in X])
     #     keys = np.arange(X.shape[0])
