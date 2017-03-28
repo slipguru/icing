@@ -13,6 +13,7 @@ import argparse
 import logging
 import time
 import numpy as np
+import pandas as pd
 
 import icing
 from icing import __version__
@@ -20,6 +21,9 @@ from icing.core.cloning import define_clones
 from icing.core.learning_function import generate_correction_function
 from icing.utils import extra
 from icing.utils import io
+
+from icing.clonal_inference import DefineClones
+from icing.learner import LearningFunction
 
 __author__ = 'Federico Tomasi'
 
@@ -62,7 +66,10 @@ def main(config_file):
         'output_root_folder': 'results', 'force_silhouette': False,
         'sim_func_args': {}, 'threshold': None, 'verbose': False,
         'learning_function_quantity': 0.3,
-        'learning_function_order': 3})
+        'learning_function_order': 3,
+        'igsimilarity': None,
+        'clustering': 'ap',
+        'correct_by': None})
 
     # Define logging file
     root = config.output_root_folder
@@ -83,19 +90,29 @@ def main(config_file):
                                   max_records=config.max_records))
         logging.info("Database loaded (%i records)", len(db_iter))
 
-        local_sim_func_args = config.sim_func_args.copy()
+        import copy
+        igsimilarity_local = copy.deepcopy(config.igsimilarity)
+        # local_sim_func_args = config.sim_func_args.copy()
         alpha_plot, threshold = None, None
-        if local_sim_func_args.get("correction_function", None) is None:
+        if igsimilarity_local.correct and igsimilarity_local.correct_by is None:
             record_quantity = np.clip(config.learning_function_quantity, 0, 1)
             logging.info("Generate correction function with %.2f%% of records",
                          record_quantity * 100)
-            func_args_copy = local_sim_func_args.copy()
-            func_args_copy.pop('clustering', 'ap')
-            (local_sim_func_args['correction_function'], threshold,
-             alpha_plot) = generate_correction_function(
-                 db_file, quantity=record_quantity,
-                 sim_func_args=func_args_copy,
-                 order=config.learning_function_order, root=root)
+            # func_args_copy = local_sim_func_args.copy()
+            # func_args_copy.pop('clustering', 'ap')
+            # (local_sim_func_args['correction_function'], threshold,
+            #  alpha_plot) = generate_correction_function(
+            #      db_file, quantity=record_quantity,
+            #      sim_func_args=func_args_copy,
+            #      order=config.learning_function_order, root=root)
+            records = pd.read_csv(db_file, dialect='excel-tab')
+            learner = LearningFunction(
+                db_file, quantity=record_quantity,
+                igsimilarity=igsimilarity_local,
+                order=config.learning_function_order, root=root).fit(records)
+            learning_function = learner.learning_function
+            igsimilarity_local.correct_by = learning_function
+            threshold = learner.threshold_naive
 
         if config.threshold is None and threshold is None:
             # no correction function and no threshold specified in config
@@ -103,12 +120,17 @@ def main(config_file):
         elif config.threshold is not None:
             threshold = config.threshold
         logging.info("Start define_clones function ...")
-        clustering = local_sim_func_args.pop('clustering', 'ap')
-        outfolder, clone_dict = define_clones(
-            db_iter, exp_tag=filename, root=root,
-            method=clustering,
-            sim_func_args=local_sim_func_args,
-            threshold=threshold, db_file=db_file)
+        # clustering = local_sim_func_args.pop('clustering', 'ap')
+        # outfolder, clone_dict = define_clones(
+        #     db_iter, exp_tag=filename, root=root,
+        #     method=clustering,
+        #     sim_func_args=local_sim_func_args,
+        #     threshold=threshold, db_file=db_file)
+        clones = DefineClones(
+            tag=filename, root=root, cluster=config.clustering,
+            igsimilarity=igsimilarity_local, threshold=threshold).fit(
+                db_iter, db_name=db_file)
+        outfolder, clone_dict = clones.output_folder_, clones.clone_dict_
 
         try:
             # Copy the config just used in the output folder

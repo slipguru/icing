@@ -453,7 +453,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
                                          shape=(n, n))
     # similarity_matrix = sparse_mat + sparse_mat.T + scipy.sparse.eye(
     #     sparse_mat.shape[0])
-    similarity_matrix = sparse_mat
+    similarity_matrix = sparse_mat  # connected components works well
     if not sparse_mode:
         similarity_matrix = similarity_matrix.toarray()
 
@@ -464,6 +464,7 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
                   method='ap'):
     """Define clusters given the similarity matrix and the threshold."""
     n, labels = connected_components(similarity_matrix, directed=False)
+    print("connected components: %d" % n)
     prev_max_clust = 0
     print("connected components: %d" % n) 
     clusters = labels.copy()
@@ -478,7 +479,8 @@ def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
         idxs = np.where(labels == i)[0]
         if idxs.shape[0] > 1:
             sm = similarity_matrix[idxs][:, idxs]
-            sm += sm.T + scipy.sparse.eye(sm.shape[0])
+            # make symmetric
+            sm += sm.T + scipy.sparse.eye(idxs.shape[0])
 
             # Hierarchical clustering
             if method == 'hc':
@@ -573,9 +575,3 @@ def define_clones(db_iter, exp_tag='debug', root=None, method='ap',
 
     clone_dict = {k.id: v for k, v in zip(db_iter, clusters)}
     return output_folder, clone_dict
-
-
-if __name__ == '__main__':
-    print("This file cannot be launched directly. "
-          "Please run the script located in `icing/scripts/ici_run.py` "
-          "with its configuration file. ")

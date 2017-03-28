@@ -11,7 +11,6 @@ import gzip
 import scipy
 import fastcluster
 
-
 from collections import defaultdict
 from functools import partial
 from scipy.cluster.hierarchy import fcluster
@@ -19,6 +18,7 @@ from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
 # from sklearn.cluster import AffinityPropagation
 from sklearn.utils.sparsetools import connected_components
+
 from scipy import sparse
 from six.moves import cPickle as pkl
 from sklearn.base import BaseEstimator
@@ -89,7 +89,7 @@ class IgSimilarity(BaseEstimator):
     #     sim_score_params=None, ssk_params=None):
     #     pass
     def __init__(
-        self, junction_sim, tol=3, rm_duplicates=False,
+            self, junction_sim, tol=3, rm_duplicates=False,
             correct=True, correct_by=None):
         """Calculate a similarity between two input immunoglobulins.
 
@@ -258,7 +258,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, igsimilarity=None):
 
     return similarity_matrix
 
-
+  
 def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
                   method='ap'):
     """Define clusters given the similarity matrix and the threshold."""
