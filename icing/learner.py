@@ -35,7 +35,7 @@ from icing.core.learning_function import _gaussian_fit
 class LearningFunction(BaseEstimator):
 
     def __init__(self, database, quantity=1, igsimilarity=None, order=3,
-                 root='', min_seqs=10, max_seqs=1000, bins=50):
+                 root='', min_seqs=10, max_seqs=1000, bins=50, aplot=None):
         self.database = database
         self.quantity = quantity
         self.igsimilarity = igsimilarity
@@ -44,8 +44,9 @@ class LearningFunction(BaseEstimator):
         self.min_seqs = min_seqs
         self.max_seqs = max_seqs
         self.bins = bins
+        self.aplot = aplot
 
-    def learn(self, my_dict):
+    def learn(self, my_dict, aplot=None):
         if my_dict is None:
             logging.critical("Cannot learn function with empty dict")
             return lambda _: 1, 0
@@ -53,8 +54,8 @@ class LearningFunction(BaseEstimator):
         samples, thresholds = [], []
         for k, v in six.iteritems(my_dict):
             for o in (_ for _ in v if _):
-                dnearest = np.array(np.load("{}.npz".format(o))['X']) \
-                    .reshape(-1, 1)
+                dnearest = np.array(np.load("{}.npz".format(o))['X']).reshape(
+                    -1, 1)
                 var = np.var(dnearest)
                 if var == 0:
                     continue
@@ -67,7 +68,7 @@ class LearningFunction(BaseEstimator):
                 thresholds.append(_gaussian_fit(dnearest))
 
         for k, v in six.iteritems(d_dict):  # there is only one
-            xdata = np.array(sorted([x for x in v]))
+            xdata = np.array(sorted(v))
             ydata = np.array([np.mean(v[x][0]) for x in xdata])
             yerr = np.array([np.mean(v[x][1]) for x in xdata])
 
@@ -83,12 +84,6 @@ class LearningFunction(BaseEstimator):
         ydata = ydata[0] / ydata  # normalise
         yerr = yerr[mask]
 
-        # res = least_squares(
-        #     lambda x, u, y: least_squares_mdl(x, u) - y,
-        #     x0=np.array([2.5, 3.9, 4.15, 3.9]),
-        #     jac=least_squares_jacobian, bounds=(0, 100), args=(xdata, ydata),
-        #     ftol=1e-12, loss='soft_l1')
-
         order = min(self.order, xdata.shape[0] - 1)
         warnings.filterwarnings("ignore")
         with warnings.catch_warnings():
@@ -102,21 +97,8 @@ class LearningFunction(BaseEstimator):
                     order, xdata.shape[0])
                 return lambda _: 1, 0
 
-        # XXX plotting
-        # with sns.axes_style('whitegrid'):
-        #     sns.set_context('paper')
-        #     xp = np.linspace(np.min(xdata), np.max(xdata), 1000)[:, None]
-        #     plt.figure()
-        #     plt.errorbar(xdata, ydata, yerr,
-        #                  label='Nearest similarity', marker='s')
-        #     plt.plot(xp, poly(xp), '-',
-        #              label='Learning function (poly of order {})'.format(order))
-        #     # plt.plot(xp, least_squares_mdl(res.x, xp), '-', label='least squares')
-        #     plt.xlabel(r'Mutation level')
-        #     plt.ylabel(r'Average similarity (not normalised)')
-        #     plt.legend(loc='lower left')
-        #     plt.savefig(aplot, transparent=True, bbox_inches='tight')
-        #     plt.close()
+        if self.aplot is not None:
+            plot_learning_function(xdata, ydata, yerr, order, self.aplot, poly)
 
         # poly = partial(model, res.x)
         return poly, 1 - (filter(
@@ -160,46 +142,6 @@ class LearningFunction(BaseEstimator):
                 juncs1, juncs2, filename, lim_mut1, lim_mut2, mut,
                 self.donor, None, ig1=igs1, ig2=igs2), mut
 
-    def read_db_file(self, lim_mut1, lim_mut2):
-        """Read database from file."""
-        readdb = partial(io.read_db, self.database,
-                         max_records=self.quantity * self.n_samples)
-        if max(lim_mut1[1], lim_mut2[1]) == 0:
-            igs = readdb(filt=(lambda x: x.mut == 0))
-            igs1, juncs1 = remove_duplicate_junctions(igs)
-            if len(igs1) < 2:
-                return '', 0
-            igs1, juncs1 = shuffle_ig(igs1, juncs1, self.max_seqs)
-            igs2 = igs1
-            juncs2 = juncs1
-            mut = 0
-        elif (lim_mut1[0] == lim_mut2[0] and lim_mut1[1] == lim_mut2[1]):
-            igs = readdb(filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
-            igs1, juncs1 = remove_duplicate_junctions(igs)
-            if len(igs1) < 2:
-                return '', 0
-            igs1, juncs1 = shuffle_ig(igs1, juncs1, self.max_seqs)
-            igs2 = igs1
-            juncs2 = juncs1
-            mut = np.mean(list(chain((x.mut for x in igs1),
-                                     (x.mut for x in igs2))))
-        else:
-            igs = readdb(filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
-            igs1, juncs1 = remove_duplicate_junctions(igs)
-            if len(igs1) < 2:
-                return '', 0
-            igs = readdb(filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]))
-            igs2, juncs2 = remove_duplicate_junctions(igs)
-            if len(igs2) < 2:
-                return '', 0
-            if not len(juncs1) or not len(juncs2):
-                return '', 0
-            igs1, juncs1 = shuffle_ig(igs1, juncs1, self.max_seqs)
-            igs2, juncs2 = shuffle_ig(igs2, juncs2, self.max_seqs)
-            mut = np.mean(list(chain((x.mut for x in igs1),
-                                     (x.mut for x in igs2))))
-        return igs1, igs2, juncs1, juncs2, mut
-
     def distributions(self, records=None):
         logging.info("Analysing %s ...", self.database)
         try:
@@ -237,6 +179,7 @@ class LearningFunction(BaseEstimator):
         """
         self.correction = correction
         self.donor = self.database.split('/')[-1]
+
         my_dict = self.distributions(records)
         learning_function, threshold_naive = self.learn(my_dict)
 
@@ -337,3 +280,61 @@ def plot_hist(dnearest, bins, title, filename):
     # plt.xlabel('Ham distance (normalised)')
     plt.savefig(filename + ".pdf")
     plt.close()
+
+
+def plot_learning_function(xdata, ydata, yerr, order, aplot, poly):
+    with sns.axes_style('whitegrid'):
+        sns.set_context('paper')
+        xp = np.linspace(np.min(xdata), np.max(xdata), 1000)[:, None]
+        plt.figure()
+        plt.errorbar(xdata, ydata, yerr,
+                     label='Nearest similarity', marker='s')
+        plt.plot(xp, poly(xp), '-',
+                 label='Learning function (poly of order {})'.format(order))
+        # plt.plot(xp, least_squares_mdl(res.x, xp), '-', label='least squares')
+        plt.xlabel(r'Mutation level')
+        plt.ylabel(r'Average similarity (not normalised)')
+        plt.legend(loc='lower left')
+        plt.savefig(aplot, transparent=True, bbox_inches='tight')
+        plt.close()
+
+
+def read_db_file(estimator, lim_mut1, lim_mut2):
+    """Read database from file."""
+    readdb = partial(io.read_db, estimator.database,
+                     max_records=estimator.quantity * estimator.n_samples)
+    if max(lim_mut1[1], lim_mut2[1]) == 0:
+        igs = readdb(filt=(lambda x: x.mut == 0))
+        igs1, juncs1 = remove_duplicate_junctions(igs)
+        if len(igs1) < 2:
+            return '', 0
+        igs1, juncs1 = shuffle_ig(igs1, juncs1, estimator.max_seqs)
+        igs2 = igs1
+        juncs2 = juncs1
+        mut = 0
+    elif (lim_mut1[0] == lim_mut2[0] and lim_mut1[1] == lim_mut2[1]):
+        igs = readdb(filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
+        igs1, juncs1 = remove_duplicate_junctions(igs)
+        if len(igs1) < 2:
+            return '', 0
+        igs1, juncs1 = shuffle_ig(igs1, juncs1, estimator.max_seqs)
+        igs2 = igs1
+        juncs2 = juncs1
+        mut = np.mean(list(chain((x.mut for x in igs1),
+                                 (x.mut for x in igs2))))
+    else:
+        igs = readdb(filt=(lambda x: lim_mut1[0] < x.mut <= lim_mut1[1]))
+        igs1, juncs1 = remove_duplicate_junctions(igs)
+        if len(igs1) < 2:
+            return '', 0
+        igs = readdb(filt=(lambda x: lim_mut2[0] < x.mut <= lim_mut2[1]))
+        igs2, juncs2 = remove_duplicate_junctions(igs)
+        if len(igs2) < 2:
+            return '', 0
+        if not len(juncs1) or not len(juncs2):
+            return '', 0
+        igs1, juncs1 = shuffle_ig(igs1, juncs1, estimator.max_seqs)
+        igs2, juncs2 = shuffle_ig(igs2, juncs2, estimator.max_seqs)
+        mut = np.mean(list(chain((x.mut for x in igs1),
+                                 (x.mut for x in igs2))))
+    return igs1, igs2, juncs1, juncs2, mut
