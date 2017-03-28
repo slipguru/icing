@@ -1,18 +1,12 @@
 """Compatibility module for sklearn-like ICING usage."""
 
 import os
-import imp
-import shutil
-import argparse
 import logging
-import time
 import numpy as np
 import gzip
 import scipy
 import fastcluster
 
-from collections import defaultdict
-from functools import partial
 from scipy.cluster.hierarchy import fcluster
 from scipy.spatial.distance import squareform
 from sklearn.cluster import DBSCAN
@@ -23,27 +17,16 @@ from scipy import sparse
 from six.moves import cPickle as pkl
 from sklearn.base import BaseEstimator
 
-import icing
-from icing import __version__
-from icing.core.cloning import define_clones
-from icing.core.learning_function import generate_correction_function
-from icing.utils import extra
-from icing.utils import io
-
 from icing.core.distances import string_distance
-from icing.core.similarity_scores import similarity_score_tripartite as mwi
 from icing.core.parallel_distance import sm_sparse
 from icing.externals import AffinityPropagation
 from icing.kernel import sum_string_kernel
 from icing.models.model import model_matrix
-from icing.validation import scores
 from icing.utils import extra
-
-from icing.core.cloning import define_clusts
 
 
 class StringKernel(BaseEstimator):
-    """Utility class for string kernel"""
+    """Utility class for string kernel."""
 
     def __init__(self, min_kn=1, max_kn=2, lamda=.5,
                  check_min_length=0, hard_matching=0):
@@ -81,6 +64,7 @@ class StringSimilarity(BaseEstimator):
 
 
 class IgSimilarity(BaseEstimator):
+    """Container for computing distance between IgRecords."""
 
     # def __init__(self, method='jaccard', model='ham', dist_mat=None, dist_mat_max=1,
     #     tol=3, rm_duplicates=False,
@@ -137,7 +121,7 @@ class IgSimilarity(BaseEstimator):
 
 
 class DefineClones(BaseEstimator):
-    """todo."""
+    """Clustering container for defining final clones."""
 
     def __init__(
         self, tag='debug', root=None, cluster='ap', igsimilarity=None,
@@ -258,7 +242,7 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, igsimilarity=None):
 
     return similarity_matrix
 
-  
+
 def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
                   method='ap'):
     """Define clusters given the similarity matrix and the threshold."""
