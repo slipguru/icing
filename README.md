@@ -1,6 +1,5 @@
-===========================================
-ICING - Infer clones of immunoglobulin data
-===========================================
+# ICING - Infer clones of immunoglobulin data
+
 A Python package to clonal relate immunoglobulins.
 
 **ICING** is an implementation of an unsupervised learning technique
