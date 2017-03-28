@@ -7,6 +7,7 @@ import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import pandas as pd
 import seaborn as sns
 import scipy.stats
 import six
@@ -22,6 +23,7 @@ from sklearn.utils import shuffle
 
 from icing.core import cloning
 from icing.core import parallel_distance
+from icing.externals.DbCore import IgRecord
 from icing.models.model import model_matrix
 from icing.utils import io, extra
 
@@ -121,7 +123,7 @@ class LearningFunction(BaseEstimator):
             lambda x: x > 0,
             np.array(thresholds)[np.array(samples).argsort()[::-1]]) or [0])[0]
 
-    def intra_donor_distance(self, lim_mut1=(0, 0), lim_mut2=(0, 0)):
+    def intra_donor_distance(self, records=None, lim_mut1=(0, 0), lim_mut2=(0, 0)):
         """Nearest distances intra donor.
 
         Subsets of Igs can be selected choosing two ranges of mutations.
@@ -133,25 +135,35 @@ class LearningFunction(BaseEstimator):
             ('_correction' if self.correction else '')
         # mut = min(lim_mut1[0], lim_mut2[0])
         if os.path.exists(filename + '.npz'):
-            logging.info("File %s exists.", filename + '.npz')
-            # Plot distance distribution
-            plt.figure(figsize=(20, 10))
+            logging.critical("File %s exists.", filename + '.npz')
             dnearest = np.load(filename + '.npz')['X']
-            plt.hist(dnearest, bins=self.bins, normed=True)
-            plt.title("Similarities for " +
-                      ("{}".format(self.donor)) +
-                      " {} {:.3f}-{:.3f}% and {:.3f}-{:.3f}%"
-                      .format('', lim_mut1[0], lim_mut1[1], *lim_mut2))
-            plt.ylabel('Count')
-            # plt.xlim([0, 1])
-            # plt.xticks(np.linspace(0, 1, 21))
-            # plt.xlabel('Ham distance (normalised)')
-            plt.savefig(filename + ".pdf")
-            plt.close()
+            title = "Similarities for {:.3f}-{:.3f}% and {:.3f}-{:.3f}%" \
+                    .format(lim_mut1[0], lim_mut1[1], *lim_mut2)
+            plot_hist(dnearest, self.bins, title, filename)
             return filename, float(np.load(filename + '.npz')['mut'])
 
+        if records is not None and isinstance(records, pd.DataFrame):
+            if lim_mut1[0] == lim_mut2[0] and lim_mut1[1] == lim_mut2[1]:
+                igs = records[np.logical_and(records['MUT'] >= lim_mut1[0],
+                                             records['MUT'] <= lim_mut1[1])]
+                mut = np.mean(igs['MUT'])
+            else:
+                raise NotImplementedError("not yet")
+
+            return self.mutation_histogram(igs, mut, filename), mut
+        else:
+            # load from file
+            igs1, igs2, juncs1, juncs2, mut = self.read_db_file(
+                lim_mut1, lim_mut2)
+
+            return self.make_hist(
+                juncs1, juncs2, filename, lim_mut1, lim_mut2, mut,
+                self.donor, None, ig1=igs1, ig2=igs2), mut
+
+    def read_db_file(self, lim_mut1, lim_mut2):
+        """Read database from file."""
         readdb = partial(io.read_db, self.database,
-                         max_records=self.quantity * self.n_tot)
+                         max_records=self.quantity * self.n_samples)
         if max(lim_mut1[1], lim_mut2[1]) == 0:
             igs = readdb(filt=(lambda x: x.mut == 0))
             igs1, juncs1 = remove_duplicate_junctions(igs)
@@ -186,42 +198,46 @@ class LearningFunction(BaseEstimator):
             igs2, juncs2 = shuffle_ig(igs2, juncs2, self.max_seqs)
             mut = np.mean(list(chain((x.mut for x in igs1),
                                      (x.mut for x in igs2))))
-        # logging.info("Computing similarity ")
-        return self.make_hist(
-            juncs1, juncs2, filename, lim_mut1, lim_mut2, mut,
-            self.donor, None, ig1=igs1, ig2=igs2), mut
+        return igs1, igs2, juncs1, juncs2, mut
 
-    def distributions(self):
-        """Create histograms and mutation levels using intra groups."""
-        self.donor = self.database.split('/')[-1],
-        self.correction = False
-
+    def distributions(self, records=None):
         logging.info("Analysing %s ...", self.database)
         try:
-            max_mut, n_tot = io.get_max_mut(self.database)
-            self.n_tot = n_tot
-            # if max_mut < 1:
-            lin = np.linspace(0, max_mut, min(n_tot / 15., 12))
-            # lin = np.linspace(0, max_mut, 10.)
+            if records is not None and isinstance(records, pd.DataFrame):
+                max_mut = np.max(records['MUT'])
+                self.n_samples = records.shape[0]
+            else:
+                # load from file
+                max_mut, self.n_samples = io.get_max_mut(self.database)
+
+            lin = np.linspace(0, max_mut, min(self.n_samples / 15., 12))
             sets = [(0, 0)] + zip(lin[:-1], lin[1:])
-            # sets = [(0, 0)] + [(i - 1, i) for i in range(1, int(max_mut) + 1)]
             if len(sets) == 1:
                 # no correction needs to be applied
                 return None
-            out_muts = [
-                self.intra_donor_distance(i, j) for i, j in zip(sets, sets)]
+            out_muts = [self.intra_donor_distance(
+                records, i, j) for i, j in zip(sets, sets)]
         except StandardError as msg:
             logging.critical(msg)
             out_muts = []
 
-        d = dict()
+        my_dict = dict()
         for f, m in out_muts:
-            d.setdefault(m, []).append(f)
-        return d
+            my_dict.setdefault(m, []).append(f)
+        return my_dict
 
-    def fit(self, records=None):
-        learning_function = None
-        my_dict = self.distributions()
+    def fit(self, records=None, correction=False):
+        """Create histograms and mutation levels using intra groups.
+
+        Parameters
+        ----------
+        records : None or pd.DataFrame
+            If records is an instance of a dataframe, use it instead of loading
+            data from disk.
+        """
+        self.correction = correction
+        self.donor = self.database.split('/')[-1]
+        my_dict = self.distributions(records)
         learning_function, threshold_naive = self.learn(my_dict)
 
         self.learning_function = learning_function
@@ -240,17 +256,6 @@ class LearningFunction(BaseEstimator):
             return ''
 
         igsimilarity_learn = copy.deepcopy(self.igsimilarity)
-        # cloning.set_defaults_sim_func(
-        #     sim_func_args_2, ig1 if is_intra else ig1 + ig2)
-        #
-        # sim_func_args_2['correct'] = correction
-        # sim_func_args_2['rm_duplicates'] = True
-        # if not correction:
-        #     sim_func_args_2['tol'] = 1000
-        # else:
-        #     sim_func_args_2['correction_function'] = correction
-        #
-        # sim_func = partial(cloning.sim_function, **sim_func_args_2)
         igsimilarity_learn.correct = self.correction
         igsimilarity_learn.rm_duplicates = True
         if not self.correction:
@@ -274,19 +279,43 @@ class LearningFunction(BaseEstimator):
         np.savez(filename, X=dnearest, mut=mut)
 
         # Plot distance distribution
-        plt.figure(figsize=(20, 10))
-        plt.hist(dnearest, bins=self.bins, normed=True)
-        plt.title("Distances between " +
-                  ("{}-{}".format(donor1, donor2) if donor2 else "") +
-                  " {} {:.3f}-{:.3f}% and {:.3f}-{:.3f}%"
-                  .format('', lim_mut1[0], lim_mut1[1], *lim_mut2))
-        plt.ylabel('Count')
-        # plt.xlim([0, 1])
-        plt.xticks(np.linspace(0, 1, 21))
-        # plt.xlabel('Ham distance (normalised)')
-        plt.savefig(filename + ".png")
-        plt.close()
+        title = "Similarities for {:.3f}-{:.3f}% and {:.3f}-{:.3f}%" \
+                .format(lim_mut1[0], lim_mut1[1], *lim_mut2)
+        plot_hist(dnearest, self.bins, title, filename)
         return filename
+
+    def mutation_histogram(self, records, mut, filename):
+        """Records is a pd.Dataframe."""
+        if os.path.exists(filename + '.npz'):
+            logging.critical(filename + '.npz esists.')
+            return filename
+        if records.shape[0] < self.min_seqs:
+            return ''
+
+        igs = [IgRecord(x.to_dict()) for _, x in records.iterrows()]
+        igsimilarity_learn = copy.deepcopy(self.igsimilarity)
+        igsimilarity_learn.correct = self.correction
+        igsimilarity_learn.rm_duplicates = True
+        if not self.correction:
+            igsimilarity_learn.tol = 1000
+        else:
+            igsimilarity_learn.correct_by = self.correction
+
+        sim_func = igsimilarity_learn.pairwise
+        logging.info("Computing %s", filename)
+        dnearest = parallel_distance.dnearest_intra_padding(
+            igs, sim_func, filt=lambda x: x > 0, func=max)
+
+        if not os.path.exists(filename.split('/')[0]):
+            os.makedirs(filename.split('/')[0])
+        np.savez(filename, X=dnearest, mut=mut)
+
+        # Plot distance distribution
+        title = "Similarities for {:.3f}-{:.3f}%" \
+                .format(np.min(records['MUT']), np.max(records['MUT']))
+        plot_hist(dnearest, self.bins, title, filename)
+        return filename
+
 
 
 def shuffle_ig(igs, juncs, max_seqs):
@@ -295,3 +324,16 @@ def shuffle_ig(igs, juncs, max_seqs):
         igs = igs[:max_seqs]
         juncs = juncs[:max_seqs]
     return igs, juncs
+
+
+def plot_hist(dnearest, bins, title, filename):
+    # Plot distance distribution
+    plt.figure(figsize=(20, 10))
+    plt.hist(dnearest, bins=bins, normed=True)
+    plt.title(title)
+    plt.ylabel('Count')
+    # plt.xlim([0, 1])
+    # plt.xticks(np.linspace(0, 1, 21))
+    # plt.xlabel('Ham distance (normalised)')
+    plt.savefig(filename + ".pdf")
+    plt.close()

@@ -195,7 +195,7 @@ class IgRecord(BaseEstimator):
                 f = getattr(IgRecord, IgRecord._parse_map[k])
                 setattr(self, k, f(row.pop(IgRecord._key_map[k])))
         except:
-            sys.exit('ERROR:  Input must contain valid %s values'
+            raise ValueError('row must contain valid %s values'
                      % ','.join([IgRecord._key_map[k] for k in required_keys]))
 
         # Defined optional logical values
