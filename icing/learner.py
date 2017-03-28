@@ -66,7 +66,9 @@ class LearningFunction(BaseEstimator):
 
                 # for the threshold, fit a gaussian (unused for AP)
                 thresholds.append(_gaussian_fit(dnearest))
-
+        if len(d_dict) < 1:
+            logging.critical("dictionary is empty")
+            return lambda _: 1, 0
         for k, v in six.iteritems(d_dict):  # there is only one
             xdata = np.array(sorted(v))
             ydata = np.array([np.mean(v[x][0]) for x in xdata])
@@ -135,8 +137,8 @@ class LearningFunction(BaseEstimator):
             return self.mutation_histogram(igs, mut, filename), mut
         else:
             # load from file
-            igs1, igs2, juncs1, juncs2, mut = self.read_db_file(
-                lim_mut1, lim_mut2)
+            igs1, igs2, juncs1, juncs2, mut = read_db_file(
+                self, lim_mut1, lim_mut2)
 
             return self.make_hist(
                 juncs1, juncs2, filename, lim_mut1, lim_mut2, mut,

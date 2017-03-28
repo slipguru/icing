@@ -13,6 +13,7 @@ import argparse
 import logging
 import time
 import numpy as np
+import pandas as pd
 
 import icing
 from icing import __version__
@@ -104,10 +105,11 @@ def main(config_file):
             #      db_file, quantity=record_quantity,
             #      sim_func_args=func_args_copy,
             #      order=config.learning_function_order, root=root)
+            records = pd.read_csv(db_file, dialect='excel-tab')
             learner = LearningFunction(
                 db_file, quantity=record_quantity,
                 igsimilarity=igsimilarity_local,
-                order=config.learning_function_order, root=root).fit()
+                order=config.learning_function_order, root=root).fit(records)
             learning_function = learner.learning_function
             igsimilarity_local.correct_by = learning_function
             threshold = learner.threshold_naive
