@@ -54,7 +54,7 @@ class StringSimilarity(BaseEstimator):
 
         if self.dist_mat is None:
             self.dist_mat = model_matrix(model)
-        self.dist_mat_max = np.max(dist_mat)
+        self.dist_mat_max = np.max(np.max(self.dist_mat))
 
     def pairwise(self, x1, x2):
         return 1 - string_distance(
