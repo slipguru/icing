@@ -4,6 +4,7 @@ import logging
 import numpy as np
 import gzip
 
+from functools import partial
 from six.moves import cPickle as pkl
 from sklearn.base import BaseEstimator
 
@@ -33,7 +34,6 @@ class DefineClones(BaseEstimator):
 
     def fit(self, records, db_name=None):
         """Run docstings."""
-        print self
         if self.save_results and not os.path.exists(self.root):
             if self.root is None:
                 self.root = 'results_' + self.tag + extra.get_time()
@@ -81,7 +81,14 @@ class DefineClones(BaseEstimator):
             if self.clustering is None:
                 raise ValueError("If not computing similarity matrix, "
                                  "you need to pass a clustering method")
-            labels = self.clustering.fit_predict(X_string)
+
+            self.clustering.metric = partial(self.clustering.metric, X_string)
+            print self.clustering
+            # Fit on a index array
+            # see https://github.com/scikit-learn/scikit-learn/issues/3737
+            # labels = self.clustering.fit_predict(X_string)
+            labels = self.clustering.fit_predict(
+                np.arange(X_string.shape[0]).reshape(-1, 1))
 
         n_clones = np.max(labels) - np.min(labels) + 1
         if self.cluster.lower() == 'ap':
