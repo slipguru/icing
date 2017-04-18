@@ -14,23 +14,16 @@ import multiprocessing as mp
 import numpy as np
 import os
 import scipy
-import fastcluster
 
 from collections import defaultdict
 from functools import partial
-from scipy.cluster.hierarchy import fcluster
-from scipy.spatial.distance import squareform
-from sklearn.cluster import DBSCAN
-# from sklearn.cluster import AffinityPropagation
-from sklearn.utils.sparsetools import connected_components
 
+from icing.core.cluster import define_clusts
 from icing.core.distances import string_distance
 from icing.core.similarity_scores import similarity_score_tripartite as mwi
 from icing.core.parallel_distance import sm_sparse
-from icing.externals import AffinityPropagation
 from icing.kernel import sum_string_kernel
 from icing.models.model import model_matrix
-from icing.validation import scores
 from icing.utils import extra
 
 
@@ -459,63 +452,6 @@ def compute_similarity_matrix(db_iter, sparse_mode=True, **sim_func_args):
 
     return similarity_matrix
 
-
-def define_clusts(similarity_matrix, threshold=0.05, max_iter=200,
-                  method='ap'):
-    """Define clusters given the similarity matrix and the threshold."""
-    n, labels = connected_components(similarity_matrix, directed=False)
-    print("connected components: %d" % n)
-    prev_max_clust = 0
-    print("connected components: %d" % n) 
-    clusters = labels.copy()
-
-    if method == 'dbscan':
-        ap = DBSCAN(metric='precomputed', min_samples=1, eps=.2, n_jobs=-1)
-    if method == 'ap':
-        ap = AffinityPropagation(affinity='precomputed', max_iter=max_iter,
-                                 preference='median')
-
-    for i in range(n):
-        idxs = np.where(labels == i)[0]
-        if idxs.shape[0] > 1:
-            sm = similarity_matrix[idxs][:, idxs]
-            # make symmetric
-            sm += sm.T + scipy.sparse.eye(idxs.shape[0])
-
-            # Hierarchical clustering
-            if method == 'hc':
-                dists = squareform(1 - sm.toarray())
-                links = fastcluster.linkage(dists, method='ward')
-                try:
-                    clusters_ = fcluster(links, threshold, 'distance')
-                except ValueError as err:
-                    logging.critical(err)
-                    clusters_ = np.zeros(1, dtype=int)
-
-            # DBSCAN
-            elif method == 'dbscan':
-                db = ap.fit(1. - sm.toarray())
-                # Number of clusters in labels, ignoring noise if present.
-                clusters_ = db.labels_
-                # n_clusters_ = len(set(clusters_)) - int(0 in clusters_)
-
-            # AffinityPropagation
-            # ap = AffinityPropagation(affinity='precomputed')
-            elif method == 'ap':
-                db = ap.fit(sm)
-                clusters_ = db.labels_
-            else:
-                raise ValueError("clustering method %s unknown" % method)
-
-            if np.min(clusters_) == 0:
-                clusters_ += 1
-            clusters_ += prev_max_clust
-            clusters[idxs] = clusters_
-            prev_max_clust = max(clusters_)
-        else:  # connected component contains just 1 element
-            prev_max_clust += 1
-            clusters[idxs] = prev_max_clust
-    return np.array(extra.flatten(clusters))
 
 # def define_clusts_(similarity_matrix, threshold):
 #     """Define clusters given the similarity matrix and the threshold."""

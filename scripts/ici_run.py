@@ -17,12 +17,10 @@ import pandas as pd
 
 import icing
 from icing import __version__
-from icing.core.cloning import define_clones
-from icing.core.learning_function import generate_correction_function
 from icing.utils import extra
 from icing.utils import io
 
-from icing.clonal_inference import DefineClones
+from icing.inference import DefineClones
 from icing.learner import LearningFunction
 
 __author__ = 'Federico Tomasi'
@@ -68,7 +66,8 @@ def main(config_file):
         'learning_function_quantity': 0.3,
         'learning_function_order': 3,
         'igsimilarity': None,
-        'clustering': 'ap',
+        'clustering': 'ap', 'clustering_method': None,
+        'compute_similarity': True,
         'correct_by': None})
 
     # Define logging file
@@ -128,7 +127,9 @@ def main(config_file):
         #     threshold=threshold, db_file=db_file)
         clones = DefineClones(
             tag=filename, root=root, cluster=config.clustering,
-            igsimilarity=igsimilarity_local, threshold=threshold).fit(
+            igsimilarity=igsimilarity_local, threshold=threshold,
+            compute_similarity=config.compute_similarity,
+            clustering=config.clustering_method).fit(
                 db_iter, db_name=db_file)
         outfolder, clone_dict = clones.output_folder_, clones.clone_dict_
 

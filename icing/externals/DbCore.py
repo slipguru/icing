@@ -319,6 +319,23 @@ class IgRecord(BaseEstimator):
     def getJFamily(self, action='first'):
         return parseAllele(self.j_call, family_regex, action)
 
+    @property
+    def features(self):
+        """Get features as list of strings.
+
+        They are organised as:
+        - Vgenes (separated by '|')
+        - Jgenes (separated by '|')
+        - Junction
+        - Junction length
+        - Mutation level
+        """
+        return ["|".join(list(self.setV)),
+                "|".join(list(self.setJ)),
+                self.junc,
+                str(self.junction_length),
+                str(self.mut)]
+
 
 # TODO:  might be cleaner as getAllele(), getGene(), getFamily()
 def parseAllele(alleles, regex, action='first'):

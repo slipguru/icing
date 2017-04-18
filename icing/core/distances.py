@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Utilities to compute distances between sequences.
 
-The functions `get_nmers`, `single_distance` and `junction_distance` are
+The functions `get_nmers` and `junction_distance` are
 adapted from Change-O functions. See changeo.DbCore for the original version.
 Reference: http://changeo.readthedocs.io/en/latest/
 
@@ -15,14 +15,18 @@ import numpy as np
 
 from itertools import izip  # combinations, izip, product
 from Bio.pairwise2 import align
+from sklearn.base import BaseEstimator
 
 try:
-    from ..align import align as igalign
+    from icing.align import align as igalign
 except ImportError:
     raise ImportError("Module align.so not found. "
                       "Did you compile icing with "
                       "'python setup.py build_ext --inplace install'?")
-from ..utils import extra
+
+from icing.kernel import sum_string_kernel
+from icing.models.model import model_matrix
+from icing.utils import extra
 
 
 def hamming(str1, str2):
@@ -52,73 +56,6 @@ def get_nmers(sequences, n):
     for seq, seqn in izip(sequences, sequences_n):
         nmers[seq] = [seqn[i:i+n] for i in range(len(seqn)-n+1)]
     return nmers
-
-
-def single_distance(seq1, seq2, n, dist_mat, norm, sym, mutations, tol=3,
-                    c=35., length_constraint=True):
-    """Calculate a distance between two input sequences.
-
-    .. note:: Deprecated.
-          `single_distance` will be removed in icing 0.2. It is replaced by
-          `string_distance`.
-
-    :param seq1: first sequence
-    :param seq2: second sequence
-    :param n: length of n-mers to be used in calculating distance
-    :param dist_mat: pandas DataFrame of mutation distances
-    :param norm: normalization method
-    :param sym: symmetry method
-    :return: numpy matrix of pairwise distances between input sequences
-    """
-    import re
-    if length_constraint and 0 < abs(len(seq1)-len(seq2)) <= tol:
-        # different lengths, seqs alignment
-        seq1, seq2 = map((lambda x: re.sub('[\.-]', 'N', str(x))),
-                         align.globalxx(seq1, seq2)[0][:2])
-
-    nmers = get_nmers([seq1, seq2], n)
-    # Iterate over combinations of input sequences
-    mutated = [i for i, (c1, c2) in enumerate(izip(seq1, seq2)) if c1 != c2]
-    seqq1, seqq2 = ['']*len(mutated), ['']*len(mutated)
-    nmer1, nmer2 = ['']*len(mutated), ['']*len(mutated)
-    for i, m in enumerate(mutated):
-        seqq1[i] = seq1[m]
-        seqq2[i] = seq2[m]
-        nmer1[i] = nmers[seq1][m]
-        nmer2[i] = nmers[seq2][m]
-
-    # Determine normalizing factor
-    if norm == 'len':
-        norm_by = len(seq1)
-    elif norm == 'mut':
-        norm_by = len(mutated)
-    elif norm == 'max':
-        norm_by = max(len(seq1), len(seq2))
-    elif norm == 'min':
-        norm_by = min(len(seq1), len(seq2))
-    else:
-        norm_by = 1
-
-    # Determine symmetry function
-    if sym == 'avg':
-        sym_fun = np.mean
-    elif sym == 'min':
-        sym_fun = min
-    else:
-        sym_fun = sum
-
-    if length_constraint and abs(len(seq1)-len(seq2)) > tol:
-        return min(len(seq1), len(seq2)) / norm_by
-    else:
-        _dist = sum([sym_fun([float(dist_mat.at[c1,n2]),float(dist_mat.at[c2,n1])]) \
-                 for c1,c2,n1,n2 in izip(seqq1,seqq2,nmer1,nmer2)]) / (norm_by)
-        if mutations:
-            try:
-                alpha_mut = np.poly1d(np.load("polyfit_arguments_2.npy"))
-                _dist *= (np.max(alpha_mut(np.max([mutations])), 0) + 0.2)
-            except:
-                _dist *= np.exp(-np.max(mutations) / c)
-        return _dist
 
 
 def junction_distance(seq1, seq2, n, dist_mat, norm, sym, tol=3, c=35.,
@@ -239,4 +176,114 @@ def string_distance(seq1, seq2, len_seq1, len_seq2, dist_mat, dist_mat_max,
             # seq1, seq2 = map(extra.junction_re, igalign.alignment(seq1, seq2))
             # print 'after align:\n', seq1, '\n', seq2, '\n--------------'
     norm_by = len_seq1 * dist_mat_max
-    return sum([np.mean((float(dist_mat.at[c1, c2]), float(dist_mat.at[c2, c1]))) for c1, c2 in izip(list(seq1), list(seq2))]) / norm_by
+    return sum([np.mean((
+        float(dist_mat.at[c1, c2]),
+        float(dist_mat.at[c2, c1]))) for c1, c2 in izip(
+            list(seq1), list(seq2))]) / norm_by
+
+
+class Distance(BaseEstimator):
+    _estimator_type = "distance"
+
+
+class StringKernelDistance(Distance):
+    """Utility class for string kernel for computing distances."""
+
+    def __init__(self, min_kn=1, max_kn=2, lamda=.5,
+                 check_min_length=0, hard_matching=0):
+        self.min_kn = min_kn
+        self.max_kn = max_kn
+        self.lamda = lamda
+        self.check_min_length = check_min_length
+        self.hard_matching = hard_matching
+
+    def pairwise(self, x1, x2):
+        return 1 - sum_string_kernel(
+            [x1, x2], verbose=False, normalize=1, return_float=1,
+            min_kn=self.min_kn, max_kn=self.max_kn, lamda=self.lamda,
+            check_min_length=self.check_min_length,
+            hard_matching=self.hard_matching)
+
+
+class StringDistance(Distance):
+    """Utility class for string distance."""
+
+    def __init__(self, model='ham', dist_mat=None, tol=3):
+        self.model = model
+        self.dist_mat = dist_mat
+        self.tol = tol
+
+        if self.dist_mat is None:
+            self.dist_mat = model_matrix(model)
+        self.dist_mat_max = np.max(np.max(self.dist_mat))
+
+    def pairwise(self, x1, x2):
+        return string_distance(
+            x1, x2, len(x1), len(x2), dist_mat=self.dist_mat,
+            dist_mat_max=self.dist_mat_max, tol=self.tol)
+
+
+class IgDistance(Distance):
+    """Container for computing distance between IgRecord string representation."""
+
+    # def __init__(self, method='jaccard', model='ham', dist_mat=None, dist_mat_max=1,
+    #     tol=3, rm_duplicates=False,
+    #     v_weight=1., j_weight=1., vj_weight=.5, sk_weight=.5,
+    #     correction_function=(lambda _: 1), correct=True,
+    #     sim_score_params=None, ssk_params=None):
+    #     pass
+    def __init__(
+            self, junction_dist, tol=3, rm_duplicates=False,
+            correct=True, correct_by=None):
+        """Calculate a similarity between two input immunoglobulins.
+
+        Parameters
+        ----------
+        tol : int, optional, default: 3
+            Tolerance in the length of the sequences. Default is 3 (3 nucleotides
+            form an amminoacid. If seq1 and seq2 represent amminoacidic sequences,
+            use tol = 1).
+
+        Returns
+        -------
+        similarity : float
+            A normalised similarity score between ig1 and ig2. Values are in [0,1].
+            0: ig1 is completely different from ig2.
+            1: ig1 and ig2 are the same.
+
+        """
+        self.junction_dist = junction_dist
+        self.rm_duplicates = rm_duplicates
+        self.correct = correct
+        self.correct_by = correct_by
+        self.tol = tol
+
+    def pairwise(self, x1, x2):
+        """Compute pairwise similarity.
+
+        Parameters
+        ----------
+        x1, x2 : array-like
+            String representation of two Igs. See IgRecords.features()
+        """
+        if self.rm_duplicates and x1[2] == x2[2]:
+            return 1
+
+        Vgenes_x, Jgenes_x = map(lambda _: set(_.split('|')), (x1[0], x1[1]))
+        Vgenes_y, Jgenes_y = map(lambda _: set(_.split('|')), (x2[0], x2[1]))
+
+        if abs(float(x1[3]) - float(x2[3])) > self.tol or len(
+                Vgenes_x & Vgenes_y) < 1:
+            return 1
+
+        distance = self.junction_dist.pairwise(x1[2], x2[2])
+
+        if distance > 0 and self.correct:
+            correction = self.correct_by(np.mean((float(x1[4]), float(x2[4]))))
+            distance *= np.clip(correction, 0, 1)
+        return max(distance, 0)
+
+
+def is_distance(estimator):
+    """Return True if the given estimator encode a distance."""
+    return getattr(estimator, "_estimator_type", None) == "distance"

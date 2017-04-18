@@ -9,23 +9,17 @@ import numpy as np
 import os
 import pandas as pd
 import seaborn as sns
-import scipy.stats
 import six
 import warnings
 
 from functools import partial
 from itertools import chain
 # from scipy.optimize import curve_fit
-from scipy.optimize import least_squares
-from sklearn import mixture
 from sklearn.base import BaseEstimator
 from sklearn.utils import shuffle
 
-from icing.core import cloning
 from icing.core import parallel_distance
 from icing.externals.DbCore import IgRecord
-from icing.models.model import model_matrix
-from icing.utils import io, extra
 
 from icing.core.learning_function import remove_duplicate_junctions
 from icing.core.learning_function import mean_confidence_interval
