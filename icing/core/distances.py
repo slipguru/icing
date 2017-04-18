@@ -284,6 +284,40 @@ class IgDistance(Distance):
         return max(distance, 0)
 
 
+def ig_distance(s, x1, x2, rm_duplicates=False, tol=3, junction_dist=None,
+                correct=False, correct_by=None):
+    """Compute pairwise similarity.
+
+    Parameters
+    ----------
+    x1, x2 : array-like
+        String representation of two Igs. See IgRecords.features()
+    """
+    # let's use X as lookup table instead of data
+    try:
+        x1, x2 = s[int(x1[0])], s[int(x2[0])]
+    except TypeError as e:
+        print x1, x2
+        raise e
+
+    if rm_duplicates and x1[2] == x2[2]:
+        return 1
+
+    Vgenes_x, Jgenes_x = map(lambda _: set(_.split('|')), (x1[0], x1[1]))
+    Vgenes_y, Jgenes_y = map(lambda _: set(_.split('|')), (x2[0], x2[1]))
+
+    if abs(float(x1[3]) - float(x2[3])) > tol or len(
+            Vgenes_x & Vgenes_y) < 1:
+        return 1
+
+    distance = junction_dist.pairwise(x1[2], x2[2])
+
+    if 1 > distance > 0 and correct:
+        correction = correct_by(np.mean((float(x1[4]), float(x2[4]))))
+        distance *= np.clip(correction, 0, 1)
+    return max(distance, 0)
+
+
 def is_distance(estimator):
     """Return True if the given estimator encode a distance."""
     return getattr(estimator, "_estimator_type", None) == "distance"
