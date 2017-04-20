@@ -302,19 +302,22 @@ def distance_dataframe(s, x1, x2, rm_duplicates=False, tol=3,
         raise e
 
     x1_junc, x2_junc = x1.aa_junc, x2.aa_junc
-    if x1_junc == x2_junc:
-        if rm_duplicates:
-            return 1
-        return 0
-
     Vgenes_x, Jgenes_x = x1.v_gene_set, x1.j_gene_set
     Vgenes_y, Jgenes_y = x2.v_gene_set, x2.j_gene_set
+
+    if x1_junc == x2_junc:
+        if (Vgenes_x & Vgenes_y):
+            if rm_duplicates:
+                return 1
+            return 0
+        else:
+            return 1
 
     if abs(x1.aa_junction_length - x2.aa_junction_length) > tol or \
             not (Vgenes_x & Vgenes_y):
         return 1
 
-    distance = junction_dist.pairwise(x1.aa_junc, x2.aa_junc)
+    distance = junction_dist.pairwise(x1_junc, x2_junc)
     if 1 > distance > 0 and correct:
         correction = correct_by(np.mean((x1.mut, x2.mut)))
         distance *= np.clip(correction, 0, 1)
