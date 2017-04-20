@@ -90,7 +90,8 @@ class DefineClones(BaseEstimator):
             labels = self.clustering.fit_predict(
                 np.arange(X_string.shape[0]).reshape(-1, 1))
 
-        n_clones = np.max(labels) - np.min(labels) + 1
+        # Number of clusters in labels, ignoring noise if present.
+        n_clones = len(set(labels)) - (1 if -1 in labels else 0)
         if self.cluster.lower() == 'ap':
             # log only number of clones
             logging.critical("Number of clones: %i", n_clones)

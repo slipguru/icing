@@ -25,6 +25,7 @@ except ImportError:
                       "'python setup.py build_ext --inplace install'?")
 
 from icing.kernel import sum_string_kernel
+# from string_kernel import sum_string_kernel
 from icing.models.model import model_matrix
 from icing.utils import extra
 
@@ -284,6 +285,42 @@ class IgDistance(Distance):
         return max(distance, 0)
 
 
+def distance_dataframe(s, x1, x2, rm_duplicates=False, tol=3,
+                       junction_dist=None, correct=False, correct_by=None):
+    """Compute pairwise similarity.
+
+    Parameters
+    ----------
+    x1, x2 : array-like
+        String representation of two Igs. See IgRecords.features()
+    """
+    # let's use X as lookup table instead of data
+    try:
+        x1, x2 = s.iloc[int(x1[0])], s.iloc[int(x2[0])]
+    except TypeError as e:
+        print x1, x2
+        raise e
+
+    x1_junc, x2_junc = x1.aa_junc, x2.aa_junc
+    if x1_junc == x2_junc:
+        if rm_duplicates:
+            return 1
+        return 0
+
+    Vgenes_x, Jgenes_x = x1.v_gene_set, x1.j_gene_set
+    Vgenes_y, Jgenes_y = x2.v_gene_set, x2.j_gene_set
+
+    if abs(x1.aa_junction_length - x2.aa_junction_length) > tol or \
+            not (Vgenes_x & Vgenes_y):
+        return 1
+
+    distance = junction_dist.pairwise(x1.aa_junc, x2.aa_junc)
+    if 1 > distance > 0 and correct:
+        correction = correct_by(np.mean((x1.mut, x2.mut)))
+        distance *= np.clip(correction, 0, 1)
+    return max(distance, 0)
+
+
 def ig_distance(s, x1, x2, rm_duplicates=False, tol=3, junction_dist=None,
                 correct=False, correct_by=None):
     """Compute pairwise similarity.
@@ -306,8 +343,7 @@ def ig_distance(s, x1, x2, rm_duplicates=False, tol=3, junction_dist=None,
     Vgenes_x, Jgenes_x = map(lambda _: set(_.split('|')), (x1[0], x1[1]))
     Vgenes_y, Jgenes_y = map(lambda _: set(_.split('|')), (x2[0], x2[1]))
 
-    if abs(float(x1[3]) - float(x2[3])) > tol or len(
-            Vgenes_x & Vgenes_y) < 1:
+    if abs(float(x1[3]) - float(x2[3])) > tol or not (Vgenes_x & Vgenes_y):
         return 1
 
     distance = junction_dist.pairwise(x1[2], x2[2])
