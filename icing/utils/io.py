@@ -7,9 +7,14 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
 import csv
+import pandas as pd
 import sys
 
+from Bio.Seq import Seq
+from Bio.Alphabet import generic_dna
 from itertools import ifilter, islice
+
+from icing.externals.DbCore import parseAllele, gene_regex, junction_re
 from icing.externals import IgRecord
 
 
@@ -160,3 +165,23 @@ def load_dm_from_file(filename, index_col=0, header='infer',
         dm = ensure_symmetry(dm)
 
     return dm
+
+
+def load_dataframe(db_file):
+    df = pd.read_csv(db_file, dialect='excel-tab')
+    df = df.rename(columns=dict(zip(df.columns, df.columns.str.lower())))
+
+    # df = df[df['functional'] == 'F']
+
+    # parse v and j genes to speed up computation later
+    df['v_gene_set'] = [set(
+        parseAllele(x, gene_regex, 'set')) for x in df.v_call]
+    df['v_gene_set_str'] = [str(set(
+        parseAllele(x, gene_regex, 'set'))) for x in df.v_call]
+    df['j_gene_set'] = [set(
+        parseAllele(x, gene_regex, 'set')) for x in df.j_call]
+    df['junc'] = [junction_re(x) for x in df.junction]
+    df['aa_junc'] = [str(Seq(x, generic_dna).translate()) for x in df.junc]
+    df['aa_junction_length'] = [len(x) for x in df.aa_junc]
+
+    return df
