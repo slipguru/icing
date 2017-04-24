@@ -7,8 +7,10 @@ import gzip
 from functools import partial
 from six.moves import cPickle as pkl
 from sklearn.base import BaseEstimator
+from sklearn.cluster import DBSCAN, MiniBatchKMeans
 
 from icing.core.cluster import define_clusts
+from icing.core.distances import distance_dataframe, StringKernelDistance
 from icing.similarity_ import compute_similarity_matrix
 from icing.utils import extra
 
@@ -115,3 +117,79 @@ class DefineClones(BaseEstimator):
         self.clone_dict_ = clone_dict
 
         return self
+
+
+class ICINGTwoStep(BaseEstimator):
+
+    def __init__(self, eps=0.5, kmeans_params=None, dbscan_params=None):
+        self.eps = eps
+        self.dbscan_params = dbscan_params or {}
+        self.kmeans_params = kmeans_params or dict(n_init=100, n_clusters=100)
+
+    def fit(self, X, y=None, sample_weight=None):
+        """X is a dataframe."""
+        if not self.dbscan_params:
+            self.dbscan_params = dict(
+                min_samples=1, n_jobs=-1, algorithm='brute',
+                metric=partial(distance_dataframe, X, **dict(
+                    junction_dist=StringKernelDistance(min_kn=1, max_kn=10),
+                    correct=False, tol=0)))
+
+        self.dbscan_params['eps'] = self.eps
+        # new part: group by junction and v genes
+        groups = X.groupby(["v_gene_set_str", "aa_junc"]).groups
+        groups_values = groups.values()  # list of lists
+        idxs = np.array([elem[0] for elem in groups_values])  # take one of them
+        sample_weight = np.array([len(elem) for elem in groups_values])
+        X_all = idxs.reshape(-1, 1)
+
+        if self.kmeans_params.get('n_clusters', True):
+            # ensure the number of clusters is higher than points
+            self.kmeans_params['n_clusters'] = min(
+                self.kmeans_params['n_clusters'], X_all.shape[0])
+        kmeans = MiniBatchKMeans(**self.kmeans_params)
+
+        lengths = X['aa_junction_length'].values
+        kmeans.fit(lengths[idxs].reshape(-1, 1))
+        dbscan_labels = np.zeros_like(kmeans.labels_).ravel()
+        for label in np.unique(kmeans.labels_):
+            idx_row = np.where(kmeans.labels_ == label)[0]
+
+            X_idx = idxs[idx_row].reshape(-1, 1)
+            weights = sample_weight[idx_row]
+
+            db_labels = DBSCAN(**self.dbscan_params).fit_predict(
+                X_idx, sample_weight=weights)
+            dbscan_labels[idx_row] = db_labels + np.max(dbscan_labels) + 1
+
+        labels = dbscan_labels
+
+        # new part: put together the labels
+        labels_ext = np.zeros(X.shape[0], dtype=int)
+        labels_ext[idxs] = labels
+        for i, list_ in enumerate(groups_values):
+            labels_ext[list_] = labels[i]
+        self.labels_ = labels_ext
+
+    def fit_predict(self, X, y=None, sample_weight=None):
+        """Perform clustering on X and returns cluster labels.
+
+        Parameters
+        ----------
+        X : array or sparse (CSR) matrix of shape (n_samples, n_features), or
+                array of shape (n_samples, n_samples)
+            A feature array, or array of distances between samples if
+            ``metric='precomputed'``.
+        sample_weight : array, shape (n_samples,), optional
+            Weight of each sample, such that a sample with a weight of at least
+            ``min_samples`` is by itself a core sample; a sample with negative
+            weight may inhibit its eps-neighbor from being core.
+            Note that weights are absolute, and default to 1.
+
+        Returns
+        -------
+        y : ndarray, shape (n_samples,)
+            cluster labels
+        """
+        self.fit(X, sample_weight=sample_weight)
+        return self.labels_
