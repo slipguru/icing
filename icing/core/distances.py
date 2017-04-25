@@ -24,8 +24,8 @@ except ImportError:
                       "Did you compile icing with "
                       "'python setup.py build_ext --inplace install'?")
 
-from icing.kernel import sum_string_kernel
-# from string_kernel import sum_string_kernel
+from icing.kernel import stringkernel
+# from string_kernel import stringkernel
 from icing.models.model import model_matrix
 from icing.utils import extra
 
@@ -199,7 +199,7 @@ class StringKernelDistance(Distance):
         self.hard_matching = hard_matching
 
     def pairwise(self, x1, x2):
-        return 1 - sum_string_kernel(
+        return 1 - stringkernel(
             [x1, x2], verbose=False, normalize=1, return_float=1,
             min_kn=self.min_kn, max_kn=self.max_kn, lamda=self.lamda,
             check_min_length=self.check_min_length,
