@@ -1,3 +1,5 @@
 include README.md
 include LICENSE.txt
 include icing/examples
+
+graft icing/kernel
