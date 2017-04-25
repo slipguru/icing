@@ -7,10 +7,16 @@ Licensed under the FreeBSD license (see LICENSE.txt).
 """
 
 from setuptools import setup, Extension
+import numpy as np
 
 # Package Version
 from icing import __version__ as version
-# alignment_module = Extension('icing.align.align', sources=['icing/align/alignment.c'])
+# alignment_module = Extension('icing.align.align',
+#                              sources=['icing/align/alignment.c'])
+ssk_module = Extension(
+    'icing.kernel.stringkernel',
+    sources=['icing/kernel/sum_string_kernel.cpp'],
+    include_dirs=[np.get_include()])
 setup(
     name='icing',
     version=version,
@@ -47,5 +53,6 @@ setup(
               'matplotlib (>=1.5.1)',
               'seaborn (>=0.7.0)'],
     scripts=['scripts/ici_run.py', 'scripts/ici_analysis.py'],
-    # ext_modules=[alignment_module]
+    ext_modules=[ssk_module],
+    include_dirs=[np.get_include()]
 )
