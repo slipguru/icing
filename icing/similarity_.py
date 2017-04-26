@@ -7,7 +7,7 @@ from sklearn.base import BaseEstimator
 
 from icing.core.distances import StringDistance
 from icing.core.parallel_distance import sm_sparse
-from icing.kernel import sum_string_kernel
+from icing.kernel import stringkernel
 from icing.models.model import model_matrix
 
 
@@ -74,7 +74,7 @@ class StringKernel(Similarity):
         self.hard_matching = hard_matching
 
     def pairwise(self, x1, x2):
-        return sum_string_kernel(
+        return stringkernel(
             [x1, x2], verbose=False, normalize=1, return_float=1,
             min_kn=self.min_kn, max_kn=self.max_kn, lamda=self.lamda,
             check_min_length=self.check_min_length,

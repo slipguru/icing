@@ -22,7 +22,7 @@ from icing.core.cluster import define_clusts
 from icing.core.distances import string_distance
 from icing.core.similarity_scores import similarity_score_tripartite as mwi
 from icing.core.parallel_distance import sm_sparse
-from icing.kernel import sum_string_kernel
+from icing.kernel import stringkernel
 from icing.models.model import model_matrix
 from icing.utils import extra
 
@@ -73,7 +73,7 @@ def sim_function(
     if sk_weight > 0.:
         if model == 'sk':
             # Using string kernel
-            similarity += sk_weight * sum_string_kernel(
+            similarity += sk_weight * stringkernel(
                 [ig1.junc, ig2.junc],
                 verbose=False,
                 normalize=1, return_float=1, **ssk_params)
