@@ -17,12 +17,12 @@ from itertools import izip  # combinations, izip, product
 from Bio.pairwise2 import align
 from sklearn.base import BaseEstimator
 
-try:
-    from icing.align import align as igalign
-except ImportError:
-    raise ImportError("Module align.so not found. "
-                      "Did you compile icing with "
-                      "'python setup.py build_ext --inplace install'?")
+# try:
+#     from icing.align import align as igalign
+# except ImportError:
+#     raise ImportError("Module align.so not found. "
+#                       "Did you compile icing with "
+#                       "'python setup.py build_ext --inplace install'?")
 
 from icing.kernel import stringkernel
 # from string_kernel import stringkernel
