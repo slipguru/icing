@@ -121,8 +121,10 @@ class DefineClones(BaseEstimator):
 
 class ICINGTwoStep(BaseEstimator):
 
-    def __init__(self, eps=0.5, kmeans_params=None, dbscan_params=None):
+    def __init__(self, eps=0.5, model='aa', kmeans_params=None,
+                 dbscan_params=None):
         self.eps = eps
+        self.model = 'aa_' if model == 'aa' else ''
         self.dbscan_params = dbscan_params or {}
         self.kmeans_params = kmeans_params or dict(n_init=100, n_clusters=100)
 
@@ -137,7 +139,7 @@ class ICINGTwoStep(BaseEstimator):
 
         self.dbscan_params['eps'] = self.eps
         # new part: group by junction and v genes
-        groups = X.groupby(["v_gene_set_str", "aa_junc"]).groups
+        groups = X.groupby(["v_gene_set_str", self.model + "junc"]).groups
         groups_values = groups.values()  # list of lists
         idxs = np.array([elem[0] for elem in groups_values])  # take one of them
         sample_weight = np.array([len(elem) for elem in groups_values])
@@ -149,7 +151,7 @@ class ICINGTwoStep(BaseEstimator):
                 self.kmeans_params['n_clusters'], X_all.shape[0])
         kmeans = MiniBatchKMeans(**self.kmeans_params)
 
-        lengths = X['aa_junction_length'].values
+        lengths = X[self.model + 'junction_length'].values
         kmeans.fit(lengths[idxs].reshape(-1, 1))
         dbscan_labels = np.zeros_like(kmeans.labels_).ravel()
         for label in np.unique(kmeans.labels_):

@@ -199,6 +199,7 @@ class StringKernelDistance(Distance):
         self.hard_matching = hard_matching
 
     def pairwise(self, x1, x2):
+        self.max_kn = min(min(len(x1), len(x2)), self.max_kn)
         return 1 - stringkernel(
             [x1, x2], verbose=False, normalize=1, return_float=1,
             min_kn=self.min_kn, max_kn=self.max_kn, lamda=self.lamda,
@@ -286,7 +287,8 @@ class IgDistance(Distance):
 
 
 def distance_dataframe(s, x1, x2, rm_duplicates=False, tol=3,
-                       junction_dist=None, correct=False, correct_by=None):
+                       junction_dist=None, correct=False, correct_by=None,
+                       model='nt'):
     """Compute pairwise similarity.
 
     Parameters
@@ -301,7 +303,8 @@ def distance_dataframe(s, x1, x2, rm_duplicates=False, tol=3,
         print x1, x2
         raise e
 
-    x1_junc, x2_junc = x1.aa_junc, x2.aa_junc
+    model = 'aa_' if model == 'aa' else ''
+    x1_junc, x2_junc = x1[model + 'junc'], x2[model + 'junc']
     Vgenes_x, Jgenes_x = x1.v_gene_set, x1.j_gene_set
     Vgenes_y, Jgenes_y = x2.v_gene_set, x2.j_gene_set
 
@@ -313,13 +316,14 @@ def distance_dataframe(s, x1, x2, rm_duplicates=False, tol=3,
         else:
             return 1
 
-    if abs(x1.aa_junction_length - x2.aa_junction_length) > tol or \
+    if abs(x1[model + 'junction_length'] - x2[
+            model + 'junction_length']) > tol or \
             not (Vgenes_x & Vgenes_y):
         return 1
 
     distance = junction_dist.pairwise(x1_junc, x2_junc)
     if 1 > distance > 0 and correct:
-        correction = correct_by(np.mean((x1.mut, x2.mut)))
+        correction = correct_by(np.max((x1.mut, x2.mut)))
         distance *= np.clip(correction, 0, 1)
     return max(distance, 0)
 
