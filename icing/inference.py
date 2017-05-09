@@ -154,13 +154,14 @@ class ICINGTwoStep(BaseEstimator):
         lengths = X[self.model + 'junction_length'].values
         kmeans.fit(lengths[idxs].reshape(-1, 1))
         dbscan_labels = np.zeros_like(kmeans.labels_).ravel()
+        dbscan = DBSCAN(**self.dbscan_params)
         for label in np.unique(kmeans.labels_):
             idx_row = np.where(kmeans.labels_ == label)[0]
 
             X_idx = idxs[idx_row].reshape(-1, 1)
             weights = sample_weight[idx_row]
 
-            db_labels = DBSCAN(**self.dbscan_params).fit_predict(
+            db_labels = dbscan.fit_predict(
                 X_idx, sample_weight=weights)
             dbscan_labels[idx_row] = db_labels + np.max(dbscan_labels) + 1
 
