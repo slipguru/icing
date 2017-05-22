@@ -10,7 +10,7 @@ from operator import add
 LOGGING = False
 
 
-def dbscan_partition(iterable, params):
+def dbscan_partition(iterable, params, sample_weight=None):
     """
     :type iterable: iter
     :param iterable: iterator yielding ((key, partition), vector)
@@ -27,7 +27,11 @@ def dbscan_partition(iterable, params):
     y = np.array([k for (k, _), __ in data])
     # perform DBSCAN
     model = skc.DBSCAN(**params)
-    c = model.fit_predict(x)
+    # import sys
+    # print(x, file=sys.stderr)
+    # sys.exit()
+    weights = [sample_weight[k[0]] for k in x]
+    c = model.fit_predict(x, sample_weight=weights)
     cores = set(model.core_sample_indices_)
     # yield (key, cluster_id), non-core samples labeled with *
     for i in xrange(len(c)):
@@ -110,8 +114,6 @@ class DBSCAN(object):
         """
         parts = KDPartitioner(data, self.max_partitions)
         self.data = data
-        import sys
-        print(data, "ciao", file=sys.stderr)
         self.bounding_boxes = parts.bounding_boxes
         self.expanded_boxes = {}
         self._create_neighborhoods()
@@ -119,16 +121,17 @@ class DBSCAN(object):
         self.data = self.data.map(lambda ((k, p), v): (p, (k, v))) \
             .partitionBy(len(parts.partitions)) \
             .map(lambda (p, (k, v)): ((k, p), v))
-        sys.exit()
         # create parameters for sklearn DBSCAN
         params = self.dbscan_params or {
             'eps': self.eps,
             'min_samples': self.min_samples,
             'metric': self.metric}
         # perform dbscan on each part
+        print("go dbscan")
         self.data = self.data.mapPartitions(
-            lambda iterable: dbscan_partition(iterable, params))
+            lambda iterable: dbscan_partition(iterable, params, sample_weight))
         self.data.cache()
+        print("done")
         self._remap_cluster_ids()
 
     def assignments(self):
