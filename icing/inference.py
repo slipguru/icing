@@ -156,14 +156,15 @@ class ICINGTwoStep(BaseEstimator):
         kmeans.fit(lengths[idxs].reshape(-1, 1))
         dbscan_labels = np.zeros_like(kmeans.labels_).ravel()
 
+        dbscan_sk = DBSCAN(**self.dbscan_params)
         if self.use_partitions:
             from pyspark import SparkContext
             from icing.externals.pypardis import dbscan as dbpard
             sc = SparkContext.getOrCreate()
             sample_weight_map = dict(zip(idxs, sample_weight))
+            self.dbscan_params.pop('n_jobs', None)
             dbscan = dbpard.DBSCAN(dbscan_params=self.dbscan_params)
-        else:
-            dbscan = DBSCAN(**self.dbscan_params)
+        # else:
 
         for label in np.unique(kmeans.labels_):
             idx_row = np.where(kmeans.labels_ == label)[0]
@@ -171,12 +172,14 @@ class ICINGTwoStep(BaseEstimator):
             X_idx = idxs[idx_row].reshape(-1, 1)
             weights = sample_weight[idx_row]
 
-            if self.use_partitions:
+            if idx_row.size == 1:
+                db_labels = np.array([0])
+            elif self.use_partitions and idx_row.size > 5000:
                 test_data = sc.parallelize(enumerate(X_idx))
                 dbscan.train(test_data, sample_weight=sample_weight_map)
                 db_labels = np.array(dbscan.assignments())[:, 1]
             else:
-                db_labels = dbscan.fit_predict(
+                db_labels = dbscan_sk.fit_predict(
                     X_idx, sample_weight=weights)
 
             dbscan_labels[idx_row] = db_labels + np.max(dbscan_labels) + 1
