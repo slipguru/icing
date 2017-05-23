@@ -1,4 +1,5 @@
 """Compatibility module for sklearn-like ICING usage."""
+from __future__ import print_function
 import os
 import logging
 import numpy as np
@@ -172,9 +173,11 @@ class ICINGTwoStep(BaseEstimator):
         # else:
 
         for i, label in enumerate(np.unique(kmeans.labels_)):
-            if self.verbose:
-                print("Iteration %d/%d" % (i, np.unique(kmeans.labels_).size))
             idx_row = np.where(kmeans.labels_ == label)[0]
+            
+            if self.verbose:
+                print("Iteration %d/%d" % (i, np.unique(kmeans.labels_).size),
+                      "(%d seqs)" % idx_row.size, end='\r')
 
             X_idx = idxs[idx_row].reshape(-1, 1)
             weights = sample_weight[idx_row]
