@@ -123,13 +123,14 @@ class ICINGTwoStep(BaseEstimator):
 
     def __init__(self, eps=0.5, model='aa', kmeans_params=None,
                  dbscan_params=None, use_partitions=False,
-                 dbspark_params=None):
+                 dbspark_params=None, verbose=False):
         self.eps = eps
         self.model = 'aa_' if model == 'aa' else ''
         self.dbscan_params = dbscan_params or {}
         self.kmeans_params = kmeans_params or dict(n_init=100, n_clusters=100)
         self.use_partitions = use_partitions
         self.dbspark_params = dbspark_params or {}
+        self.verbose = verbose
 
     def fit(self, X, y=None, sample_weight=None):
         """X is a dataframe."""
@@ -170,7 +171,9 @@ class ICINGTwoStep(BaseEstimator):
                 **self.dbspark_params)
         # else:
 
-        for label in np.unique(kmeans.labels_):
+        for i, label in enumerate(np.unique(kmeans.labels_)):
+            if self.verbose:
+                print("Iteration %d/%d" % (i, np.unique(kmeans.labels_).size))
             idx_row = np.where(kmeans.labels_ == label)[0]
 
             X_idx = idxs[idx_row].reshape(-1, 1)
