@@ -610,7 +610,6 @@ def plot_average_silhouette_ap(
 
 
 if __name__ == '__main__':
-    import pandas as pd
     from icing.utils.extra import ensure_symmetry
     from icing.plotting import silhouette
 
@@ -619,11 +618,21 @@ if __name__ == '__main__':
     df = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
                      'string_kernel/HCDR3_kn2_l0.5.txt', delimiter='\t',
                      index_col=0)
-    X = df.as_matrix()
+    # X = pd.read_csv('/home/fede/Dropbox/projects/Franco_Fabio_Marcat/'
+    #                 'TM_oct2016_new_names.csv',
+    #                 index_col=0, header=0).values
+    X = df.values
     X = ensure_symmetry(X)
 
     silhouette.plot_average_silhouette_dendrogram(
-        X, min_threshold=.7, max_threshold=1.1, n=200, xticks=range(0, 50, 4),
+        X, min_threshold=.7, max_threshold=1., n=200, xticks=range(0, 50, 4),
         xlim=[0, 50], figsize=(20, 8),
-        method_list=('median', 'ward', 'complete'))
-    silhouette.plot_average_silhouette_spectral(X, min_clust=2, max_clust=10, n=10)
+        method_list=('median', 'ward', 'complete', 'weighted'), n_jobs=-1,
+        sample_names=list(df.columns))
+    silhouette.plot_average_silhouette_spectral(
+        X, min_clust=2, max_clust=50, n=100,
+        n_jobs=-1, sample_names=list(df.columns),
+        affinity_delta=.2, is_affinity=False)
+    plot_average_silhouette_ap(
+        X, n=5, n_jobs=-1, sample_names=list(df.columns),
+        affinity_delta=.2, is_affinity=False)

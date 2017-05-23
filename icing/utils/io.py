@@ -167,8 +167,8 @@ def load_dm_from_file(filename, index_col=0, header='infer',
     return dm
 
 
-def load_dataframe(db_file):
-    df = pd.read_csv(db_file, dialect='excel-tab')
+def load_dataframe(db_file, dialect='excel-tab'):
+    df = pd.read_csv(db_file, dialect=dialect)
     df = df.rename(columns=dict(zip(df.columns, df.columns.str.lower())))
 
     # df = df[df['functional'] == 'F']
