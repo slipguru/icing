@@ -10,8 +10,7 @@ from six.moves import cPickle as pkl
 from sklearn.base import BaseEstimator
 from sklearn.cluster import DBSCAN, MiniBatchKMeans
 
-from icing.core.cluster import define_clusts
-from icing.core.distances import distance_dataframe, StringKernelDistance
+from icing.core.distances import distance_dataframe, StringDistance
 from icing.similarity_ import compute_similarity_matrix
 from icing.utils import extra
 
@@ -67,6 +66,7 @@ class DefineClones(BaseEstimator):
                     logging.error("Cannot dump similarity matrix")
 
             logging.info("Start define_clusts function ...")
+            from icing.core.cluster import define_clusts
             labels = define_clusts(
                 similarity_matrix, threshold=self.threshold,
                 method=self.cluster)
@@ -122,29 +122,44 @@ class DefineClones(BaseEstimator):
 class ICINGTwoStep(BaseEstimator):
 
     def __init__(self, eps=0.5, model='aa', kmeans_params=None,
-                 dbscan_params=None, use_partitions=False,
+                 dbscan_params=None, method='dbscan', hdbscan_params=None,
                  dbspark_params=None, verbose=False):
         self.eps = eps
         self.model = 'aa_' if model == 'aa' else ''
         self.dbscan_params = dbscan_params or {}
         self.kmeans_params = kmeans_params or dict(n_init=100, n_clusters=100)
-        self.use_partitions = use_partitions
+        self.method = method
+        self.hdbscan_params = hdbscan_params or {}
         self.dbspark_params = dbspark_params or {}
         self.verbose = verbose
 
     def fit(self, X, y=None, sample_weight=None):
         """X is a dataframe."""
+        if self.method not in ("dbscan", "hdbscan", "spark"):
+            raise ValueError("Unsupported method '%s'" % self.method)
         if not self.dbscan_params:
             self.dbscan_params = dict(
                 min_samples=1, n_jobs=-1, algorithm='brute',
                 metric=partial(distance_dataframe, X, **dict(
-                    junction_dist=StringKernelDistance(min_kn=1, max_kn=10),
+                    junction_dist=StringDistance(),
+                    correct=False, tol=0)))
+        if not self.hdbscan_params and self.method == 'hdbscan':
+            self.hdbscan_params = dict(
+                min_samples=1, n_jobs=-1,
+                metric=partial(distance_dataframe, X, **dict(
+                    junction_dist=StringDistance(),
                     correct=False, tol=0)))
 
         self.dbscan_params['eps'] = self.eps
         # new part: group by junction and v genes
-        groups = X.groupby(["v_gene_set_str", self.model + "junc"]).groups
-        groups_values = groups.values()  # list of lists
+        if self.method == 'hdbscan':
+            # no grouping; unsupported sample_weight
+            groups_values = [[x] for x in np.arange(X.shape[0])]
+        else:
+            # list of lists
+            groups_values = X.groupby(
+                ["v_gene_set_str", self.model + "junc"]).groups.values()
+
         idxs = np.array([elem[0] for elem in groups_values])  # take one of them
         sample_weight = np.array([len(elem) for elem in groups_values])
         X_all = idxs.reshape(-1, 1)
@@ -159,8 +174,12 @@ class ICINGTwoStep(BaseEstimator):
         kmeans.fit(lengths[idxs].reshape(-1, 1))
         dbscan_labels = np.zeros_like(kmeans.labels_).ravel()
 
-        dbscan_sk = DBSCAN(**self.dbscan_params)
-        if self.use_partitions:
+        if self.method == 'hdbscan':
+            from hdbscan import HDBSCAN
+            dbscan_sk = HDBSCAN(**self.hdbscan_params)
+        else:
+            dbscan_sk = DBSCAN(**self.dbscan_params)
+        if self.method == 'spark':
             from pyspark import SparkContext
             from icing.externals.pypardis import dbscan as dbpard
             sc = SparkContext.getOrCreate()
@@ -183,17 +202,19 @@ class ICINGTwoStep(BaseEstimator):
 
             if idx_row.size == 1:
                 db_labels = np.array([0])
-            elif self.use_partitions and idx_row.size > 5000:
+            elif self.method == 'spark' and idx_row.size > 5000:
                 test_data = sc.parallelize(enumerate(X_idx))
                 dbscan.train(test_data, sample_weight=sample_weight_map)
                 db_labels = np.array(dbscan.assignments())[:, 1]
+            elif self.method == 'hdbscan':
+                db_labels = dbscan_sk.fit_predict(X_idx)  # unsupported weights
             else:
                 db_labels = dbscan_sk.fit_predict(
                     X_idx, sample_weight=weights)
 
             dbscan_labels[idx_row] = db_labels + np.max(dbscan_labels) + 1
 
-        if self.use_partitions:
+        if self.method == 'spark':
             sc.stop()
         labels = dbscan_labels
 
