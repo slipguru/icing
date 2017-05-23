@@ -86,7 +86,6 @@ class DefineClones(BaseEstimator):
                                  "you need to pass a clustering method")
 
             self.clustering.metric = partial(self.clustering.metric, X_string)
-            print self.clustering
             # Fit on a index array
             # see https://github.com/scikit-learn/scikit-learn/issues/3737
             # labels = self.clustering.fit_predict(X_string)
@@ -174,7 +173,7 @@ class ICINGTwoStep(BaseEstimator):
 
         for i, label in enumerate(np.unique(kmeans.labels_)):
             idx_row = np.where(kmeans.labels_ == label)[0]
-            
+
             if self.verbose:
                 print("Iteration %d/%d" % (i, np.unique(kmeans.labels_).size),
                       "(%d seqs)" % idx_row.size, end='\r')
