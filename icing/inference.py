@@ -122,12 +122,14 @@ class DefineClones(BaseEstimator):
 class ICINGTwoStep(BaseEstimator):
 
     def __init__(self, eps=0.5, model='aa', kmeans_params=None,
-                 dbscan_params=None, use_partitions=False):
+                 dbscan_params=None, use_partitions=False,
+                 dbspark_params=None):
         self.eps = eps
         self.model = 'aa_' if model == 'aa' else ''
         self.dbscan_params = dbscan_params or {}
         self.kmeans_params = kmeans_params or dict(n_init=100, n_clusters=100)
         self.use_partitions = use_partitions
+        self.dbspark_params = dbspark_params or {}
 
     def fit(self, X, y=None, sample_weight=None):
         """X is a dataframe."""
@@ -163,7 +165,9 @@ class ICINGTwoStep(BaseEstimator):
             sc = SparkContext.getOrCreate()
             sample_weight_map = dict(zip(idxs, sample_weight))
             self.dbscan_params.pop('n_jobs', None)
-            dbscan = dbpard.DBSCAN(dbscan_params=self.dbscan_params)
+            dbscan = dbpard.DBSCAN(
+                dbscan_params=self.dbscan_params,
+                **self.dbspark_params)
         # else:
 
         for label in np.unique(kmeans.labels_):
