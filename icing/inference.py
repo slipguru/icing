@@ -164,7 +164,7 @@ class ICINGTwoStep(BaseEstimator):
             from icing.externals.pypardis import dbscan as dbpard
             sc = SparkContext.getOrCreate()
             sample_weight_map = dict(zip(idxs, sample_weight))
-            self.dbscan_params.pop('n_jobs', None)
+            # self.dbscan_params.pop('n_jobs', None)
             dbscan = dbpard.DBSCAN(
                 dbscan_params=self.dbscan_params,
                 **self.dbspark_params)
