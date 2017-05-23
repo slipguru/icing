@@ -176,6 +176,7 @@ class ICINGTwoStep(BaseEstimator):
 
         if self.method == 'hdbscan':
             from hdbscan import HDBSCAN
+            from hdbscan.prediction import all_points_membership_vectors
             dbscan_sk = HDBSCAN(**self.hdbscan_params)
         else:
             dbscan_sk = DBSCAN(**self.dbscan_params)
@@ -197,7 +198,7 @@ class ICINGTwoStep(BaseEstimator):
                 print("Iteration %d/%d" % (i, np.unique(kmeans.labels_).size),
                       "(%d seqs)" % idx_row.size, end='\r')
 
-            X_idx = idxs[idx_row].reshape(-1, 1)
+            X_idx = idxs[idx_row].reshape(-1, 1).astype('float64')
             weights = sample_weight[idx_row]
 
             if idx_row.size == 1:
@@ -208,11 +209,16 @@ class ICINGTwoStep(BaseEstimator):
                 db_labels = np.array(dbscan.assignments())[:, 1]
             elif self.method == 'hdbscan':
                 db_labels = dbscan_sk.fit_predict(X_idx)  # unsupported weights
+                # avoid noise samples
+                soft_clusters = all_points_membership_vectors(dbscan_sk)
+                db_labels = np.array([np.argmax(x) for x in soft_clusters])
             else:
                 db_labels = dbscan_sk.fit_predict(
                     X_idx, sample_weight=weights)
 
-            dbscan_labels[idx_row] = db_labels + np.max(dbscan_labels) + 1
+            # hopefully, there are no noisy samples at this time
+            db_labels[db_labels > -1] = db_labels[db_labels > -1] + np.max(dbscan_labels) + 1
+            dbscan_labels[idx_row] = db_labels  # + np.max(dbscan_labels) + 1
 
         if self.method == 'spark':
             sc.stop()
