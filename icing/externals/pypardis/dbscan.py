@@ -127,11 +127,9 @@ class DBSCAN(object):
             'min_samples': self.min_samples,
             'metric': self.metric}
         # perform dbscan on each part
-        print("go dbscan")
         self.data = self.data.mapPartitions(
             lambda iterable: dbscan_partition(iterable, params, sample_weight))
         self.data.cache()
-        print("done")
         self._remap_cluster_ids()
 
     def assignments(self):
