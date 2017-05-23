@@ -286,8 +286,13 @@ class IgDistance(Distance):
         return max(distance, 0)
 
 
+def correction_function(x):
+    return 1 - x / 100.
+
+
 def distance_dataframe(s, x1, x2, rm_duplicates=False, tol=3,
-                       junction_dist=None, correct=False, correct_by=None,
+                       junction_dist=None, correct=False,
+                       correct_by=correction_function,
                        model='nt'):
     """Compute pairwise similarity.
 
@@ -329,7 +334,7 @@ def distance_dataframe(s, x1, x2, rm_duplicates=False, tol=3,
 
 
 def ig_distance(s, x1, x2, rm_duplicates=False, tol=3, junction_dist=None,
-                correct=False, correct_by=None):
+                correct=False):
     """Compute pairwise similarity.
 
     Parameters
@@ -356,7 +361,7 @@ def ig_distance(s, x1, x2, rm_duplicates=False, tol=3, junction_dist=None,
     distance = junction_dist.pairwise(x1[2], x2[2])
 
     if 1 > distance > 0 and correct:
-        correction = correct_by(np.mean((float(x1[4]), float(x2[4]))))
+        correction = correction_function(np.mean((float(x1[4]), float(x2[4]))))
         distance *= np.clip(correction, 0, 1)
     return max(distance, 0)
 

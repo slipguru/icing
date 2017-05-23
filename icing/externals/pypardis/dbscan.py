@@ -2,7 +2,6 @@ from __future__ import print_function
 import numpy as np
 import pyspark as ps
 import sklearn.cluster as skc
-from scipy.spatial.distance import *
 from partition import KDPartitioner
 from aggregator import ClusterAggregator
 from operator import add
@@ -28,8 +27,7 @@ def dbscan_partition(iterable, params, sample_weight=None):
     # perform DBSCAN
     model = skc.DBSCAN(**params)
     # import sys
-    # print(x, file=sys.stderr)
-    # sys.exit()
+    # print(model, file=sys.stderr)
     weights = [sample_weight[k[0]] for k in x]
     c = model.fit_predict(x, sample_weight=weights)
     cores = set(model.core_sample_indices_)
@@ -75,7 +73,7 @@ class DBSCAN(object):
         to global cluster ids
     """
 
-    def __init__(self, eps=0.5, min_samples=5, metric=euclidean,
+    def __init__(self, eps=0.5, min_samples=5, metric='euclidean',
                  max_partitions=None, dbscan_params=None):
         """
         :type eps: float
