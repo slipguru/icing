@@ -122,11 +122,12 @@ class DefineClones(BaseEstimator):
 class ICINGTwoStep(BaseEstimator):
 
     def __init__(self, eps=0.5, model='aa', kmeans_params=None,
-                 dbscan_params=None):
+                 dbscan_params=None, use_partitions=False):
         self.eps = eps
         self.model = 'aa_' if model == 'aa' else ''
         self.dbscan_params = dbscan_params or {}
         self.kmeans_params = kmeans_params or dict(n_init=100, n_clusters=100)
+        self.use_partitions = use_partitions
 
     def fit(self, X, y=None, sample_weight=None):
         """X is a dataframe."""
@@ -154,17 +155,34 @@ class ICINGTwoStep(BaseEstimator):
         lengths = X[self.model + 'junction_length'].values
         kmeans.fit(lengths[idxs].reshape(-1, 1))
         dbscan_labels = np.zeros_like(kmeans.labels_).ravel()
-        dbscan = DBSCAN(**self.dbscan_params)
+
+        if self.use_partitions:
+            from pyspark import SparkContext
+            from icing.externals.pypardis import dbscan as dbpard
+            sc = SparkContext.getOrCreate()
+            sample_weight_map = dict(zip(idxs, sample_weight))
+            dbscan = dbpard.DBSCAN(dbscan_params=self.dbscan_params)
+        else:
+            dbscan = DBSCAN(**self.dbscan_params)
+
         for label in np.unique(kmeans.labels_):
             idx_row = np.where(kmeans.labels_ == label)[0]
 
             X_idx = idxs[idx_row].reshape(-1, 1)
             weights = sample_weight[idx_row]
 
-            db_labels = dbscan.fit_predict(
-                X_idx, sample_weight=weights)
+            if self.use_partitions:
+                test_data = sc.parallelize(enumerate(X_idx))
+                dbscan.train(test_data, sample_weight=sample_weight_map)
+                db_labels = np.array(dbscan.assignments())[:, 1]
+            else:
+                db_labels = dbscan.fit_predict(
+                    X_idx, sample_weight=weights)
+
             dbscan_labels[idx_row] = db_labels + np.max(dbscan_labels) + 1
 
+        if self.use_partitions:
+            sc.stop()
         labels = dbscan_labels
 
         # new part: put together the labels
