@@ -9,6 +9,7 @@ from functools import partial
 from six.moves import cPickle as pkl
 from sklearn.base import BaseEstimator
 from sklearn.cluster import DBSCAN, MiniBatchKMeans
+from sklearn.neighbors import BallTree
 
 from icing.core.distances import distance_dataframe, StringDistance
 from icing.similarity_ import compute_similarity_matrix
@@ -152,7 +153,7 @@ class ICINGTwoStep(BaseEstimator):
 
         self.dbscan_params['eps'] = self.eps
         # new part: group by junction and v genes
-        if self.method == 'hdbscan':
+        if self.method == 'hdbscan' and False:
             # no grouping; unsupported sample_weight
             groups_values = [[x] for x in np.arange(X.shape[0])]
         else:
@@ -215,6 +216,20 @@ class ICINGTwoStep(BaseEstimator):
             else:
                 db_labels = dbscan_sk.fit_predict(
                     X_idx, sample_weight=weights)
+
+            if len(dbscan_sk.core_sample_indices_) < 1:
+                db_labels[:] = 0
+            if -1 in db_labels:
+                balltree = BallTree(
+                    X_idx[dbscan_sk.core_sample_indices_],
+                    metric=dbscan_sk.metric)
+                noise_labels = balltree.query(
+                    X_idx[db_labels == -1], k=1, return_distance=False).ravel()
+                # get labels for core points, then assign to noise points based
+                # on balltree
+                dbscan_noise_labels = db_labels[
+                    dbscan_sk.core_sample_indices_][noise_labels]
+                db_labels[db_labels == -1] = dbscan_noise_labels
 
             # hopefully, there are no noisy samples at this time
             db_labels[db_labels > -1] = db_labels[db_labels > -1] + np.max(dbscan_labels) + 1
