@@ -140,13 +140,13 @@ class ICINGTwoStep(BaseEstimator):
             raise ValueError("Unsupported method '%s'" % self.method)
         if not self.dbscan_params:
             self.dbscan_params = dict(
-                min_samples=1, n_jobs=-1, algorithm='brute',
+                min_samples=20, n_jobs=-1, algorithm='brute',
                 metric=partial(distance_dataframe, X, **dict(
                     junction_dist=StringDistance(),
                     correct=False, tol=0)))
         if not self.hdbscan_params and self.method == 'hdbscan':
             self.hdbscan_params = dict(
-                min_samples=1, n_jobs=-1,
+                min_samples=20, n_jobs=-1,
                 metric=partial(distance_dataframe, X, **dict(
                     junction_dist=StringDistance(),
                     correct=False, tol=0)))
